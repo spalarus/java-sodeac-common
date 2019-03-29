@@ -13,7 +13,7 @@
  <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <jdk.version>1.8</jdk.version>
-    <bundle.version>1.0.1</bundle.version>
+    <bundle.version>0.1.0</bundle.version>
   </properties>
   
   <dependencies>
@@ -86,7 +86,11 @@
             <Bundle-RequiredExecutionEnvironment>JavaSE-1.8</Bundle-RequiredExecutionEnvironment>
             <Bundle-ActivationPolicy>lazy</Bundle-ActivationPolicy>
             <Implementation-Build>${scmBranch}@r${buildNumber}</Implementation-Build>
-            <Export-Package>org.sodeac.common;version="${bundle.version}"</Export-Package>
+            <Export-Package>
+            	org.sodeac.common;version="${bundle.version}",
+            	org.sodeac.common.eip;version="${bundle.version}",
+            	org.sodeac.common.function;version="${bundle.version}"
+            </Export-Package>
           </instructions>
           <source>${jdk.version}</source>
           <target>${jdk.version}</target>
