@@ -101,7 +101,8 @@
             <Export-Package>
             	org.sodeac.common;version="${bundle.version}",
             	org.sodeac.common.eip;version="${bundle.version}",
-            	org.sodeac.common.function;version="${bundle.version}"
+            	org.sodeac.common.function;version="${bundle.version}",
+            	org.sodeac.common.misc;version="${bundle.version}"
             </Export-Package>
           </instructions>
           <source>${jdk.version}</source>
