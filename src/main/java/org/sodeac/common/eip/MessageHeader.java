@@ -17,6 +17,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Message Header with common properties for message driven communication.
+ * 
+ * @author Sebastian Palarus
+ *
+ */
 public class MessageHeader implements Serializable
 {
 	/**
@@ -52,9 +58,14 @@ public class MessageHeader implements Serializable
 	public static final String MESSAGE_HEADER_END 					= "SDC_MH_END"					;
 	public static final String MESSAGE_HEADER_PROPERTIES 			= "SDC_MH_PROPERTIES"			;
 	
+	/**
+	 * Factory to create new Message Header.
+	 * 
+	 * @return
+	 */
 	public static MessageHeader newInstance()
 	{
-		return new MessageHeader();
+		return new MessageHeader().generateMessageID();
 	}
 	
 	private MessageHeader()
@@ -65,84 +76,89 @@ public class MessageHeader implements Serializable
 	private volatile UUID messageID = null;
 	private volatile boolean messageIDLocked = false;
 	
-	private UUID correlationID = null;
+	private volatile UUID correlationID = null;
 	private volatile boolean correlationIDLocked = false;
 	
-	private Integer priority = null;
+	private volatile Integer priority = null;
 	private volatile boolean priorityLocked = false;
 	
-	private Boolean guaranteedDelivery = null;
+	private volatile Boolean guaranteedDelivery = null;
 	private volatile boolean guaranteedDeliveryLocked = false;
 	
-	private Long timestamp = null;
+	private volatile Long timestamp = null;
 	private volatile boolean timestampLocked = false;
 	
-	private Long expiration = null;
+	private volatile Long expiration = null;
 	private volatile boolean expirationLocked = false;
 	
-	private UUID connection = null;
+	private volatile UUID connection = null;
 	private volatile boolean connectionLocked = false;
 	
-	private UUID session = null;
+	private volatile UUID session = null;
 	private volatile boolean sessionLocked = false;
 	
-	private UUID workflow = null;
+	private volatile UUID workflow = null;
 	private volatile boolean workflowLocked = false;
 	
-	private String topic = null;
+	private volatile String topic = null;
 	private volatile boolean topicLocked = false;
 	
-	private String queue = null;
+	private volatile String queue = null;
 	private volatile boolean queueLocked = false;
 	
-	private String messageType = null;
+	private volatile String messageType = null;
 	private volatile boolean messageTypeLocked = false;
 	
-	private String messageFormat = null;
+	private volatile String messageFormat = null;
 	private volatile boolean messageFormatLocked = false;
 	
-	private String service =  null;
+	private volatile String service =  null;
 	private volatile boolean serviceLocked = false;
 	
-	private String domain =  null;
+	private volatile String domain =  null;
 	private volatile boolean domainLocked = false;
 	
-	private String boundedContext = null;
+	private volatile String boundedContext = null;
 	private volatile boolean boundedContextLocked = false;
 	
-	private String destination = null;
+	private volatile String destination = null;
 	private volatile boolean destinationLocked = false;
 	
-	private String user = null;
+	private volatile String user = null;
 	private volatile boolean userLocked = false;
 	
-	private String source = null;
+	private volatile String source = null;
 	private volatile boolean sourceLocked = false;
 	
-	private String replyTo = null;
+	private volatile String replyTo = null;
 	private volatile boolean replyToLocked = false;
 	
-	private Long deliveryTime = null;
+	private volatile Long deliveryTime = null;
 	private volatile boolean deliveryTimeLocked = false;
 	
-	private Boolean redelivered = null;
+	private volatile Boolean redelivered = null;
 	private volatile boolean redeliveredLocked = false;
 	
-	private Long sequence = null;
+	private volatile Long sequence = null;
 	private volatile boolean sequenceLocked = false;
 	
-	private Long position = null;
+	private volatile Long position = null;
 	private volatile boolean positionLocked = false;
 	
-	private Long size = null;
+	private volatile Long size = null;
 	private volatile boolean sizeLocked = false;
 	
-	private Boolean end = null;
+	private volatile Boolean end = null;
 	private volatile boolean endLocked = false;
 	
-	private Map<String,Object> properties;
+	private volatile Map<String,Object> properties;
 	private volatile boolean propertiesLocked = false;
 	
+	/**
+	 * Locks complete message header. After this call the header is immutable.
+	 * 
+	 * @return message header
+	 */
 	public MessageHeader lockAllHeader()
 	{
 		this.messageIDLocked = true;
@@ -176,6 +192,12 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 	
+	/**
+	 * Locks single property of message header. After this call the property is immutable.
+	 * 
+	 * @param messageHeader affected property
+	 * @return message header
+	 */
 	public MessageHeader lockHeader(String messageHeader)
 	{
 		switch (messageHeader) 
@@ -322,20 +344,21 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for message id
+	 * 
+	 * @return message id
+	 */
 	public UUID getMessageID()
 	{
 		return messageID;
 	}
-
-	public MessageHeader setMessageID(UUID messageID)
-	{
-		if(! this.messageIDLocked)
-		{
-			this.messageID = messageID;
-		}
-		return this;
-	}
 	
+	/**
+	 * Autogenerates message id.
+	 * 
+	 * @return message header
+	 */
 	public MessageHeader generateMessageID()
 	{
 		if(! this.messageIDLocked)
@@ -345,11 +368,21 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for correlation id
+	 * 
+	 * @return correlation id
+	 */
 	public UUID getCorrelationID()
 	{
 		return correlationID;
 	}
 
+	/**
+	 * setter for correlation id
+	 * @param correlationID correlation id to set
+	 * @return message headers
+	 */
 	public MessageHeader setCorrelationID(UUID correlationID)
 	{
 		if(! this.correlationIDLocked)
@@ -359,11 +392,21 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for message priority
+	 * 
+	 * @return message header
+	 */
 	public Integer getPriority()
 	{
 		return priority;
 	}
 
+	/**
+	 * setter for message priority 
+	 * @param priority priority to set
+	 * @return message header
+	 */
 	public MessageHeader setPriority(Integer priority)
 	{
 		if(! this.priorityLocked)
@@ -373,11 +416,21 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for guaranteed delivery property
+	 * @return guaranteed delivery property
+	 */
 	public Boolean getGuaranteedDelivery()
 	{
 		return guaranteedDelivery;
 	}
 
+	/**
+	 * setter for guaranteed delivery property
+	 * 
+	 * @param guaranteedDelivery guaranteed delivery property to set
+	 * @return message header
+	 */
 	public MessageHeader setGuaranteedDelivery(Boolean guaranteedDelivery)
 	{
 		if(! this.guaranteedDeliveryLocked)
@@ -387,11 +440,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for timestamp
+	 * 
+	 * @return timestamp
+	 */
 	public Long getTimestamp()
 	{
 		return timestamp;
 	}
 
+	/**
+	 * setter for timestamp
+	 * 
+	 * @param timestamp timestamp to set
+	 * @return message header
+	 */
 	public MessageHeader setTimestamp(Long timestamp)
 	{
 		if(! this.timestampLocked)
@@ -401,11 +465,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for expiration
+	 * 
+	 * @return expiration
+	 */
 	public Long getExpiration()
 	{
 		return expiration;
 	}
 
+	/**
+	 * setter for expiration
+	 * 
+	 * @param expiration expiration to set
+	 * @return message header
+	 */
 	public MessageHeader setExpiration(Long expiration)
 	{
 		if(! this.expirationLocked)
@@ -415,11 +490,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for connection id
+	 * 
+	 * @return connection id
+	 */
 	public UUID getConnection()
 	{
 		return connection;
 	}
 
+	/**
+	 * setter for connection id
+	 * 
+	 * @param connection connection id to set
+	 * @return message header
+	 */
 	public MessageHeader setConnection(UUID connection)
 	{
 		if(! this.connectionLocked)
@@ -429,11 +515,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 	
+	/**
+	 * getter for session id
+	 * 
+	 * @return session id
+	 */
 	public UUID getSession()
 	{
 		return session;
 	}
 
+	/**
+	 * setter for session id
+	 * 
+	 * @param session session id to set
+	 * @return message header
+	 */
 	public MessageHeader setSession(UUID session)
 	{
 		if(! this.serviceLocked)
@@ -443,11 +540,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for workflow id
+	 * 
+	 * @return workflow id
+	 */
 	public UUID getWorkflow()
 	{
 		return workflow;
 	}
 
+	/**
+	 * setter for workflow id
+	 * 
+	 * @param workflow workflow id to set
+	 * @return
+	 */
 	public MessageHeader setWorkflow(UUID workflow)
 	{
 		if(! workflowLocked)
@@ -457,11 +565,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for topic
+	 * 
+	 * @return topic
+	 */
 	public String getTopic()
 	{
 		return topic;
 	}
 
+	/**
+	 * setter for topic
+	 * 
+	 * @param topic topic to set
+	 * @return message header
+	 */
 	public MessageHeader setTopic(String topic)
 	{
 		if(! this.topicLocked)
@@ -471,11 +590,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for queue
+	 * 
+	 * @return queue
+	 */
 	public String getQueue()
 	{
 		return queue;
 	}
 
+	/**
+	 * setter for queue
+	 * 
+	 * @param queue queue to set
+	 * @return message header
+	 */
 	public MessageHeader setQueue(String queue)
 	{
 		if(! this.queueLocked)
@@ -485,11 +615,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for message type
+	 * 
+	 * @return message type
+	 */
 	public String getMessageType()
 	{
 		return messageType;
 	}
 
+	/**
+	 * setter for message type
+	 * 
+	 * @param messageType message type to set
+	 * @return message header
+	 */
 	public MessageHeader setMessageType(String messageType)
 	{
 		if(! this.messageTypeLocked)
@@ -499,11 +640,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for message format
+	 * 
+	 * @return message format
+	 */
 	public String getMessageFormat()
 	{
 		return messageFormat;
 	}
 
+	/**
+	 * setter for message format
+	 * 
+	 * @param messageFormat message format to set
+	 * @return message header
+	 */
 	public MessageHeader setMessageFormat(String messageFormat)
 	{
 		if(! this.messageFormatLocked)
@@ -513,11 +665,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for service
+	 * 
+	 * @return service
+	 */
 	public String getService()
 	{
 		return service;
 	}
 
+	/**
+	 * setter for service
+	 * 
+	 * @param service service to set
+	 * @return message header
+	 */
 	public MessageHeader setService(String service)
 	{
 		if(! serviceLocked)
@@ -527,11 +690,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for domain
+	 * 
+	 * @return domain
+	 */
 	public String getDomain()
 	{
 		return domain;
 	}
 
+	/**
+	 * setter for domain
+	 * 
+	 * @param domain domain to set
+	 * @return message header
+	 */
 	public MessageHeader setDomain(String domain)
 	{
 		if(! this.domainLocked)
@@ -541,11 +715,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * setter for bounded context
+	 * 
+	 * @return bounded context
+	 */
 	public String getBoundedContext()
 	{
 		return boundedContext;
 	}
 
+	/**
+	 * setter for bounded context
+	 * 
+	 * @param boundedContext bounded context to set
+	 * @return message header
+	 */
 	public MessageHeader setBoundedContext(String boundedContext)
 	{
 		if(! this.boundedContextLocked)
@@ -555,11 +740,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for destination
+	 * 
+	 * @return destination
+	 */
 	public String getDestination()
 	{
 		return destination;
 	}
 
+	/**
+	 * setter for destination
+	 * 
+	 * @param destination destination to set
+	 * @return message header
+	 */
 	public MessageHeader setDestination(String destination)
 	{
 		if(! this.destinationLocked)
@@ -569,11 +765,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for user
+	 * 
+	 * @return user
+	 */
 	public String getUser()
 	{
 		return user;
 	}
 
+	/**
+	 * setter for user
+	 * 
+	 * @param user user to set
+	 * @return message parameter
+	 */
 	public MessageHeader setUser(String user)
 	{
 		if(! this.userLocked)
@@ -583,11 +790,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for source
+	 * 
+	 * @return source
+	 */
 	public String getSource()
 	{
 		return source;
 	}
 
+	/**
+	 * setter for source
+	 * 
+	 * @param source source to set
+	 * @return message header
+	 */
 	public MessageHeader setSource(String source)
 	{
 		if(! this.sourceLocked)
@@ -597,11 +815,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for reply to property
+	 * 
+	 * @return reply to property
+	 */
 	public String getReplyTo()
 	{
 		return replyTo;
 	}
 
+	/**
+	 * setter for reply to property
+	 * 
+	 * @param replyTo reply to property to set
+	 * @return message header
+	 */
 	public MessageHeader setReplyTo(String replyTo)
 	{
 		if(! this.replyToLocked)
@@ -611,11 +840,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for delivery time
+	 * 
+	 * @return delivery time
+	 */
 	public Long getDeliveryTime()
 	{
 		return deliveryTime;
 	}
 
+	/**
+	 * setter for delivery time
+	 * 
+	 * @param deliveryTime delivery time to set
+	 * @return message header
+	 */
 	public MessageHeader setDeliveryTime(Long deliveryTime)
 	{
 		if(! this.deliveryTimeLocked)
@@ -625,11 +865,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for redelivered property
+	 * 
+	 * @return redelivered property
+	 */
 	public Boolean getRedelivered()
 	{
 		return redelivered;
 	}
 
+	/**
+	 * setter for redelivered property
+	 * 
+	 * @param redelivered redelivered property to set
+	 * @return message header
+	 */
 	public MessageHeader setRedelivered(Boolean redelivered)
 	{
 		if(! this.redeliveredLocked)
@@ -639,11 +890,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for message sequence
+	 * 
+	 * @return message sequence
+	 */
 	public Long getSequence()
 	{
 		return sequence;
 	}
 
+	/**
+	 * setter for message sequence
+	 * 
+	 * @param sequence message sequence to set
+	 * @return message header
+	 */
 	public MessageHeader setSequence(Long sequence)
 	{
 		if(! this.sequenceLocked)
@@ -653,11 +915,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for message position
+	 * 
+	 * @return message position
+	 */
 	public Long getPosition()
 	{
 		return position;
 	}
 
+	/**
+	 * setter for message position
+	 * 
+	 * @param position message position to set
+	 * @return message header
+	 */
 	public MessageHeader setPosition(Long position)
 	{
 		if(! this.positionLocked)
@@ -667,11 +940,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * getter for message size (complete message)
+	 * 
+	 * @return message size
+	 */
 	public Long getSize()
 	{
 		return size;
 	}
 
+	/**
+	 * setter for message size (complete message)
+	 * 
+	 * @param size complete message size to set
+	 * @return message header
+	 */
 	public MessageHeader setSize(Long size)
 	{
 		if(! this.sizeLocked)
@@ -681,11 +965,22 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	/**
+	 * setter for end flag
+	 * 
+	 * @return end flag
+	 */
 	public Boolean getEnd()
 	{
 		return end;
 	}
 
+	/**
+	 * setter for end flag
+	 * 
+	 * @param end end flag to set
+	 * @return message header
+	 */
 	public MessageHeader setEnd(Boolean end)
 	{
 		if(! this.endLocked)
@@ -695,11 +990,23 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 	
+	/**
+	 * getter for message property keyset
+	 * 
+	 * @return  message property keyset
+	 */
 	public Set<String> getPropertyKeySet()
 	{
 		return  this.properties == null  ? Collections.emptySet() : this.properties.keySet();
 	}
 	
+	/**
+	 * adds a message property
+	 * 
+	 * @param key key for property
+	 * @param value property value
+	 * @return message header
+	 */
 	public MessageHeader addProperty(String key, Object value)
 	{
 		if( this.propertiesLocked)
@@ -717,6 +1024,11 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 	
+	/**
+	 * removes a message property
+	 * @param key key of message property to remove
+	 * @return message header
+	 */
 	public MessageHeader removeProperty(String key)
 	{
 		if( this.propertiesLocked)
@@ -734,6 +1046,11 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 	
+	/**
+	 * clears all message properties
+	 * 
+	 * @return message header
+	 */
 	public MessageHeader clearProperties()
 	{
 		if( this.propertiesLocked)
@@ -751,6 +1068,12 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 	
+	/**
+	 * returns the value of message property specified by key
+	 * 
+	 * @param key key of property is to be returned
+	 * @return property specified by key
+	 */
 	public Object getPropertyValue(String key)
 	{
 		if(this.properties == null)
@@ -761,6 +1084,13 @@ public class MessageHeader implements Serializable
 		return this.properties.get(key);
 	}
 	
+	/**
+	 * returns the typed value of message property specified by key
+	 * 
+	 * @param key key of property is to be returned
+	 * @param type type of property is to be returned
+	 * @return typed property specified by key
+	 */
 	@SuppressWarnings("unchecked")
 	public <T> T getPropertyValue(String key, Class<T> type)
 	{
