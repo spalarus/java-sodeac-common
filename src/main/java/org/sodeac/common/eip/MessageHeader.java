@@ -30,12 +30,18 @@ public class MessageHeader implements Serializable
 	public static final String MESSAGE_HEADER_GUARANTEED_DELIVERY 	= "SDC_MH_GUARANTEED_DELIVERY"	;
 	public static final String MESSAGE_HEADER_TIMESTAMP 			= "SDC_MH_TIMESTAMP"			;
 	public static final String MESSAGE_HEADER_EXPIRATION 			= "SDC_MH_EXPIRATION"			;
+	public static final String MESSAGE_HEADER_CONNECTION 			= "SDC_MH_CONNECTION"			;
+	public static final String MESSAGE_HEADER_SESSION	 			= "SDC_MH_SESSION"				;
+	public static final String MESSAGE_HEADER_WORKFLOW	 			= "SDC_MH_WORKFLOW"				;
 	public static final String MESSAGE_HEADER_TOPIC 				= "SDC_MH_TOPIC"				;
+	public static final String MESSAGE_HEADER_QUEUE 				= "SDC_MH_QUEUE"				;
 	public static final String MESSAGE_HEADER_MESSAGE_TYPE 			= "SDC_MH_MESSAGE_TYPE"			;
 	public static final String MESSAGE_HEADER_MESSAGE_FORMAT 		= "SDC_MH_MESSAGE_FORMAT"		;
+	public static final String MESSAGE_HEADER_SERVICE		 		= "SDC_MH_SERVICE"				;
 	public static final String MESSAGE_HEADER_DOMAIN 				= "SDC_MH_DOMAIN"				;
 	public static final String MESSAGE_HEADER_BOUNDED_CONTEXT 		= "SDC_MH_BOUNDED_CONTEXT"		;
 	public static final String MESSAGE_HEADER_DESTINATION 			= "SDC_MH_DESTINATION"			;
+	public static final String MESSAGE_HEADER_USER		 			= "SDC_MH_USER"					;
 	public static final String MESSAGE_HEADER_SOURCE 				= "SDC_MH_SOURCE"				;
 	public static final String MESSAGE_HEADER_REPLY_TO 				= "SDC_MH_REPLY_TO"				;
 	public static final String MESSAGE_HEADER_DELIVERY_TIME 		= "SDC_MH_REPLY_DELIVERY_TIME"	;
@@ -74,14 +80,29 @@ public class MessageHeader implements Serializable
 	private Long expiration = null;
 	private volatile boolean expirationLocked = false;
 	
+	private UUID connection = null;
+	private volatile boolean connectionLocked = false;
+	
+	private UUID session = null;
+	private volatile boolean sessionLocked = false;
+	
+	private UUID workflow = null;
+	private volatile boolean workflowLocked = false;
+	
 	private String topic = null;
 	private volatile boolean topicLocked = false;
+	
+	private String queue = null;
+	private volatile boolean queueLocked = false;
 	
 	private String messageType = null;
 	private volatile boolean messageTypeLocked = false;
 	
 	private String messageFormat = null;
 	private volatile boolean messageFormatLocked = false;
+	
+	private String service =  null;
+	private volatile boolean serviceLocked = false;
 	
 	private String domain =  null;
 	private volatile boolean domainLocked = false;
@@ -91,6 +112,9 @@ public class MessageHeader implements Serializable
 	
 	private String destination = null;
 	private volatile boolean destinationLocked = false;
+	
+	private String user = null;
+	private volatile boolean userLocked = false;
 	
 	private String source = null;
 	private volatile boolean sourceLocked = false;
@@ -127,12 +151,18 @@ public class MessageHeader implements Serializable
 		this.guaranteedDeliveryLocked = true;
 		this.timestampLocked = true;
 		this.expirationLocked = true;
+		this.connectionLocked = true;
+		this.sessionLocked = true;
+		this.workflowLocked = true;
 		this.topicLocked = true;
+		this.queueLocked = true;
 		this.messageTypeLocked = true;
 		this.messageFormatLocked = true;
+		this.serviceLocked = true;
 		this.domainLocked = true;
 		this.boundedContextLocked = true;
 		this.destinationLocked = true;
+		this.userLocked = true;
 		this.sourceLocked = true;
 		this.replyToLocked = true;
 		this.deliveryTimeLocked = true;
@@ -179,10 +209,30 @@ public class MessageHeader implements Serializable
 				
 				this.expirationLocked = true;
 				break;
+				
+			case MESSAGE_HEADER_CONNECTION:
+				
+				this.connectionLocked = true;
+				break;
+				
+			case MESSAGE_HEADER_SESSION:
+				
+				this.sessionLocked = true;
+				break;
+				
+			case MESSAGE_HEADER_WORKFLOW:
+				
+				this.workflowLocked = true;
+				break;
 			
 			case MESSAGE_HEADER_TOPIC:
 				
 				this.topicLocked = true;
+				break;
+				
+			case MESSAGE_HEADER_QUEUE:
+				
+				this.queueLocked = true;
 				break;
 		
 			case MESSAGE_HEADER_MESSAGE_TYPE:
@@ -193,6 +243,11 @@ public class MessageHeader implements Serializable
 			case MESSAGE_HEADER_MESSAGE_FORMAT:
 				
 				this.messageFormatLocked = true;
+				break;
+				
+			case MESSAGE_HEADER_SERVICE:
+				
+				this.serviceLocked = true;
 				break;
 				
 			case MESSAGE_HEADER_DOMAIN:
@@ -208,6 +263,11 @@ public class MessageHeader implements Serializable
 			case MESSAGE_HEADER_DESTINATION:
 				
 				this.destinationLocked = true;
+				break;
+				
+			case MESSAGE_HEADER_USER:
+				
+				this.userLocked = true;
 				break;
 				
 			case MESSAGE_HEADER_SOURCE:
@@ -355,6 +415,48 @@ public class MessageHeader implements Serializable
 		return this;
 	}
 
+	public UUID getConnection()
+	{
+		return connection;
+	}
+
+	public MessageHeader setConnection(UUID connection)
+	{
+		if(! this.connectionLocked)
+		{
+			this.connection = connection;
+		}
+		return this;
+	}
+	
+	public UUID getSession()
+	{
+		return session;
+	}
+
+	public MessageHeader setSession(UUID session)
+	{
+		if(! this.serviceLocked)
+		{
+			this.session = session;
+		}
+		return this;
+	}
+
+	public UUID getWorkflow()
+	{
+		return workflow;
+	}
+
+	public MessageHeader setWorkflow(UUID workflow)
+	{
+		if(! workflowLocked)
+		{
+			this.workflow = workflow;
+		}
+		return this;
+	}
+
 	public String getTopic()
 	{
 		return topic;
@@ -365,6 +467,20 @@ public class MessageHeader implements Serializable
 		if(! this.topicLocked)
 		{
 			this.topic = topic;
+		}
+		return this;
+	}
+
+	public String getQueue()
+	{
+		return queue;
+	}
+
+	public MessageHeader setQueue(String queue)
+	{
+		if(! this.queueLocked)
+		{
+			this.queue = queue;
 		}
 		return this;
 	}
@@ -393,6 +509,20 @@ public class MessageHeader implements Serializable
 		if(! this.messageFormatLocked)
 		{
 			this.messageFormat = messageFormat;
+		}
+		return this;
+	}
+
+	public String getService()
+	{
+		return service;
+	}
+
+	public MessageHeader setService(String service)
+	{
+		if(! serviceLocked)
+		{
+			this.service = service;
 		}
 		return this;
 	}
@@ -435,6 +565,20 @@ public class MessageHeader implements Serializable
 		if(! this.destinationLocked)
 		{
 			this.destination = destination;
+		}
+		return this;
+	}
+
+	public String getUser()
+	{
+		return user;
+	}
+
+	public MessageHeader setUser(String user)
+	{
+		if(! this.userLocked)
+		{
+			this.user = user;
 		}
 		return this;
 	}
@@ -635,6 +779,8 @@ public class MessageHeader implements Serializable
 		int result = 1;
 		result = prime * result + ((boundedContext == null) ? 0 : boundedContext.hashCode());
 		result = prime * result + (boundedContextLocked ? 1231 : 1237);
+		result = prime * result + ((connection == null) ? 0 : connection.hashCode());
+		result = prime * result + (connectionLocked ? 1231 : 1237);
 		result = prime * result + ((correlationID == null) ? 0 : correlationID.hashCode());
 		result = prime * result + (correlationIDLocked ? 1231 : 1237);
 		result = prime * result + ((deliveryTime == null) ? 0 : deliveryTime.hashCode());
@@ -661,12 +807,18 @@ public class MessageHeader implements Serializable
 		result = prime * result + (priorityLocked ? 1231 : 1237);
 		result = prime * result + ((properties == null) ? 0 : properties.hashCode());
 		result = prime * result + (propertiesLocked ? 1231 : 1237);
+		result = prime * result + ((queue == null) ? 0 : queue.hashCode());
+		result = prime * result + (queueLocked ? 1231 : 1237);
 		result = prime * result + ((redelivered == null) ? 0 : redelivered.hashCode());
 		result = prime * result + (redeliveredLocked ? 1231 : 1237);
 		result = prime * result + ((replyTo == null) ? 0 : replyTo.hashCode());
 		result = prime * result + (replyToLocked ? 1231 : 1237);
 		result = prime * result + ((sequence == null) ? 0 : sequence.hashCode());
 		result = prime * result + (sequenceLocked ? 1231 : 1237);
+		result = prime * result + ((service == null) ? 0 : service.hashCode());
+		result = prime * result + (serviceLocked ? 1231 : 1237);
+		result = prime * result + ((session == null) ? 0 : session.hashCode());
+		result = prime * result + (sessionLocked ? 1231 : 1237);
 		result = prime * result + ((size == null) ? 0 : size.hashCode());
 		result = prime * result + (sizeLocked ? 1231 : 1237);
 		result = prime * result + ((source == null) ? 0 : source.hashCode());
@@ -675,6 +827,10 @@ public class MessageHeader implements Serializable
 		result = prime * result + (timestampLocked ? 1231 : 1237);
 		result = prime * result + ((topic == null) ? 0 : topic.hashCode());
 		result = prime * result + (topicLocked ? 1231 : 1237);
+		result = prime * result + ((user == null) ? 0 : user.hashCode());
+		result = prime * result + (userLocked ? 1231 : 1237);
+		result = prime * result + ((workflow == null) ? 0 : workflow.hashCode());
+		result = prime * result + (workflowLocked ? 1231 : 1237);
 		return result;
 	}
 
@@ -695,6 +851,14 @@ public class MessageHeader implements Serializable
 		} else if (!boundedContext.equals(other.boundedContext))
 			return false;
 		if (boundedContextLocked != other.boundedContextLocked)
+			return false;
+		if (connection == null)
+		{
+			if (other.connection != null)
+				return false;
+		} else if (!connection.equals(other.connection))
+			return false;
+		if (connectionLocked != other.connectionLocked)
 			return false;
 		if (correlationID == null)
 		{
@@ -800,6 +964,14 @@ public class MessageHeader implements Serializable
 			return false;
 		if (propertiesLocked != other.propertiesLocked)
 			return false;
+		if (queue == null)
+		{
+			if (other.queue != null)
+				return false;
+		} else if (!queue.equals(other.queue))
+			return false;
+		if (queueLocked != other.queueLocked)
+			return false;
 		if (redelivered == null)
 		{
 			if (other.redelivered != null)
@@ -823,6 +995,22 @@ public class MessageHeader implements Serializable
 		} else if (!sequence.equals(other.sequence))
 			return false;
 		if (sequenceLocked != other.sequenceLocked)
+			return false;
+		if (service == null)
+		{
+			if (other.service != null)
+				return false;
+		} else if (!service.equals(other.service))
+			return false;
+		if (serviceLocked != other.serviceLocked)
+			return false;
+		if (session == null)
+		{
+			if (other.session != null)
+				return false;
+		} else if (!session.equals(other.session))
+			return false;
+		if (sessionLocked != other.sessionLocked)
 			return false;
 		if (size == null)
 		{
@@ -856,8 +1044,22 @@ public class MessageHeader implements Serializable
 			return false;
 		if (topicLocked != other.topicLocked)
 			return false;
+		if (user == null)
+		{
+			if (other.user != null)
+				return false;
+		} else if (!user.equals(other.user))
+			return false;
+		if (userLocked != other.userLocked)
+			return false;
+		if (workflow == null)
+		{
+			if (other.workflow != null)
+				return false;
+		} else if (!workflow.equals(other.workflow))
+			return false;
+		if (workflowLocked != other.workflowLocked)
+			return false;
 		return true;
 	}
-	
-	
 }
