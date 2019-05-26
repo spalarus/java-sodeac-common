@@ -10,11 +10,12 @@
  *******************************************************************************/
 package org.sodeac.common.modeling;
 
-public class EntityField<T>
+import org.sodeac.common.modeling.ModelingProcessor.CompiledEntityFieldMeta;
+
+public abstract class EntityField<T>
 {
 	private T object  = null;
-	private Class clazz = null;
-	private String fieldName = null;
+	private CompiledEntityFieldMeta fieldSpec = null;
 	
 	public T getObject()
 	{
@@ -24,23 +25,14 @@ public class EntityField<T>
 	{
 		this.object = object;
 	}
-	public Class getClazz()
+	protected CompiledEntityFieldMeta getFieldSpec()
 	{
-		return clazz;
+		return fieldSpec;
 	}
-	protected void setClazz(Class clazz)
+	protected void setFieldSpec(CompiledEntityFieldMeta fieldSpec)
 	{
-		this.clazz = clazz;
+		this.fieldSpec = fieldSpec;
 	}
-	public String getFieldName()
-	{
-		return fieldName;
-	}
-	protected void setFieldName(String fieldName)
-	{
-		this.fieldName = fieldName;
-	}
-	
 	
 	
 }

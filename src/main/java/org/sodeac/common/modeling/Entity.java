@@ -10,71 +10,48 @@
  *******************************************************************************/
 package org.sodeac.common.modeling;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import org.sodeac.common.modeling.ModelingProcessor.CompiledEntityFieldMeta;
+import org.sodeac.common.modeling.ModelingProcessor.CompiledEntityMeta;
 
 public class Entity<T extends ComplexType<T>>
 {
-	private ComplexType<T> model = null;
-	private String[] fieldNames = null;
-	private Map<String,EntityField<?>> fieldIndex = null;
-	public Entity(Class<T> model)
+	
+	public static <T extends ComplexType<T>> Entity<T> newInstance(Class<T> type)
 	{
-		System.out.println("" + model.getCanonicalName());
+		return new Entity<T>(type);
+	}
+	
+	private CompiledEntityMeta entityMeta = null;
+	private List<EntityField> fieldList = null;
+	
+	private Entity(Class<T> modelType)
+	{
 		try
 		{
-			this.model = model.newInstance(); // TODO Cache
+			ComplexType<T> model = ModelingProcessor.DEFAULT_INSTANCE.getModel(modelType);
+			this.entityMeta = ModelingProcessor.DEFAULT_INSTANCE.getModelCache(model);
 			
-			List<EntityField> list = new ArrayList<EntityField>();
-			for(Field field : model.getDeclaredFields())
-			{
-				boolean isField = false;
-				for(Class<?> clazz : field.getType().getInterfaces())
-				{
-					if(clazz == IField.class)
-					{
-						isField = true;
-						break;
-					}
-				}
-				if(! isField)
-				{
-					continue;
-				}
-				Type type = field.getGenericType();
-				
-				if(type instanceof ParameterizedType)
-				{
-					ParameterizedType pType = (ParameterizedType)type;
-					if((pType.getActualTypeArguments() != null) && (pType.getActualTypeArguments().length == 2))
-					{
-						if(pType.getActualTypeArguments()[0] == model)
-						{
-							Type rawType = pType.getRawType();
-							Type type2 = pType.getActualTypeArguments()[1]; 
-							System.out.println("\t\t\ttype2: " + rawType  + " -- " + type2);
-							EntityField<?> entitiyField = new EntityField<>();
-							entitiyField.setClazz(Class.forName(type2.getTypeName()));
-							entitiyField.setFieldName(field.getName());
-							list.add(entitiyField);
-						}
-					}
-				}
-				
-			}
 			
-			fieldIndex = new HashMap<>();
-			this.fieldNames = new String[list.size()];
-			for(int i = 0; i < fieldNames.length; i++)
+			this.fieldList = new ArrayList<>();
+			for(int i = 0; i < this.entityMeta.getFieldNames().length; i++)
 			{
-				fieldNames[i] = list.get(i).getFieldName();
-				fieldIndex.put(fieldNames[i], list.get(i));
+				CompiledEntityFieldMeta compiledEntityFieldMeta = entityMeta.getFieldList().get(i);
+				EntityField<?> field = null;
+				if(compiledEntityFieldMeta.getRelationType() == CompiledEntityFieldMeta.RelationType.Singular)
+				{
+					field = new SingularEntityField<>();
+				}
+				else if (compiledEntityFieldMeta.getRelationType() == CompiledEntityFieldMeta.RelationType.Singular)
+				{
+					field = new MultipleEntityField<>();
+				}
+				field.setFieldSpec(compiledEntityFieldMeta);
+				fieldList.add(field);
 			}
+			this.fieldList = Collections.unmodifiableList(this.fieldList);
 			
 		}
 		catch (Exception e) 
@@ -85,19 +62,23 @@ public class Entity<T extends ComplexType<T>>
 			}
 			throw new RuntimeException(e);
 		}
-		// mit Registry-Cache: Reflection des Modells
-		// erstellen eines Arrays Mit Feldern
-		// Felder können über Index addressiert werden
-		// Eigentlich kann auch alles in dem ComplexType hinterlegt werden
-		
-		// Wichtig von Anfang an: GC
 	}
 	public ComplexType<T> getModel()
 	{
-		return model;
+		return (ComplexType<T>)this.entityMeta.getModel();
 	}
 	
-	public <X> X getSingleValue(ModelPath<T,X> path)
+	public <X extends IType<?>> SingularEntityField<X> get(SingularField<T,X> field)
+	{
+		return (SingularEntityField<X>) this.fieldList.get(this.entityMeta.getFieldIndexByClass().get(field));
+	}
+	
+	public <X extends IType<?>> MultipleEntityField<X> get(MultipleField<T,X> field)
+	{
+		return (MultipleEntityField<X>) this.fieldList.get(this.entityMeta.getFieldIndexByClass().get(field));
+	}
+	
+	public <X extends IType<?>> SingularEntityField<X> getSingleValue(ModelPath<T,X> path)
 	{
 		return null;
 	}
