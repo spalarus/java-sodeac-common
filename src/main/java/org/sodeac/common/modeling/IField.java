@@ -10,7 +10,7 @@
  *******************************************************************************/
 package org.sodeac.common.modeling;
 
-public interface IField<A extends ComplexType<?>, T extends IType<?>>
+public interface IField<A extends ComplexType, T>
 {
 	public Class<T> getTypeClass();
 	public Class<A> getAnchorClass();

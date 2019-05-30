@@ -31,22 +31,22 @@ public class ModelingProcessor
 		ReadWriteLock lock = new ReentrantReadWriteLock(true);
 		this.readLock = lock.readLock();
 		this.writeLock = lock.writeLock();
-		this.complexTypeIndex = new HashMap<Object,ComplexType<?>>();
-		this.compiledEntityMetaIndex = new HashMap<ComplexType<?>,CompiledEntityMeta>();
+		this.complexTypeIndex = new HashMap<Object,ComplexType>();
+		this.compiledEntityMetaIndex = new HashMap<ComplexType,CompiledEntityMeta>();
 	}
 	
 	private Lock readLock = null;
 	private Lock writeLock = null;
-	private Map<Object,ComplexType<?>> complexTypeIndex = null;
-	private Map<ComplexType<?>,CompiledEntityMeta> compiledEntityMetaIndex = null;
+	private Map<Object,ComplexType> complexTypeIndex = null;
+	private Map<ComplexType,CompiledEntityMeta> compiledEntityMetaIndex = null;
 	
 	@SuppressWarnings("unchecked")
-	public <T> ComplexType<T> getModel(Class<T> type) throws InstantiationException, IllegalAccessException
+	public <T> ComplexType getModel(Class<T> type) throws InstantiationException, IllegalAccessException
 	{
 		this.readLock.lock();
 		try
 		{
-			ComplexType<T> model = (ComplexType<T>)this.complexTypeIndex.get(type);
+			ComplexType model = (ComplexType)this.complexTypeIndex.get(type);
 			if(model != null)
 			{
 				return model;
@@ -60,12 +60,12 @@ public class ModelingProcessor
 		this.writeLock.lock();
 		try
 		{
-			ComplexType<T> model = (ComplexType<T>)this.complexTypeIndex.get(type);
+			ComplexType model = (ComplexType)this.complexTypeIndex.get(type);
 			if(model != null)
 			{
 				return model;
 			}
-			model = (ComplexType<T>)type.newInstance();
+			model = (ComplexType)type.newInstance();
 			this.complexTypeIndex.put(type, model);
 			return model;
 		}
@@ -76,7 +76,7 @@ public class ModelingProcessor
 	}
 	
 	@SuppressWarnings("unchecked")
-	public <T extends ComplexType<?>> CompiledEntityMeta getModelCache(T complexType) throws IllegalArgumentException, IllegalAccessException
+	public <T extends ComplexType> CompiledEntityMeta getModelCache(T complexType) throws IllegalArgumentException, IllegalAccessException
 	{
 		this.readLock.lock();
 		try
@@ -132,13 +132,21 @@ public class ModelingProcessor
 							CompiledEntityFieldMeta compiledEntityFieldMeta = new CompiledEntityFieldMeta();
 							compiledEntityFieldMeta.clazz = ((Class<?>)type2);
 							compiledEntityFieldMeta.fieldName = field.getName();
-							if(pType.getRawType() == SingularField.class)
+							if(pType.getRawType() == SingularBasicField.class)
 							{
-								compiledEntityFieldMeta.relationType = CompiledEntityFieldMeta.RelationType.Singular;
+								compiledEntityFieldMeta.relationType = CompiledEntityFieldMeta.RelationType.SingularSimple;
 							}
-							else if(pType.getRawType() == MultipleField.class)
+							else if(pType.getRawType() == MultipleBasicField.class)
 							{
-								compiledEntityFieldMeta.relationType = CompiledEntityFieldMeta.RelationType.Multiple;
+								compiledEntityFieldMeta.relationType = CompiledEntityFieldMeta.RelationType.MultipleSimple;
+							}
+							else if(pType.getRawType() == SingularComplexField.class)
+							{
+								compiledEntityFieldMeta.relationType = CompiledEntityFieldMeta.RelationType.SingularComplex;
+							}
+							else if(pType.getRawType() == MultipleComplexField.class)
+							{
+								compiledEntityFieldMeta.relationType = CompiledEntityFieldMeta.RelationType.MultipleComplex;
 							}
 							compiledEntityFieldMeta.staticFieldInstance = field.get(complexType);
 							list.add(compiledEntityFieldMeta);
@@ -173,7 +181,7 @@ public class ModelingProcessor
 	
 	protected static class CompiledEntityMeta
 	{
-		private ComplexType<?> model = null;
+		private ComplexType model = null;
 		private String[] fieldNames = null;
 		private List<CompiledEntityFieldMeta> fieldList = null;
 		private Map<String, Integer> fieldIndexByName = null;
@@ -195,7 +203,7 @@ public class ModelingProcessor
 		{
 			return fieldIndexByClass;
 		}
-		protected ComplexType<?> getModel()
+		protected ComplexType getModel()
 		{
 			return model;
 		}
@@ -203,7 +211,7 @@ public class ModelingProcessor
 	
 	protected static class CompiledEntityFieldMeta
 	{
-		protected enum RelationType {Singular,Multiple};
+		protected enum RelationType {SingularSimple,MultipleSimple,SingularComplex,MultipleComplex};
 		
 		private Class<?> clazz = null;
 		private String fieldName = null;
@@ -226,8 +234,6 @@ public class ModelingProcessor
 		{
 			return staticFieldInstance;
 		}
-		
-		
 	}
 	
 }

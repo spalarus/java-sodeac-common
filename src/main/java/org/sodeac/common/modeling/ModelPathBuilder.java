@@ -12,18 +12,18 @@ package org.sodeac.common.modeling;
 
 import java.util.function.Predicate;
 
-public class ModelPathBuilder<R extends ComplexType<R>,S extends ComplexType<S>,T extends IType<?>>
+public class ModelPathBuilder<R extends ComplexType,S extends ComplexType,T>
 {
-	private ComplexType<R> root = null;
-	private ComplexType<S> self = null;
+	private ComplexType root = null;
+	private ComplexType self = null;
 	private ModelPath<?, ?> type = null;
 	
-	public static <R extends ComplexType<R>, T extends IType<?>>  RootModelPathBuilder<R,T> newBuilder(ComplexType<R> root, Class<T> clazz)
+	public static <R extends ComplexType, T>  RootModelPathBuilder<R,T> newBuilder(R root, Class<T> clazz)
 	{
 		return new RootModelPathBuilder<>(root);
 	}
 	
-	private ModelPathBuilder(ComplexType<R> root,ComplexType<S> self)
+	private ModelPathBuilder(ComplexType root,ComplexType self)
 	{
 		super();
 		this.root = root;
@@ -31,13 +31,17 @@ public class ModelPathBuilder<R extends ComplexType<R>,S extends ComplexType<S>,
 		this.type = new ModelPath<>(self);
 	}
 	
-	public <N extends ComplexType<N>> ModelPathBuilder<R,N,T> with(IField<S, N> field) // field,on,sel(select),to,go,with
+	public void x()
+	{
+		
+	}
+	public <N extends ComplexType> ModelPathBuilder<R,N,T> with(IField<S, N> field) // field,on,sel(select),to,go,with,connect   x
 	{
 		this.type = new ModelPath<>(this.type, field);
 		return new ModelPathBuilder<R,N,T>(this.root,field.getType());
 	}
 	
-	public <N extends ComplexType<N>> ModelPathBuilder<R,N,T> with(IField<S, N> field, Predicate<PredicateContainer<N>> predicate)
+	public <N extends ComplexType> ModelPathBuilder<R,N,T> with(IField<S, N> field, Predicate<ModelPathCursor<N>> predicate)
 	{
 		this.type = new ModelPath<>(this.type, field).setNextPredicate(predicate);
 		return new ModelPathBuilder<R,N,T>(this.root,field.getType());
@@ -48,19 +52,19 @@ public class ModelPathBuilder<R extends ComplexType<R>,S extends ComplexType<S>,
 		return new ModelPath<R,T>(type,field);
 	}
 	
-	protected ComplexType<S> getSelf()
+	protected ComplexType getSelf()
 	{
 		return this.self;
 	}
 	
-	protected ComplexType<R> getRoot()
+	protected ComplexType getRoot()
 	{
 		return this.root;
 	}
 	
-	public static class RootModelPathBuilder<R extends ComplexType<R>, T extends IType<?>> extends ModelPathBuilder<R, R, T>
+	public static class RootModelPathBuilder<R extends ComplexType, T> extends ModelPathBuilder<R, R, T>
 	{
-		private RootModelPathBuilder(ComplexType<R> root)
+		private RootModelPathBuilder(ComplexType root)
 		{
 			super(root,root);
 		}

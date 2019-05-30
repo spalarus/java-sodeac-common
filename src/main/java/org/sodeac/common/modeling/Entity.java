@@ -16,10 +16,10 @@ import java.util.List;
 import org.sodeac.common.modeling.ModelingProcessor.CompiledEntityFieldMeta;
 import org.sodeac.common.modeling.ModelingProcessor.CompiledEntityMeta;
 
-public class Entity<T extends ComplexType<T>>
+public class Entity<T extends ComplexType>
 {
 	
-	public static <T extends ComplexType<T>> Entity<T> newInstance(Class<T> type)
+	public static <T extends ComplexType> Entity<T> newInstance(Class<T> type)
 	{
 		return new Entity<T>(type);
 	}
@@ -31,7 +31,7 @@ public class Entity<T extends ComplexType<T>>
 	{
 		try
 		{
-			ComplexType<T> model = ModelingProcessor.DEFAULT_INSTANCE.getModel(modelType);
+			ComplexType model = ModelingProcessor.DEFAULT_INSTANCE.getModel(modelType);
 			this.entityMeta = ModelingProcessor.DEFAULT_INSTANCE.getModelCache(model);
 			
 			
@@ -40,13 +40,22 @@ public class Entity<T extends ComplexType<T>>
 			{
 				CompiledEntityFieldMeta compiledEntityFieldMeta = entityMeta.getFieldList().get(i);
 				EntityField<?> field = null;
-				if(compiledEntityFieldMeta.getRelationType() == CompiledEntityFieldMeta.RelationType.Singular)
+				// TODO
+				if(compiledEntityFieldMeta.getRelationType() == CompiledEntityFieldMeta.RelationType.SingularSimple)
 				{
-					field = new SingularEntityField<>();
+					field = new BasicObject<>();
 				}
-				else if (compiledEntityFieldMeta.getRelationType() == CompiledEntityFieldMeta.RelationType.Singular)
+				else if(compiledEntityFieldMeta.getRelationType() == CompiledEntityFieldMeta.RelationType.SingularComplex)
 				{
-					field = new MultipleEntityField<>();
+					field = new BasicObject<>();
+				}
+				else if (compiledEntityFieldMeta.getRelationType() == CompiledEntityFieldMeta.RelationType.MultipleSimple)
+				{
+					field = new BasicList<>();
+				}
+				else if (compiledEntityFieldMeta.getRelationType() == CompiledEntityFieldMeta.RelationType.MultipleComplex)
+				{
+					field = new BasicList<>();
 				}
 				field.setFieldSpec(compiledEntityFieldMeta);
 				fieldList.add(field);
@@ -63,22 +72,31 @@ public class Entity<T extends ComplexType<T>>
 			throw new RuntimeException(e);
 		}
 	}
-	public ComplexType<T> getModel()
+	public ComplexType getModel()
 	{
-		return (ComplexType<T>)this.entityMeta.getModel();
+		return (ComplexType)this.entityMeta.getModel();
 	}
 	
-	public <X extends IType<?>> SingularEntityField<X> get(SingularField<T,X> field)
+	public <X> BasicObject<X> get(SingularBasicField<T,X> field)
 	{
-		return (SingularEntityField<X>) this.fieldList.get(this.entityMeta.getFieldIndexByClass().get(field));
+		return (BasicObject<X>) this.fieldList.get(this.entityMeta.getFieldIndexByClass().get(field));
+	}
+	public <X extends ComplexType> BasicObject<X> get(SingularComplexField<T,X> field)
+	{
+		return (BasicObject<X>) this.fieldList.get(this.entityMeta.getFieldIndexByClass().get(field));
 	}
 	
-	public <X extends IType<?>> MultipleEntityField<X> get(MultipleField<T,X> field)
+	public <X> BasicList<X> get(MultipleBasicField<T,X> field)
 	{
-		return (MultipleEntityField<X>) this.fieldList.get(this.entityMeta.getFieldIndexByClass().get(field));
+		return (BasicList<X>) this.fieldList.get(this.entityMeta.getFieldIndexByClass().get(field));
 	}
 	
-	public <X extends IType<?>> SingularEntityField<X> getSingleValue(ModelPath<T,X> path)
+	public <X extends ComplexType> BasicList<X> get(MultipleComplexField<T,X> field)
+	{
+		return (BasicList<X>) this.fieldList.get(this.entityMeta.getFieldIndexByClass().get(field));
+	}
+	
+	public <X> BasicObject<X> getSingleValue(ModelPath<T,X> path)
 	{
 		return null;
 	}

@@ -10,12 +10,12 @@
  *******************************************************************************/
 package org.sodeac.common.modeling;
 
-public class SingularField<A extends ComplexType<?>, T extends IType<?>> implements IField<A, T>
+public class MultipleComplexField<A extends ComplexType, T extends ComplexType> implements IField<A, T>
 {
 	private Class<T> typeClass = null;
 	private Class<A> anchorClass = null;
 	
-	public SingularField(Class<A> anchorClass, Class<T> typeClass)
+	public MultipleComplexField(Class<A> anchorClass, Class<T> typeClass)
 	{
 		this.anchorClass = anchorClass;
 		this.typeClass = typeClass;
@@ -30,6 +30,4 @@ public class SingularField<A extends ComplexType<?>, T extends IType<?>> impleme
 	{
 		return anchorClass;
 	}
-	
-
 }

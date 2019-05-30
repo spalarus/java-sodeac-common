@@ -10,7 +10,24 @@
  *******************************************************************************/
 package org.sodeac.common.modeling;
 
-public class StringType implements IType<String>
+public class MultipleBasicField<A extends ComplexType, T> implements IField<A, T>
 {
+	private Class<T> typeClass = null;
+	private Class<A> anchorClass = null;
+	
+	public MultipleBasicField(Class<A> anchorClass, Class<T> typeClass)
+	{
+		this.anchorClass = anchorClass;
+		this.typeClass = typeClass;
+	}
 
+	public Class<T> getTypeClass()
+	{
+		return typeClass;
+	}
+
+	public Class<A> getAnchorClass()
+	{
+		return anchorClass;
+	}
 }

@@ -18,9 +18,9 @@ public class ModelPath<S,T>
 	private ModelPath<?,?> nextNode = null;
 	private Predicate<?> nextPredicate = null;
 	private IField<?, ?> type = null;
-	private ComplexType<?> root = null;
+	private ComplexType root = null;
 	
-	protected ModelPath(ComplexType<?> root)
+	protected ModelPath(ComplexType root)
 	{
 		super();
 		this.root = root;

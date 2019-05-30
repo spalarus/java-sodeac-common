@@ -10,11 +10,11 @@
  *******************************************************************************/
 package org.sodeac.common.modeling;
 
-public class ComplexType<T> implements IType<T>
+public class ComplexType
 {
-	public ComplexType<T> setAnchor(ComplexType<?> anchor)
+	/*public ComplexType setAnchor(ComplexType anchor)
 	{
 		return this;
-	}
+	}*/
 	
 }

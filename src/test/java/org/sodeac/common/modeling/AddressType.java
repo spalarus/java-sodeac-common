@@ -1,9 +1,9 @@
 package org.sodeac.common.modeling;
 
 
-public class AddressType extends ComplexType<AddressType>
+public class AddressType extends ComplexType
 {
-	public static final SingularField<AddressType,StringType> street = new SingularField<AddressType,StringType>(AddressType.class,StringType.class);
-	public static final SingularField<AddressType,CountryType> country = new SingularField<AddressType,CountryType>(AddressType.class,CountryType.class);
-	public static final SingularField<AddressType,UserType> parentuser = new SingularField<AddressType,UserType>(AddressType.class,UserType.class);
+	public static final SingularBasicField<AddressType,String> street = new SingularBasicField<AddressType,String>(AddressType.class,String.class);
+	public static final SingularComplexField<AddressType,CountryType> country = new SingularComplexField<AddressType,CountryType>(AddressType.class,CountryType.class);
+	public static final SingularComplexField<AddressType,UserType> parentuser = new SingularComplexField<AddressType,UserType>(AddressType.class,UserType.class);
 }
