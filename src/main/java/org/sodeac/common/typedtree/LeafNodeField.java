@@ -8,14 +8,14 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.modeling;
+package org.sodeac.common.typedtree;
 
-public class MultipleComplexField<A extends ComplexType, T extends ComplexType> implements IField<A, T>
+public class LeafNodeField<A extends BranchNodeType, T> implements IField<A, T>
 {
 	private Class<T> typeClass = null;
 	private Class<A> anchorClass = null;
 	
-	public MultipleComplexField(Class<A> anchorClass, Class<T> typeClass)
+	public LeafNodeField(Class<A> anchorClass, Class<T> typeClass)
 	{
 		this.anchorClass = anchorClass;
 		this.typeClass = typeClass;
@@ -30,4 +30,6 @@ public class MultipleComplexField<A extends ComplexType, T extends ComplexType> 
 	{
 		return anchorClass;
 	}
+	
+
 }

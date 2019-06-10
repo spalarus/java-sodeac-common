@@ -8,13 +8,9 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.modeling;
+package org.sodeac.common.typedtree;
 
-public class ComplexType
+public abstract class EntityField<P extends BranchNodeType, T>
 {
-	/*public ComplexType setAnchor(ComplexType anchor)
-	{
-		return this;
-	}*/
 	
 }

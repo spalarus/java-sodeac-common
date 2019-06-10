@@ -8,14 +8,14 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.modeling;
+package org.sodeac.common.typedtree;
 
-public class SingularBasicField<A extends ComplexType, T> implements IField<A, T>
+public class BranchNodeListField<A extends BranchNodeType, T extends BranchNodeType> implements IField<A, T>
 {
 	private Class<T> typeClass = null;
 	private Class<A> anchorClass = null;
 	
-	public SingularBasicField(Class<A> anchorClass, Class<T> typeClass)
+	public BranchNodeListField(Class<A> anchorClass, Class<T> typeClass)
 	{
 		this.anchorClass = anchorClass;
 		this.typeClass = typeClass;
@@ -30,6 +30,4 @@ public class SingularBasicField<A extends ComplexType, T> implements IField<A, T
 	{
 		return anchorClass;
 	}
-	
-
 }

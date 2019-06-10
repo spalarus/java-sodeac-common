@@ -1,0 +1,8 @@
+rename to typedtreemodel ??? / leavenode branchnode
+annotations
+pointer
+bindings
+copy / clone / merge
+immutable flag in rootnodes
+listener / trigger
+serialize / deserialize - xml (xsd), json, jdbc

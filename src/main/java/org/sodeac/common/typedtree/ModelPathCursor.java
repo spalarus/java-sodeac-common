@@ -8,9 +8,9 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.modeling;
+package org.sodeac.common.typedtree;
 
-public class ModelPathCursor<T>
+public class ModelPathCursor<P extends BranchNodeType,T>
 {
 	public boolean isSingleList()
 	{
@@ -28,24 +28,24 @@ public class ModelPathCursor<T>
 	{
 		return 0;
 	}
-	public BasicObject<T> getCurrent()
+	public LeafNode<P,T> getCurrent()
 	{
 		return null;
 	}
 	
-	public BasicObject<T> getPrevious()
+	public LeafNode<P,T> getPrevious()
 	{
 		return null;
 	}
-	public BasicObject<T> getNext()
+	public LeafNode<P,T> getNext()
 	{
 		return null;
 	}
-	public BasicObject<T> getFirst()
+	public LeafNode<P,T> getFirst()
 	{
 		return null;
 	}
-	public BasicObject<T> getLast()
+	public LeafNode<P,T> getLast()
 	{
 		return null;
 	}
@@ -61,7 +61,7 @@ public class ModelPathCursor<T>
 	{
 		return null;
 	}
-	public ModelPathCursor<?> getParentCursor()
+	public ModelPathCursor<?,P> getParentCursor()
 	{
 		return null;
 	}

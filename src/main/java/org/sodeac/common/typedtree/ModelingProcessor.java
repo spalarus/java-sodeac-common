@@ -8,7 +8,7 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.modeling;
+package org.sodeac.common.typedtree;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
@@ -31,22 +31,22 @@ public class ModelingProcessor
 		ReadWriteLock lock = new ReentrantReadWriteLock(true);
 		this.readLock = lock.readLock();
 		this.writeLock = lock.writeLock();
-		this.complexTypeIndex = new HashMap<Object,ComplexType>();
-		this.compiledEntityMetaIndex = new HashMap<ComplexType,CompiledEntityMeta>();
+		this.complexTypeIndex = new HashMap<Object,BranchNodeType>();
+		this.compiledEntityMetaIndex = new HashMap<BranchNodeType,CompiledEntityMeta>();
 	}
 	
 	private Lock readLock = null;
 	private Lock writeLock = null;
-	private Map<Object,ComplexType> complexTypeIndex = null;
-	private Map<ComplexType,CompiledEntityMeta> compiledEntityMetaIndex = null;
+	private Map<Object,BranchNodeType> complexTypeIndex = null;
+	private Map<BranchNodeType,CompiledEntityMeta> compiledEntityMetaIndex = null;
 	
 	@SuppressWarnings("unchecked")
-	public <T> ComplexType getModel(Class<T> type) throws InstantiationException, IllegalAccessException
+	public <T> BranchNodeType getModel(Class<T> type) throws InstantiationException, IllegalAccessException
 	{
 		this.readLock.lock();
 		try
 		{
-			ComplexType model = (ComplexType)this.complexTypeIndex.get(type);
+			BranchNodeType model = (BranchNodeType)this.complexTypeIndex.get(type);
 			if(model != null)
 			{
 				return model;
@@ -60,12 +60,12 @@ public class ModelingProcessor
 		this.writeLock.lock();
 		try
 		{
-			ComplexType model = (ComplexType)this.complexTypeIndex.get(type);
+			BranchNodeType model = (BranchNodeType)this.complexTypeIndex.get(type);
 			if(model != null)
 			{
 				return model;
 			}
-			model = (ComplexType)type.newInstance();
+			model = (BranchNodeType)type.newInstance();
 			this.complexTypeIndex.put(type, model);
 			return model;
 		}
@@ -76,7 +76,7 @@ public class ModelingProcessor
 	}
 	
 	@SuppressWarnings("unchecked")
-	public <T extends ComplexType> CompiledEntityMeta getModelCache(T complexType) throws IllegalArgumentException, IllegalAccessException
+	public <T extends BranchNodeType> CompiledEntityMeta getModelCache(T complexType) throws IllegalArgumentException, IllegalAccessException
 	{
 		this.readLock.lock();
 		try
@@ -132,19 +132,15 @@ public class ModelingProcessor
 							CompiledEntityFieldMeta compiledEntityFieldMeta = new CompiledEntityFieldMeta();
 							compiledEntityFieldMeta.clazz = ((Class<?>)type2);
 							compiledEntityFieldMeta.fieldName = field.getName();
-							if(pType.getRawType() == SingularBasicField.class)
+							if(pType.getRawType() == LeafNodeField.class)
 							{
 								compiledEntityFieldMeta.relationType = CompiledEntityFieldMeta.RelationType.SingularSimple;
 							}
-							else if(pType.getRawType() == MultipleBasicField.class)
-							{
-								compiledEntityFieldMeta.relationType = CompiledEntityFieldMeta.RelationType.MultipleSimple;
-							}
-							else if(pType.getRawType() == SingularComplexField.class)
+							else if(pType.getRawType() == BranchNodeField.class)
 							{
 								compiledEntityFieldMeta.relationType = CompiledEntityFieldMeta.RelationType.SingularComplex;
 							}
-							else if(pType.getRawType() == MultipleComplexField.class)
+							else if(pType.getRawType() == BranchNodeListField.class)
 							{
 								compiledEntityFieldMeta.relationType = CompiledEntityFieldMeta.RelationType.MultipleComplex;
 							}
@@ -181,7 +177,7 @@ public class ModelingProcessor
 	
 	protected static class CompiledEntityMeta
 	{
-		private ComplexType model = null;
+		private BranchNodeType model = null;
 		private String[] fieldNames = null;
 		private List<CompiledEntityFieldMeta> fieldList = null;
 		private Map<String, Integer> fieldIndexByName = null;
@@ -203,7 +199,7 @@ public class ModelingProcessor
 		{
 			return fieldIndexByClass;
 		}
-		protected ComplexType getModel()
+		protected BranchNodeType getModel()
 		{
 			return model;
 		}
@@ -211,7 +207,7 @@ public class ModelingProcessor
 	
 	protected static class CompiledEntityFieldMeta
 	{
-		protected enum RelationType {SingularSimple,MultipleSimple,SingularComplex,MultipleComplex};
+		protected enum RelationType {SingularSimple,SingularComplex,MultipleComplex};
 		
 		private Class<?> clazz = null;
 		private String fieldName = null;

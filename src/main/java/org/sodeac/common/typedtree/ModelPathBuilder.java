@@ -8,22 +8,22 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.modeling;
+package org.sodeac.common.typedtree;
 
 import java.util.function.Predicate;
 
-public class ModelPathBuilder<R extends ComplexType,S extends ComplexType,T>
+public class ModelPathBuilder<R extends BranchNodeType,S extends BranchNodeType,T>
 {
-	private ComplexType root = null;
-	private ComplexType self = null;
+	private BranchNodeType root = null;
+	private BranchNodeType self = null;
 	private ModelPath<?, ?> type = null;
 	
-	public static <R extends ComplexType, T>  RootModelPathBuilder<R,T> newBuilder(R root, Class<T> clazz)
+	public static <R extends BranchNodeType, T>  RootModelPathBuilder<R,T> newBuilder(R root, Class<T> clazz)
 	{
 		return new RootModelPathBuilder<>(root);
 	}
 	
-	private ModelPathBuilder(ComplexType root,ComplexType self)
+	private ModelPathBuilder(BranchNodeType root,BranchNodeType self)
 	{
 		super();
 		this.root = root;
@@ -35,13 +35,13 @@ public class ModelPathBuilder<R extends ComplexType,S extends ComplexType,T>
 	{
 		
 	}
-	public <N extends ComplexType> ModelPathBuilder<R,N,T> with(IField<S, N> field) // field,on,sel(select),to,go,with,connect   x
+	public <N extends BranchNodeType> ModelPathBuilder<R,N,T> with(IField<S, N> field) // field,on,sel(select),to,go,with,connect   x
 	{
 		this.type = new ModelPath<>(this.type, field);
 		return new ModelPathBuilder<R,N,T>(this.root,field.getType());
 	}
 	
-	public <N extends ComplexType> ModelPathBuilder<R,N,T> with(IField<S, N> field, Predicate<ModelPathCursor<N>> predicate)
+	public <N extends BranchNodeType> ModelPathBuilder<R,N,T> with(IField<S, N> field, Predicate<ModelPathCursor<S,N>> predicate)
 	{
 		this.type = new ModelPath<>(this.type, field).setNextPredicate(predicate);
 		return new ModelPathBuilder<R,N,T>(this.root,field.getType());
@@ -52,19 +52,19 @@ public class ModelPathBuilder<R extends ComplexType,S extends ComplexType,T>
 		return new ModelPath<R,T>(type,field);
 	}
 	
-	protected ComplexType getSelf()
+	protected BranchNodeType getSelf()
 	{
 		return this.self;
 	}
 	
-	protected ComplexType getRoot()
+	protected BranchNodeType getRoot()
 	{
 		return this.root;
 	}
 	
-	public static class RootModelPathBuilder<R extends ComplexType, T> extends ModelPathBuilder<R, R, T>
+	public static class RootModelPathBuilder<R extends BranchNodeType, T> extends ModelPathBuilder<R, R, T>
 	{
-		private RootModelPathBuilder(ComplexType root)
+		private RootModelPathBuilder(BranchNodeType root)
 		{
 			super(root,root);
 		}

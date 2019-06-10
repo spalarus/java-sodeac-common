@@ -8,9 +8,9 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.modeling;
+package org.sodeac.common.typedtree;
 
-public interface IField<A extends ComplexType, T>
+public interface IField<A extends BranchNodeType, T>
 {
 	public Class<T> getTypeClass();
 	public Class<A> getAnchorClass();

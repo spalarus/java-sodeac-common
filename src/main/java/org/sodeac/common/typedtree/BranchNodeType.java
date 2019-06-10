@@ -8,31 +8,13 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.modeling;
+package org.sodeac.common.typedtree;
 
-import org.sodeac.common.modeling.ModelingProcessor.CompiledEntityFieldMeta;
-
-public abstract class EntityField<T>
+public class BranchNodeType
 {
-	private T object  = null;
-	private CompiledEntityFieldMeta fieldSpec = null;
-	
-	public T getObject()
+	/*public ComplexType setAnchor(ComplexType anchor)
 	{
-		return object;
-	}
-	protected void setObject(T object)
-	{
-		this.object = object;
-	}
-	protected CompiledEntityFieldMeta getFieldSpec()
-	{
-		return fieldSpec;
-	}
-	protected void setFieldSpec(CompiledEntityFieldMeta fieldSpec)
-	{
-		this.fieldSpec = fieldSpec;
-	}
-	
+		return this;
+	}*/
 	
 }

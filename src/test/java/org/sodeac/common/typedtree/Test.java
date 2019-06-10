@@ -1,6 +1,9 @@
-package org.sodeac.common.modeling;
+package org.sodeac.common.typedtree;
 
-import org.sodeac.common.modeling.ModelPathBuilder.RootModelPathBuilder;
+import org.sodeac.common.typedtree.BranchNode;
+import org.sodeac.common.typedtree.ModelPath;
+import org.sodeac.common.typedtree.ModelPathBuilder;
+import org.sodeac.common.typedtree.ModelPathBuilder.RootModelPathBuilder;
 
 public class Test
 {
@@ -26,21 +29,23 @@ public class Test
 		System.out.println("yyy " + p2);
 		
 		
-		ModelPath<UserType, String> mp = new ModelPath<UserType, String>(null);
+		ModelPath<UserType, String> mp = new ModelPath<UserType, String>(null); // TODO protected
 		
-		Entity<CountryType> country =  Entity.newInstance(CountryType.class);
+		/*Entity<CountryType> country =  Entity.newInstance(CountryType.class);
 		Entity<UserType> user = Entity.newInstance(UserType.class);
-		BasicObject<String> st = user.getSingleValue(mp);
-		BasicObject<String> countryName = country.get(CountryType.name);
+		BasicObject<UserType,String> st = user.getSingleValue(mp);
+		BasicObject<CountryType,String> countryName = country.get(CountryType.name);
 		System.out.println("ööö1 " + countryName);
 		System.out.println("ööö2 " + country.get(CountryType.name));
-		System.out.println("ööö3 " + user.get(UserType.address).getValue());
+		System.out.println("ööö3 " + user.get(UserType.address).getValue());*/
 		
 		//userModel.name.getType()
 		
 		TestModel testModel = new TestModel();
-		ComplexObject<UserType> u =  testModel.newInstance(TestModel.user);
-		System.out.println("llllllllll " +  u);
+		BranchNode<TestModel,UserType> u =  testModel.newInstance(TestModel.user);
+		u.get(UserType.name).setValue("buzzt");
+		
+		System.out.println("llllllllll " +  u + " " + u.get(UserType.name).getValue());
 	}
 
 }

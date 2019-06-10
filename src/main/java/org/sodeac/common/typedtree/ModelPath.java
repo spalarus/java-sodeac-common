@@ -8,7 +8,7 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.modeling;
+package org.sodeac.common.typedtree;
 
 import java.util.function.Predicate;
 
@@ -18,9 +18,9 @@ public class ModelPath<S,T>
 	private ModelPath<?,?> nextNode = null;
 	private Predicate<?> nextPredicate = null;
 	private IField<?, ?> type = null;
-	private ComplexType root = null;
+	private BranchNodeType root = null;
 	
-	protected ModelPath(ComplexType root)
+	protected ModelPath(BranchNodeType root)
 	{
 		super();
 		this.root = root;
