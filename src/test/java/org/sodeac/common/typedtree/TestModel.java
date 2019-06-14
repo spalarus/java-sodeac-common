@@ -1,9 +1,9 @@
 package org.sodeac.common.typedtree;
 
-import org.sodeac.common.typedtree.BranchNodeField;
-import org.sodeac.common.typedtree.TypedTreeModel;
+import org.sodeac.common.typedtree.BranchNodeType;
+import org.sodeac.common.typedtree.TypedTreeMetaModel;
 
-public class TestModel extends TypedTreeModel<TestModel>
+public class TestModel extends TypedTreeMetaModel<TestModel>
 {
-	public static final BranchNodeField<TestModel,UserType> user = new BranchNodeField<TestModel,UserType>(TestModel.class,UserType.class);
+	public static final BranchNodeType<TestModel,UserType> user = new BranchNodeType<TestModel,UserType>(TestModel.class,UserType.class);
 }

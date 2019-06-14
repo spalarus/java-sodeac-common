@@ -10,7 +10,7 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
-public interface IField<A extends BranchNodeType, T>
+public interface INodeType<A extends BranchNodeMetaModel, T>
 {
 	public Class<T> getTypeClass();
 	public Class<A> getAnchorClass();

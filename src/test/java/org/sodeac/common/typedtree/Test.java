@@ -1,8 +1,5 @@
 package org.sodeac.common.typedtree;
 
-import org.sodeac.common.typedtree.BranchNode;
-import org.sodeac.common.typedtree.ModelPath;
-import org.sodeac.common.typedtree.ModelPathBuilder;
 import org.sodeac.common.typedtree.ModelPathBuilder.RootModelPathBuilder;
 
 public class Test

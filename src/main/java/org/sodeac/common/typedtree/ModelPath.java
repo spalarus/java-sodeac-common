@@ -17,16 +17,16 @@ public class ModelPath<S,T>
 	private ModelPath<?,?> previousNode = null;
 	private ModelPath<?,?> nextNode = null;
 	private Predicate<?> nextPredicate = null;
-	private IField<?, ?> type = null;
-	private BranchNodeType root = null;
+	private INodeType<?, ?> type = null;
+	private BranchNodeMetaModel root = null;
 	
-	protected ModelPath(BranchNodeType root)
+	protected ModelPath(BranchNodeMetaModel root)
 	{
 		super();
 		this.root = root;
 	}
 	
-	protected ModelPath(ModelPath<?,?> previousNode, IField<?,?> type )
+	protected ModelPath(ModelPath<?,?> previousNode, INodeType<?,?> type )
 	{
 		super();
 		this.previousNode = previousNode;

@@ -10,7 +10,26 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
-public abstract class EntityField<P extends BranchNodeType, T>
+public class LeafNodeType<A extends BranchNodeMetaModel, T> implements INodeType<A, T>
 {
+	private Class<T> typeClass = null;
+	private Class<A> anchorClass = null;
 	
+	public LeafNodeType(Class<A> anchorClass, Class<T> typeClass)
+	{
+		this.anchorClass = anchorClass;
+		this.typeClass = typeClass;
+	}
+
+	public Class<T> getTypeClass()
+	{
+		return typeClass;
+	}
+
+	public Class<A> getAnchorClass()
+	{
+		return anchorClass;
+	}
+	
+
 }

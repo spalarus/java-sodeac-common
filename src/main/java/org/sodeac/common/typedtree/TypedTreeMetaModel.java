@@ -10,29 +10,29 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
-public class TypedTreeModel<T extends BranchNodeType> extends BranchNodeType
+public class TypedTreeMetaModel<T extends BranchNodeMetaModel> extends BranchNodeMetaModel
 {
 	/**
 	 * 
 	 * @param field
 	 * @return RootNode of generic model tree
 	 */
-	public <F extends BranchNodeType> ComplexRootObject<T,F> newInstance(BranchNodeField<T,F> field)
+	public <F extends BranchNodeMetaModel> ComplexRootObject<T,F> newInstance(BranchNodeType<T,F> field)
 	{
 		return new ComplexRootObject(field.getTypeClass());
 	}
 	
-	public <F> BasicRootObject<T,F> newInstance(LeafNodeField<T,F> field)
+	public <F> BasicRootObject<T,F> newInstance(LeafNodeType<T,F> field)
 	{
 		return null;
 	}
 	
-	public <F extends BranchNodeType> BranchNodeList<T,F> newInstance(BranchNodeListField<T,F> field)
+	public <F extends BranchNodeMetaModel> BranchNodeList<T,F> newInstance(BranchNodeListType<T,F> field)
 	{
 		return null;
 	}
 	
-	public static class ComplexRootObject<P extends BranchNodeType,R  extends BranchNodeType> extends BranchNode<P,R>
+	public static class ComplexRootObject<P extends BranchNodeMetaModel,R  extends BranchNodeMetaModel> extends BranchNode<P,R>
 	{
 		protected ComplexRootObject(Class<R> modelType)
 		{
@@ -44,7 +44,7 @@ public class TypedTreeModel<T extends BranchNodeType> extends BranchNodeType
 		}
 	}
 	
-	public static class BasicRootObject<P extends BranchNodeType,R> extends LeafNode<P,R>
+	public static class BasicRootObject<P extends BranchNodeMetaModel,R> extends LeafNode<P,R>
 	{
 		public void dispose()
 		{
@@ -52,7 +52,7 @@ public class TypedTreeModel<T extends BranchNodeType> extends BranchNodeType
 		}
 	}
 	
-	public static class ComplexRootList<P extends BranchNodeType, R  extends BranchNodeType> extends BranchNodeList<P,R>
+	public static class ComplexRootList<P extends BranchNodeMetaModel, R  extends BranchNodeMetaModel> extends BranchNodeList<P,R>
 	{
 		public void dispose()
 		{

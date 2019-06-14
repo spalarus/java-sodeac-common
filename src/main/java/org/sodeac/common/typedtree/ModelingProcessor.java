@@ -31,22 +31,22 @@ public class ModelingProcessor
 		ReadWriteLock lock = new ReentrantReadWriteLock(true);
 		this.readLock = lock.readLock();
 		this.writeLock = lock.writeLock();
-		this.complexTypeIndex = new HashMap<Object,BranchNodeType>();
-		this.compiledEntityMetaIndex = new HashMap<BranchNodeType,CompiledEntityMeta>();
+		this.complexTypeIndex = new HashMap<Object,BranchNodeMetaModel>();
+		this.compiledEntityMetaIndex = new HashMap<BranchNodeMetaModel,CompiledEntityMeta>();
 	}
 	
 	private Lock readLock = null;
 	private Lock writeLock = null;
-	private Map<Object,BranchNodeType> complexTypeIndex = null;
-	private Map<BranchNodeType,CompiledEntityMeta> compiledEntityMetaIndex = null;
+	private Map<Object,BranchNodeMetaModel> complexTypeIndex = null;
+	private Map<BranchNodeMetaModel,CompiledEntityMeta> compiledEntityMetaIndex = null;
 	
 	@SuppressWarnings("unchecked")
-	public <T> BranchNodeType getModel(Class<T> type) throws InstantiationException, IllegalAccessException
+	public <T> BranchNodeMetaModel getModel(Class<T> type) throws InstantiationException, IllegalAccessException
 	{
 		this.readLock.lock();
 		try
 		{
-			BranchNodeType model = (BranchNodeType)this.complexTypeIndex.get(type);
+			BranchNodeMetaModel model = (BranchNodeMetaModel)this.complexTypeIndex.get(type);
 			if(model != null)
 			{
 				return model;
@@ -60,12 +60,12 @@ public class ModelingProcessor
 		this.writeLock.lock();
 		try
 		{
-			BranchNodeType model = (BranchNodeType)this.complexTypeIndex.get(type);
+			BranchNodeMetaModel model = (BranchNodeMetaModel)this.complexTypeIndex.get(type);
 			if(model != null)
 			{
 				return model;
 			}
-			model = (BranchNodeType)type.newInstance();
+			model = (BranchNodeMetaModel)type.newInstance();
 			this.complexTypeIndex.put(type, model);
 			return model;
 		}
@@ -76,7 +76,7 @@ public class ModelingProcessor
 	}
 	
 	@SuppressWarnings("unchecked")
-	public <T extends BranchNodeType> CompiledEntityMeta getModelCache(T complexType) throws IllegalArgumentException, IllegalAccessException
+	public <T extends BranchNodeMetaModel> CompiledEntityMeta getModelCache(T complexType) throws IllegalArgumentException, IllegalAccessException
 	{
 		this.readLock.lock();
 		try
@@ -109,7 +109,7 @@ public class ModelingProcessor
 				boolean isField = false;
 				for(Class<?> clazz : field.getType().getInterfaces())
 				{
-					if(clazz == IField.class)
+					if(clazz == INodeType.class)
 					{
 						isField = true;
 						break;
@@ -132,15 +132,15 @@ public class ModelingProcessor
 							CompiledEntityFieldMeta compiledEntityFieldMeta = new CompiledEntityFieldMeta();
 							compiledEntityFieldMeta.clazz = ((Class<?>)type2);
 							compiledEntityFieldMeta.fieldName = field.getName();
-							if(pType.getRawType() == LeafNodeField.class)
+							if(pType.getRawType() == LeafNodeType.class)
 							{
 								compiledEntityFieldMeta.relationType = CompiledEntityFieldMeta.RelationType.SingularSimple;
 							}
-							else if(pType.getRawType() == BranchNodeField.class)
+							else if(pType.getRawType() == BranchNodeType.class)
 							{
 								compiledEntityFieldMeta.relationType = CompiledEntityFieldMeta.RelationType.SingularComplex;
 							}
-							else if(pType.getRawType() == BranchNodeListField.class)
+							else if(pType.getRawType() == BranchNodeListType.class)
 							{
 								compiledEntityFieldMeta.relationType = CompiledEntityFieldMeta.RelationType.MultipleComplex;
 							}
@@ -177,7 +177,7 @@ public class ModelingProcessor
 	
 	protected static class CompiledEntityMeta
 	{
-		private BranchNodeType model = null;
+		private BranchNodeMetaModel model = null;
 		private String[] fieldNames = null;
 		private List<CompiledEntityFieldMeta> fieldList = null;
 		private Map<String, Integer> fieldIndexByName = null;
@@ -199,7 +199,7 @@ public class ModelingProcessor
 		{
 			return fieldIndexByClass;
 		}
-		protected BranchNodeType getModel()
+		protected BranchNodeMetaModel getModel()
 		{
 			return model;
 		}

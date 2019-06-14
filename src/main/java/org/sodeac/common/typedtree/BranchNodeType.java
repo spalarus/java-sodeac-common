@@ -10,11 +10,26 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
-public class BranchNodeType
+public class BranchNodeType<A extends BranchNodeMetaModel, T extends BranchNodeMetaModel> implements INodeType<A, T>
 {
-	/*public ComplexType setAnchor(ComplexType anchor)
-	{
-		return this;
-	}*/
+	private Class<T> typeClass = null;
+	private Class<A> anchorClass = null;
 	
+	public BranchNodeType(Class<A> anchorClass, Class<T> typeClass)
+	{
+		this.anchorClass = anchorClass;
+		this.typeClass = typeClass;
+	}
+
+	public Class<T> getTypeClass()
+	{
+		return typeClass;
+	}
+
+	public Class<A> getAnchorClass()
+	{
+		return anchorClass;
+	}
+	
+
 }

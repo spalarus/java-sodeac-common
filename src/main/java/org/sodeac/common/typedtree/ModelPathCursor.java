@@ -10,7 +10,7 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
-public class ModelPathCursor<P extends BranchNodeType,T>
+public class ModelPathCursor<P extends BranchNodeMetaModel,T>
 {
 	public boolean isSingleList()
 	{
@@ -57,7 +57,7 @@ public class ModelPathCursor<P extends BranchNodeType,T>
 	{
 		return getCurrent() != null && ( getCurrent() == getLast() );
 	}
-	public IField<?,?> getFieldObject()
+	public INodeType<?,?> getFieldObject()
 	{
 		return null;
 	}

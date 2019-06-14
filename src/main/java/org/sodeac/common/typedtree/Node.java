@@ -10,24 +10,7 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
-public class BranchNodeListField<A extends BranchNodeType, T extends BranchNodeType> implements IField<A, T>
+public abstract class Node<P extends BranchNodeMetaModel, T>
 {
-	private Class<T> typeClass = null;
-	private Class<A> anchorClass = null;
 	
-	public BranchNodeListField(Class<A> anchorClass, Class<T> typeClass)
-	{
-		this.anchorClass = anchorClass;
-		this.typeClass = typeClass;
-	}
-
-	public Class<T> getTypeClass()
-	{
-		return typeClass;
-	}
-
-	public Class<A> getAnchorClass()
-	{
-		return anchorClass;
-	}
 }

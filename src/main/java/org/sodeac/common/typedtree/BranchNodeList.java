@@ -1,5 +1,5 @@
 package org.sodeac.common.typedtree;
 
-public class BranchNodeList<P extends BranchNodeType,T> extends EntityField<P,T>
+public class BranchNodeList<P extends BranchNodeMetaModel,T> extends Node<P,T>
 {
 }

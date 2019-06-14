@@ -1,6 +1,6 @@
 package org.sodeac.common.typedtree;
 
-public class LeafNode<P extends BranchNodeType,T> extends EntityField<P,T>
+public class LeafNode<P extends BranchNodeMetaModel,T> extends Node<P,T>
 {
 	private T value = null;
 	

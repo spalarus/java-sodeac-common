@@ -7,7 +7,7 @@ import java.util.List;
 import org.sodeac.common.typedtree.ModelingProcessor.CompiledEntityFieldMeta;
 import org.sodeac.common.typedtree.ModelingProcessor.CompiledEntityMeta;
 
-public class BranchNode<P extends BranchNodeType, T extends BranchNodeType> extends EntityField<P,T>
+public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaModel> extends Node<P,T>
 {
 	private CompiledEntityMeta entityMeta = null;
 	private List<AttributeContainer<T,?>> fieldList = null;
@@ -16,7 +16,7 @@ public class BranchNode<P extends BranchNodeType, T extends BranchNodeType> exte
 	{
 		try
 		{
-			BranchNodeType model = ModelingProcessor.DEFAULT_INSTANCE.getModel(modelType);
+			BranchNodeMetaModel model = ModelingProcessor.DEFAULT_INSTANCE.getModel(modelType);
 			this.entityMeta = ModelingProcessor.DEFAULT_INSTANCE.getModelCache(model);
 			
 			
@@ -24,7 +24,7 @@ public class BranchNode<P extends BranchNodeType, T extends BranchNodeType> exte
 			for(int i = 0; i < this.entityMeta.getFieldNames().length; i++)
 			{
 				CompiledEntityFieldMeta compiledEntityFieldMeta = entityMeta.getFieldList().get(i);
-				EntityField<?,?> field = null;
+				Node<?,?> field = null;
 				// TODO
 				if(compiledEntityFieldMeta.getRelationType() == CompiledEntityFieldMeta.RelationType.SingularSimple)
 				{
@@ -56,16 +56,16 @@ public class BranchNode<P extends BranchNodeType, T extends BranchNodeType> exte
 		}
 	}
 	
-	public BranchNodeType getModel()
+	public BranchNodeMetaModel getModel()
 	{
-		return (BranchNodeType)this.entityMeta.getModel();
+		return (BranchNodeMetaModel)this.entityMeta.getModel();
 	}
 	
-	public <X> LeafNode<T,X> get(LeafNodeField<T,X> field)
+	public <X> LeafNode<T,X> get(LeafNodeType<T,X> field)
 	{
 		return (LeafNode<T,X>) this.fieldList.get(this.entityMeta.getFieldIndexByClass().get(field)).getField();
 	}
-	public <X extends BranchNodeType> LeafNode<T,X> get(BranchNodeField<T,X> field)
+	public <X extends BranchNodeMetaModel> LeafNode<T,X> get(BranchNodeType<T,X> field)
 	{
 		return (LeafNode<T,X>) this.fieldList.get(this.entityMeta.getFieldIndexByClass().get(field)).getField();
 	}
@@ -78,7 +78,7 @@ public class BranchNode<P extends BranchNodeType, T extends BranchNodeType> exte
 	private static class AttributeContainer<P,T>
 	{
 		private CompiledEntityFieldMeta fieldSpec = null;
-		private EntityField field = null;
+		private Node field = null;
 		
 		private CompiledEntityFieldMeta getFieldSpec()
 		{
@@ -88,11 +88,11 @@ public class BranchNode<P extends BranchNodeType, T extends BranchNodeType> exte
 		{
 			this.fieldSpec = fieldSpec;
 		}
-		private EntityField getField()
+		private Node getField()
 		{
 			return field;
 		}
-		private void setField(EntityField field)
+		private void setField(Node field)
 		{
 			this.field = field;
 		}

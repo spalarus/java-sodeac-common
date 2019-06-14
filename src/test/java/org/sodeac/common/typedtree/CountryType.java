@@ -1,9 +1,9 @@
 package org.sodeac.common.typedtree;
 
-import org.sodeac.common.typedtree.BranchNodeType;
-import org.sodeac.common.typedtree.LeafNodeField;
+import org.sodeac.common.typedtree.BranchNodeMetaModel;
+import org.sodeac.common.typedtree.LeafNodeType;
 
-public class CountryType extends BranchNodeType
+public class CountryType extends BranchNodeMetaModel
 {
-	public static final LeafNodeField<CountryType,String> name = new LeafNodeField<CountryType,String>(CountryType.class,String.class);
+	public static final LeafNodeType<CountryType,String> name = new LeafNodeType<CountryType,String>(CountryType.class,String.class);
 }
