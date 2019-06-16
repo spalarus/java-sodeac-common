@@ -12,19 +12,8 @@ package org.sodeac.common.typedtree;
 
 public class ModelPathCursor<P extends BranchNodeMetaModel,T>
 {
-	public boolean isSingleList()
-	{
-		return false;
-	}
-	public boolean isEmptyList()
-	{
-		return false;
-	}
-	public boolean isMultipleList()
-	{
-		return false;
-	}
-	public int getListSite()
+
+	public int getListSize()
 	{
 		return 0;
 	}

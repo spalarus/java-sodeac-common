@@ -31,22 +31,21 @@ public class ModelingProcessor
 		ReadWriteLock lock = new ReentrantReadWriteLock(true);
 		this.readLock = lock.readLock();
 		this.writeLock = lock.writeLock();
-		this.complexTypeIndex = new HashMap<Object,BranchNodeMetaModel>();
-		this.compiledEntityMetaIndex = new HashMap<BranchNodeMetaModel,CompiledEntityMeta>();
+		this.metaModelIndex = new HashMap<Object,BranchNodeMetaModel>();
+		this.compiledEntityMetaIndex = new HashMap<BranchNodeMetaModel,PreparedMetaModel>();
 	}
 	
 	private Lock readLock = null;
 	private Lock writeLock = null;
-	private Map<Object,BranchNodeMetaModel> complexTypeIndex = null;
-	private Map<BranchNodeMetaModel,CompiledEntityMeta> compiledEntityMetaIndex = null;
+	private Map<Object,BranchNodeMetaModel> metaModelIndex = null;
+	private Map<BranchNodeMetaModel,PreparedMetaModel> compiledEntityMetaIndex = null;
 	
-	@SuppressWarnings("unchecked")
-	public <T> BranchNodeMetaModel getModel(Class<T> type) throws InstantiationException, IllegalAccessException
+	public <T> BranchNodeMetaModel getModel(Class<T> modelClass) throws InstantiationException, IllegalAccessException
 	{
 		this.readLock.lock();
 		try
 		{
-			BranchNodeMetaModel model = (BranchNodeMetaModel)this.complexTypeIndex.get(type);
+			BranchNodeMetaModel model = (BranchNodeMetaModel)this.metaModelIndex.get(modelClass);
 			if(model != null)
 			{
 				return model;
@@ -60,13 +59,13 @@ public class ModelingProcessor
 		this.writeLock.lock();
 		try
 		{
-			BranchNodeMetaModel model = (BranchNodeMetaModel)this.complexTypeIndex.get(type);
+			BranchNodeMetaModel model = (BranchNodeMetaModel)this.metaModelIndex.get(modelClass);
 			if(model != null)
 			{
 				return model;
 			}
-			model = (BranchNodeMetaModel)type.newInstance();
-			this.complexTypeIndex.put(type, model);
+			model = (BranchNodeMetaModel)modelClass.newInstance();
+			this.metaModelIndex.put(modelClass, model);
 			return model;
 		}
 		finally 
@@ -76,12 +75,12 @@ public class ModelingProcessor
 	}
 	
 	@SuppressWarnings("unchecked")
-	public <T extends BranchNodeMetaModel> CompiledEntityMeta getModelCache(T complexType) throws IllegalArgumentException, IllegalAccessException
+	public <T extends BranchNodeMetaModel> PreparedMetaModel getPreparedMetaModel(T model) throws IllegalArgumentException, IllegalAccessException
 	{
 		this.readLock.lock();
 		try
 		{
-			CompiledEntityMeta compiledEntityMeta = this.compiledEntityMetaIndex.get(complexType);
+			PreparedMetaModel compiledEntityMeta = this.compiledEntityMetaIndex.get(model);
 			if(compiledEntityMeta != null)
 			{
 				return compiledEntityMeta;
@@ -95,16 +94,16 @@ public class ModelingProcessor
 		this.writeLock.lock();
 		try
 		{
-			CompiledEntityMeta compiledEntityMeta = this.compiledEntityMetaIndex.get(complexType);
-			if(compiledEntityMeta != null)
+			PreparedMetaModel preparedMetaModel = this.compiledEntityMetaIndex.get(model);
+			if(preparedMetaModel != null)
 			{
-				return compiledEntityMeta;
+				return preparedMetaModel;
 			}
 			
-			Class<T> modelType = (Class<T>)complexType.getClass();
+			Class<T> modelClass = (Class<T>)model.getClass();
 			
-			List<CompiledEntityFieldMeta> list = new ArrayList<CompiledEntityFieldMeta>();
-			for(Field field : modelType.getDeclaredFields())
+			List<PreparedNodeType> list = new ArrayList<PreparedNodeType>();
+			for(Field field : modelClass.getDeclaredFields())
 			{
 				boolean isField = false;
 				for(Class<?> clazz : field.getType().getInterfaces())
@@ -126,48 +125,48 @@ public class ModelingProcessor
 					ParameterizedType pType = (ParameterizedType)type;
 					if((pType.getActualTypeArguments() != null) && (pType.getActualTypeArguments().length == 2))
 					{
-						if(pType.getActualTypeArguments()[0] == modelType)
+						if(pType.getActualTypeArguments()[0] == modelClass)
 						{
 							Type type2 = pType.getActualTypeArguments()[1];
-							CompiledEntityFieldMeta compiledEntityFieldMeta = new CompiledEntityFieldMeta();
-							compiledEntityFieldMeta.clazz = ((Class<?>)type2);
-							compiledEntityFieldMeta.fieldName = field.getName();
+							PreparedNodeType prepatedNodeType = new PreparedNodeType();
+							prepatedNodeType.clazz = ((Class<?>)type2);
+							prepatedNodeType.nodeTypeName = field.getName();
 							if(pType.getRawType() == LeafNodeType.class)
 							{
-								compiledEntityFieldMeta.relationType = CompiledEntityFieldMeta.RelationType.SingularSimple;
+								prepatedNodeType.nodeType = PreparedNodeType.NodeType.LeafNode;
 							}
 							else if(pType.getRawType() == BranchNodeType.class)
 							{
-								compiledEntityFieldMeta.relationType = CompiledEntityFieldMeta.RelationType.SingularComplex;
+								prepatedNodeType.nodeType = PreparedNodeType.NodeType.BranchNode;
 							}
 							else if(pType.getRawType() == BranchNodeListType.class)
 							{
-								compiledEntityFieldMeta.relationType = CompiledEntityFieldMeta.RelationType.MultipleComplex;
+								prepatedNodeType.nodeType = PreparedNodeType.NodeType.BranchNodeList;
 							}
-							compiledEntityFieldMeta.staticFieldInstance = field.get(complexType);
-							list.add(compiledEntityFieldMeta);
+							prepatedNodeType.staticNodeTypeInstance = field.get(model);
+							list.add(prepatedNodeType);
 						}
 					}
 				}
 			}
 			
-			compiledEntityMeta = new CompiledEntityMeta();
-			compiledEntityMeta.fieldList = Collections.unmodifiableList(list);
-			compiledEntityMeta.fieldNames = new String[compiledEntityMeta.fieldList.size()];
-			Map<String,Integer> fieldIndexByName = new HashMap<String,Integer>();
-			Map<Object,Integer> fieldIndexByClass = new HashMap<Object,Integer>();
-			for(int i = 0; i < compiledEntityMeta.fieldList.size(); i++)
+			preparedMetaModel = new PreparedMetaModel();
+			preparedMetaModel.preparedNodeTypeList = Collections.unmodifiableList(list);
+			preparedMetaModel.nodeTypeNames = new String[preparedMetaModel.preparedNodeTypeList.size()];
+			Map<String,Integer> nodeTypeIndexByName = new HashMap<String,Integer>();
+			Map<Object,Integer> nodeTypeIndexByClass = new HashMap<Object,Integer>();
+			for(int i = 0; i < preparedMetaModel.preparedNodeTypeList.size(); i++)
 			{
-				CompiledEntityFieldMeta compiledEntityFieldMeta = compiledEntityMeta.fieldList.get(i);
-				compiledEntityMeta.fieldNames[i] = compiledEntityFieldMeta.getFieldName();
-				fieldIndexByName.put(compiledEntityFieldMeta.getFieldName(), i);
-				fieldIndexByClass.put(compiledEntityFieldMeta.staticFieldInstance, i);
+				PreparedNodeType compiledEntityFieldMeta = preparedMetaModel.preparedNodeTypeList.get(i);
+				preparedMetaModel.nodeTypeNames[i] = compiledEntityFieldMeta.getNodeTypeName();
+				nodeTypeIndexByName.put(compiledEntityFieldMeta.getNodeTypeName(), i);
+				nodeTypeIndexByClass.put(compiledEntityFieldMeta.staticNodeTypeInstance, i);
 			}
-			compiledEntityMeta.fieldIndexByName = Collections.unmodifiableMap(fieldIndexByName);
-			compiledEntityMeta.fieldIndexByClass = Collections.unmodifiableMap(fieldIndexByClass);
+			preparedMetaModel.nodeTypeIndexByName = Collections.unmodifiableMap(nodeTypeIndexByName);
+			preparedMetaModel.nodeTypeIndexByClass = Collections.unmodifiableMap(nodeTypeIndexByClass);
 			
-			this.compiledEntityMetaIndex.put(complexType,compiledEntityMeta);
-			return compiledEntityMeta;
+			this.compiledEntityMetaIndex.put(model,preparedMetaModel);
+			return preparedMetaModel;
 		}
 		finally 
 		{
@@ -175,29 +174,29 @@ public class ModelingProcessor
 		}
 	}
 	
-	protected static class CompiledEntityMeta
+	protected static class PreparedMetaModel
 	{
 		private BranchNodeMetaModel model = null;
-		private String[] fieldNames = null;
-		private List<CompiledEntityFieldMeta> fieldList = null;
-		private Map<String, Integer> fieldIndexByName = null;
-		private Map<Object, Integer> fieldIndexByClass = null;
+		private String[] nodeTypeNames = null;
+		private List<PreparedNodeType> preparedNodeTypeList = null;
+		private Map<String, Integer> nodeTypeIndexByName = null;
+		private Map<Object, Integer> nodeTypeIndexByClass = null;
 
-		protected List<CompiledEntityFieldMeta> getFieldList()
+		protected List<PreparedNodeType> getPreparedNodeTypeList()
 		{
-			return fieldList;
+			return preparedNodeTypeList;
 		}
-		protected String[] getFieldNames()
+		protected String[] getNodeTypeNames()
 		{
-			return fieldNames;
+			return nodeTypeNames;
 		}
-		protected Map<String, Integer> getFieldIndexByName()
+		protected Map<String, Integer> getNodeTypeIndexByName()
 		{
-			return fieldIndexByName;
+			return nodeTypeIndexByName;
 		}
-		protected Map<Object, Integer> getFieldIndexByClass()
+		protected Map<Object, Integer> getNodeTypeIndexByClass()
 		{
-			return fieldIndexByClass;
+			return nodeTypeIndexByClass;
 		}
 		protected BranchNodeMetaModel getModel()
 		{
@@ -205,30 +204,30 @@ public class ModelingProcessor
 		}
 	}
 	
-	protected static class CompiledEntityFieldMeta
+	protected static class PreparedNodeType
 	{
-		protected enum RelationType {SingularSimple,SingularComplex,MultipleComplex};
+		protected enum NodeType {LeafNode,BranchNode,BranchNodeList};
 		
 		private Class<?> clazz = null;
-		private String fieldName = null;
-		private RelationType relationType = null;
-		private Object staticFieldInstance = null;
+		private String nodeTypeName = null;
+		private NodeType nodeType = null;
+		private Object staticNodeTypeInstance = null;
 		
-		protected Class<?> getClazz()
+		protected Class<?> getNodeTypeClass()
 		{
 			return clazz;
 		}
-		protected String getFieldName()
+		protected String getNodeTypeName()
 		{
-			return fieldName;
+			return nodeTypeName;
 		}
-		protected RelationType getRelationType()
+		protected NodeType getNodeType()
 		{
-			return relationType;
+			return nodeType;
 		}
-		public Object getStaticFieldInstance()
+		public Object getStaticNodeTypeInstance()
 		{
-			return staticFieldInstance;
+			return staticNodeTypeInstance;
 		}
 	}
 	

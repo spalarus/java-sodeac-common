@@ -18,6 +18,18 @@ public class ModelPathBuilder<R extends BranchNodeMetaModel,S extends BranchNode
 	private BranchNodeMetaModel self = null;
 	private ModelPath<?, ?> type = null;
 	
+	public static <R extends BranchNodeMetaModel, T>  RootModelPathBuilder<R,T> newBuilder(Class<R> rootClass, Class<T> clazz)
+	{
+		try
+		{
+			return new RootModelPathBuilder<>(ModelingProcessor.DEFAULT_INSTANCE.getModel(rootClass));
+		}
+		catch (Exception e) 
+		{
+			throw new RuntimeException(e);
+		}
+	}
+	
 	public static <R extends BranchNodeMetaModel, T>  RootModelPathBuilder<R,T> newBuilder(R root, Class<T> clazz)
 	{
 		return new RootModelPathBuilder<>(root);

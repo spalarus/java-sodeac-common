@@ -1,5 +1,6 @@
 package org.sodeac.common.typedtree;
 
+import org.sodeac.common.typedtree.BranchNode.BranchNodeGetterPolicy;
 import org.sodeac.common.typedtree.ModelPathBuilder.RootModelPathBuilder;
 
 public class Test
@@ -19,7 +20,7 @@ public class Test
 		
 		System.out.println("xxx " + p);
 		
-		ModelPath<UserType, String> p2 = ModelPathBuilder.newBuilder(userModel,String.class)
+		ModelPath<UserType, String> p2 = ModelPathBuilder.newBuilder(UserType.class,String.class)
 																	.with(UserType.address)
 																	.with(AddressType.country)
 																	.buildFor(CountryType.name);
@@ -39,10 +40,31 @@ public class Test
 		//userModel.name.getType()
 		
 		TestModel testModel = new TestModel();
-		BranchNode<TestModel,UserType> u =  testModel.newInstance(TestModel.user);
-		u.get(UserType.name).setValue("buzzt");
+		BranchNode<TestModel,UserType> u =  testModel.createRootNode(TestModel.user);
+		u
+			.setValue(UserType.name,"buzzt")
+			.get(UserType.address,BranchNodeGetterPolicy.CreateIfNullPolicy)
+				.setValue(AddressType.street,"MCA");
 		
-		System.out.println("llllllllll " +  u + " " + u.get(UserType.name).getValue());
+		System.out.println("1 " +  u + " " + u.get(UserType.name).getValue() + " " + u.get(UserType.address).get(AddressType.street).getValue());
+		
+		u =  testModel.createRootNode(TestModel.user);
+		u
+			.build(x -> x.setValue(UserType.name,"buzzt"))
+			.build(x -> x.get
+			(
+				UserType.address,BranchNodeGetterPolicy.CreateIfNullPolicy).
+					build(a -> a.setValue(AddressType.street,"MCA"))
+			);
+		
+		System.out.println("2 " +  u + " " + u.get(UserType.name).getValue() + " " + u.get(UserType.address).get(AddressType.street).getValue());
+		
+		u =  testModel.createRootNode(TestModel.user);
+		u
+			.build(x -> x.setValue(UserType.name,"buzzt"))
+			.build(x -> x.forNode(UserType.address,BranchNodeGetterPolicy.CreateIfNullPolicy,(y,a) -> a.setValue(AddressType.street,"MCA")));
+		
+		System.out.println("3 " +  u + " " + u.get(UserType.name).getValue() + " " + u.get(UserType.address).get(AddressType.street).getValue());
 	}
 
 }

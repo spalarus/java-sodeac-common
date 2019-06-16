@@ -17,43 +17,17 @@ public class TypedTreeMetaModel<T extends BranchNodeMetaModel> extends BranchNod
 	 * @param field
 	 * @return RootNode of generic model tree
 	 */
-	public <F extends BranchNodeMetaModel> ComplexRootObject<T,F> newInstance(BranchNodeType<T,F> field)
+	public <F extends BranchNodeMetaModel> RootBranchNode<T,F> createRootNode(BranchNodeType<T,F> node)
 	{
-		return new ComplexRootObject(field.getTypeClass());
+		return new RootBranchNode(node.getTypeClass());
 	}
 	
-	public <F> BasicRootObject<T,F> newInstance(LeafNodeType<T,F> field)
+	public static class RootBranchNode<P extends BranchNodeMetaModel,R  extends BranchNodeMetaModel> extends BranchNode<P,R>
 	{
-		return null;
-	}
-	
-	public <F extends BranchNodeMetaModel> BranchNodeList<T,F> newInstance(BranchNodeListType<T,F> field)
-	{
-		return null;
-	}
-	
-	public static class ComplexRootObject<P extends BranchNodeMetaModel,R  extends BranchNodeMetaModel> extends BranchNode<P,R>
-	{
-		protected ComplexRootObject(Class<R> modelType)
+		protected RootBranchNode(Class<R> modelType)
 		{
 			super(modelType);
 		}
-		public void dispose()
-		{
-			// TODO
-		}
-	}
-	
-	public static class BasicRootObject<P extends BranchNodeMetaModel,R> extends LeafNode<P,R>
-	{
-		public void dispose()
-		{
-			// TODO
-		}
-	}
-	
-	public static class ComplexRootList<P extends BranchNodeMetaModel, R  extends BranchNodeMetaModel> extends BranchNodeList<P,R>
-	{
 		public void dispose()
 		{
 			// TODO

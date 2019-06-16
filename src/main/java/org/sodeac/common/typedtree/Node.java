@@ -12,5 +12,8 @@ package org.sodeac.common.typedtree;
 
 public abstract class Node<P extends BranchNodeMetaModel, T>
 {
-	
+	protected void disposeNode()
+	{
+		
+	}
 }
