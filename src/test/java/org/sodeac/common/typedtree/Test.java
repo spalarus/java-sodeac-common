@@ -43,28 +43,41 @@ public class Test
 		BranchNode<TestModel,UserType> u =  testModel.createRootNode(TestModel.user);
 		u
 			.setValue(UserType.name,"buzzt")
-			.get(UserType.address,BranchNodeGetterPolicy.CreateIfNullPolicy)
+			.create(UserType.address )
 				.setValue(AddressType.street,"MCA");
+		
+		
+		testModel.createRootNode(TestModel.user).setValue(UserType.name, "Icke").create(UserType.address).setValue(AddressType.street,"MCA");
 		
 		System.out.println("1 " +  u + " " + u.get(UserType.name).getValue() + " " + u.get(UserType.address).get(AddressType.street).getValue());
 		
 		u =  testModel.createRootNode(TestModel.user);
 		u
-			.build(x -> x.setValue(UserType.name,"buzzt"))
-			.build(x -> x.get
+			.compute(x -> x.setValue(UserType.name,"buzzt"))
+			.compute
 			(
-				UserType.address,BranchNodeGetterPolicy.CreateIfNullPolicy).
-					build(a -> a.setValue(AddressType.street,"MCA"))
+				x -> x.get(UserType.address,BranchNodeGetterPolicy.CreateIfNull).
+					setValue(AddressType.street,"MCA")
 			);
 		
 		System.out.println("2 " +  u + " " + u.get(UserType.name).getValue() + " " + u.get(UserType.address).get(AddressType.street).getValue());
 		
 		u =  testModel.createRootNode(TestModel.user);
 		u
-			.build(x -> x.setValue(UserType.name,"buzzt"))
-			.build(x -> x.forNode(UserType.address,BranchNodeGetterPolicy.CreateIfNullPolicy,(y,a) -> a.setValue(AddressType.street,"MCA")));
+			.compute(x -> x.setValue(UserType.name,"buzzt"))
+			.compute(x -> x.computeChildNode(UserType.address,BranchNodeGetterPolicy.CreateIfNull,(y,a) -> a.setValue(AddressType.street,"MCA")));
 		
 		System.out.println("3 " +  u + " " + u.get(UserType.name).getValue() + " " + u.get(UserType.address).get(AddressType.street).getValue());
+		
+		 BranchNode<AddressType, CountryType>  country = u.get(UserType.address).create(AddressType.country);
+		 country.createItem(CountryType.languageList).setValue(LangType.name, "German").setValue(LangType.code, "de");
+		 System.out.println("List: " + country.getUnmodifiableNodeList(CountryType.languageList).size());
+		 
+		u.remove(UserType.address);
+		
+		System.out.println("4 " +  u + " " + u.get(UserType.name).getValue() + " " + u.get(UserType.address));
+		
+
 	}
 
 }

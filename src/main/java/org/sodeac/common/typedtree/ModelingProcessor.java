@@ -151,6 +151,7 @@ public class ModelingProcessor
 			}
 			
 			preparedMetaModel = new PreparedMetaModel();
+			preparedMetaModel.model = model;
 			preparedMetaModel.preparedNodeTypeList = Collections.unmodifiableList(list);
 			preparedMetaModel.nodeTypeNames = new String[preparedMetaModel.preparedNodeTypeList.size()];
 			Map<String,Integer> nodeTypeIndexByName = new HashMap<String,Integer>();
@@ -211,7 +212,7 @@ public class ModelingProcessor
 		private Class<?> clazz = null;
 		private String nodeTypeName = null;
 		private NodeType nodeType = null;
-		private Object staticNodeTypeInstance = null;
+		private Object staticNodeTypeInstance = null; // static field in metamodel
 		
 		protected Class<?> getNodeTypeClass()
 		{

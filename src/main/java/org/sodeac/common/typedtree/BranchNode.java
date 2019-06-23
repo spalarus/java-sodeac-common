@@ -35,17 +35,17 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			for(int i = 0; i < this.preparedMetaModel.getNodeTypeNames().length; i++)
 			{
 				PreparedNodeType preparedNodeType = preparedMetaModel.getPreparedNodeTypeList().get(i);
-				Node<?,?> node = null;
+				
+				NodeContainer<T, ?> nodeContainer = new NodeContainer<>();
 				if(preparedNodeType.getNodeType() == PreparedNodeType.NodeType.LeafNode)
 				{
-					node = new LeafNode<>();
+					nodeContainer.node = new LeafNode<>();
 				}
 				else if (preparedNodeType.getNodeType() == PreparedNodeType.NodeType.BranchNodeList)
 				{
-					node = new BranchNodeList<>(preparedNodeType.getNodeTypeClass());
+					nodeContainer.nodeList = new ArrayList<BranchNode<P,T>>();
+					nodeContainer.unmodifiableNodeList = Collections.unmodifiableList(nodeContainer.nodeList);
 				}
-				NodeContainer<T, ?> nodeContainer = new NodeContainer<>();
-				nodeContainer.node = node;
 				nodeContainer.preparedNodeType = preparedNodeType;
 				nodeContainerList.add(nodeContainer);
 			}
@@ -62,12 +62,26 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		}
 	}
 	
-	public BranchNodeMetaModel getModel()
+	/*
+	 * LeafNode methods
+	 */
+	
+	public <X> LeafNode<T,X> get(LeafNodeType<T,X> nodeType)
 	{
-		return (BranchNodeMetaModel)this.preparedMetaModel.getModel();
+		return (LeafNode<T,X>) this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType)).getNode();
 	}
 	
-	public BranchNode<P, T> build(Consumer<BranchNode<P, T>> consumer) // TODO better Name -> for, consume, invoke, run, doit
+	public <X> LeafNode<T,X> getLeafNode(ModelPath<T,X> path)
+	{
+		// TODO
+		return null;
+	}
+	
+	/*
+	 *  BranchNode methods
+	 */
+	
+	public BranchNode<P, T> compute(Consumer<BranchNode<P, T>> consumer)
 	{
 		if(consumer == null)
 		{
@@ -77,7 +91,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		return this;
 	}
 	
-	public <X extends BranchNodeMetaModel> BranchNode<P, T> forNode(BranchNodeType<T,X> nodeType, BranchNodeGetterPolicy policy, BiConsumer<BranchNode<P, T>, BranchNode<T,X>> consumer)
+	public <X extends BranchNodeMetaModel> BranchNode<P, T> computeChildNode(BranchNodeType<T,X> nodeType, BranchNodeGetterPolicy policy, BiConsumer<BranchNode<P, T>, BranchNode<T,X>> consumer)
 	{
 		if(consumer == null)
 		{
@@ -88,30 +102,62 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		return this;
 	}
 	
-	public <X> LeafNode<T,X> get(LeafNodeType<T,X> nodeType)
+	public <X extends BranchNodeMetaModel> BranchNode<P, T> computeChildNode(BranchNodeType<T,X> nodeType,BiConsumer<BranchNode<P, T>, BranchNode<T,X>> ifAbsent,BiConsumer<BranchNode<P, T>, BranchNode<T,X>> ifPresent)
 	{
-		return (LeafNode<T,X>) this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType)).getNode();
+		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		BranchNode<T,X> node = (BranchNode)nodeContainer.getNode();
+		if(node == null)
+		{
+			if(ifAbsent == null)
+			{
+				return this;
+			}
+			ifAbsent.accept(this, node);
+			return this;
+		}
+		
+		if(ifPresent == null)
+		{
+			return this;
+		}
+		ifPresent.accept(this, node);
+		return this;
 	}
+	
 	public <X> BranchNode<P,T> setValue(LeafNodeType<T,X> nodeType, X value)
 	{
 		LeafNode<T,X> node = (LeafNode<T,X>) this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType)).getNode();
 		node.setValue(value);
 		return this;
 	}
+	
+	public <X extends BranchNodeMetaModel> BranchNode<P, T> remove(BranchNodeType<T,X> nodeType)
+	{
+		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		if(nodeContainer.getNode() != null)
+		{
+			nodeContainer.node = null;
+		}
+		return this;
+	}
 	public <X extends BranchNodeMetaModel> BranchNode<T,X> get(BranchNodeType<T,X> nodeType)
 	{
-		return get(nodeType,BranchNodeGetterPolicy.CreateNeverPolicy);
+		return get(nodeType,BranchNodeGetterPolicy.CreateNever);
+	}
+	public <X extends BranchNodeMetaModel> BranchNode<T,X> create(BranchNodeType<T,X> nodeType)
+	{
+		return get(nodeType,BranchNodeGetterPolicy.CreateAlways);
 	}
 	public <X extends BranchNodeMetaModel> BranchNode<T,X> get(BranchNodeType<T,X> nodeType,BranchNodeGetterPolicy policy)
 	{
 		if(policy == null)
 		{
-			policy = BranchNodeGetterPolicy.CreateNeverPolicy;
+			policy = BranchNodeGetterPolicy.CreateNever;
 		}
 		
 		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
 		
-		if(policy.getCreateCase() == BranchNodeGetterPolicy.CreateCase.Never)
+		if(policy.getCreateCase() == BranchNodeGetterPolicy.CreateCase.CreateNever)
 		{
 			return (BranchNode<T,X>) nodeContainer.getNode();
 		}
@@ -161,15 +207,92 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		}
 	}
 	
-	public <X> LeafNode<T,X> getSingleValue(ModelPath<T,X> path)
+	/*
+	 * BranchNode List
+	 */
+	
+	public <X extends BranchNodeMetaModel> List<BranchNode<P,T>> getUnmodifiableNodeList(BranchNodeListType<T,X> nodeType)
 	{
-		return null;
+		return this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType)).getUnmodifiableNodeList();
 	}
+
+	public <X extends BranchNodeMetaModel> BranchNode<T,X> createItem(BranchNodeListType<T,X> nodeType)
+	{
+		return this.createItem(nodeType, null);
+	}
+	public <X extends BranchNodeMetaModel> BranchNode<T,X> createItem(BranchNodeListType<T,X> nodeType, BiConsumer<BranchNode<P, T>, BranchNode<T,X>> consumer)
+	{
+		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		
+		BranchNode<T,X> node = new BranchNode(nodeContainer.preparedNodeType.getNodeTypeClass());
+		if(consumer != null)
+		{
+			consumer.accept(this, node);
+		}
+		nodeContainer.nodeList.add(node);
+		return node;
+	}
+	
+	public <X extends BranchNodeMetaModel> BranchNode<T,X> createItem(BranchNodeListType<T,X> nodeType,int index)
+	{
+		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		
+		BranchNode<T,X> node = new BranchNode(nodeContainer.preparedNodeType.getNodeTypeClass());
+		nodeContainer.nodeList.add(index,node);
+		return node;
+	}
+
+	public <X extends BranchNodeMetaModel> boolean remove(BranchNodeListType<T,X> nodeType, BranchNode<P, T> node)
+	{
+		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		
+		if(nodeContainer.nodeList.remove(node))
+		{
+			node.disposeNode();
+			return true;
+		}
+		return false;
+	}
+
+	public <X extends BranchNodeMetaModel> void clear(BranchNodeListType<T,X> nodeType)
+	{
+		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		
+		List<BranchNode<P, T>> copy = new ArrayList<>(nodeContainer.nodeList);
+		nodeContainer.nodeList.clear();
+		for(BranchNode<P, T> node : copy)
+		{
+			node.disposeNode();
+		}
+		
+	}
+	public <X extends BranchNodeMetaModel> BranchNode<T,X> remove(BranchNodeListType<T,X> nodeType, int index)
+	{
+		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		
+		BranchNode<T,X> node = (BranchNode<T,X>)nodeContainer.nodeList.remove(index);
+		
+		if(node != null)
+		{
+			node.disposeNode();
+		}
+		return null; // TODO return disposed node ????
+	}
+
+	
+	/*public <X extends BranchNodeMetaModel> BranchNodeList<T,X> get(BranchNodeListType<T,X> nodeType)
+	{
+		return (BranchNodeList<T,X>) this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType)).getNode();
+	}*/
+	
+	// Helper
 	
 	private static class NodeContainer<P,T>
 	{
 		private PreparedNodeType preparedNodeType = null;
 		private volatile Node node = null;
+		private ArrayList nodeList = null; 
+		private List unmodifiableNodeList = null;
 		
 		private PreparedNodeType getPreparedNodeType()
 		{
@@ -187,20 +310,36 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		{
 			this.node = node;
 		}
+		private ArrayList getNodeList()
+		{
+			return nodeList;
+		}
+		private void setNodeList(ArrayList nodeList)
+		{
+			this.nodeList = nodeList;
+		}
+		private List getUnmodifiableNodeList()
+		{
+			return unmodifiableNodeList;
+		}
+		private void setUnmodifiableNodeList(List unmodifiableNodeList)
+		{
+			this.unmodifiableNodeList = unmodifiableNodeList;
+		}
 	}
 	
 	public static class BranchNodeGetterPolicy
 	{
-		public enum CreateCase {Never,CreateIfNull,ForceCreate};
+		public enum CreateCase {CreateNever,CreateIfNull,CreateAlways};
 		
-		private CreateCase createCase = CreateCase.Never;
+		private CreateCase createCase = CreateCase.CreateNever;
 		private boolean synchronize = false;
 		
-		public static final BranchNodeGetterPolicy CreateNeverPolicy = new BranchNodeGetterPolicy(CreateCase.Never, false);
-		public static final BranchNodeGetterPolicy CreateIfNullPolicy = new BranchNodeGetterPolicy(CreateCase.CreateIfNull, false);
-		public static final BranchNodeGetterPolicy CreatePolicy = new BranchNodeGetterPolicy(CreateCase.ForceCreate, false);
-		public static final BranchNodeGetterPolicy CreateIfNullSynchronizedPolicy = new BranchNodeGetterPolicy(CreateCase.CreateIfNull, true);
-		public static final BranchNodeGetterPolicy CreateSynchronizedPolicy = new BranchNodeGetterPolicy(CreateCase.ForceCreate, true);
+		public static final BranchNodeGetterPolicy CreateNever = new BranchNodeGetterPolicy(CreateCase.CreateNever, false);
+		public static final BranchNodeGetterPolicy CreateIfNull = new BranchNodeGetterPolicy(CreateCase.CreateIfNull, false);
+		public static final BranchNodeGetterPolicy CreateAlways = new BranchNodeGetterPolicy(CreateCase.CreateAlways, false);
+		public static final BranchNodeGetterPolicy CreateIfNullSynchronized = new BranchNodeGetterPolicy(CreateCase.CreateIfNull, true);
+		public static final BranchNodeGetterPolicy CreateAlwaysSynchronized = new BranchNodeGetterPolicy(CreateCase.CreateAlways, true);
 		
 		private BranchNodeGetterPolicy(BranchNodeGetterPolicy.CreateCase createCase, boolean synchronize)
 		{
