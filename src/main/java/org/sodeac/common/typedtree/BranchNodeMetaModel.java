@@ -12,9 +12,5 @@ package org.sodeac.common.typedtree;
 
 public class BranchNodeMetaModel
 {
-	/*public ComplexType setAnchor(ComplexType anchor)
-	{
-		return this;
-	}*/
 	
 }

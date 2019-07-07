@@ -1,7 +1,7 @@
 package org.sodeac.common.typedtree;
 
-import org.sodeac.common.typedtree.BranchNode.BranchNodeGetterPolicy;
 import org.sodeac.common.typedtree.ModelPathBuilder.RootModelPathBuilder;
+import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
 
 public class Test
 {
@@ -40,7 +40,7 @@ public class Test
 		//userModel.name.getType()
 		
 		TestModel testModel = new TestModel();
-		BranchNode<TestModel,UserType> u =  testModel.createRootNode(TestModel.user);
+		RootBranchNode<TestModel,UserType> u =  testModel.createRootNode(TestModel.user);
 		u
 			.setValue(UserType.name,"buzzt")
 			.create(UserType.address )
@@ -56,26 +56,28 @@ public class Test
 			.compute(x -> x.setValue(UserType.name,"buzzt"))
 			.compute
 			(
-				x -> x.get(UserType.address,BranchNodeGetterPolicy.CreateIfNull).
+				x -> x.create(UserType.address).
 					setValue(AddressType.street,"MCA")
 			);
 		
 		System.out.println("2 " +  u + " " + u.get(UserType.name).getValue() + " " + u.get(UserType.address).get(AddressType.street).getValue());
 		
-		u =  testModel.createRootNode(TestModel.user);
+		u =  testModel.createRootNode(TestModel.user).setBranchNodeGetterAutoCreate(true);
 		u
 			.compute(x -> x.setValue(UserType.name,"buzzt"))
-			.compute(x -> x.computeChildNode(UserType.address,BranchNodeGetterPolicy.CreateIfNull,(y,a) -> a.setValue(AddressType.street,"MCA")));
+			.compute(x -> x.compute(UserType.address,(y,a) -> a.setValue(AddressType.street,"MCA")));
 		
 		System.out.println("3 " +  u + " " + u.get(UserType.name).getValue() + " " + u.get(UserType.address).get(AddressType.street).getValue());
 		
 		 BranchNode<AddressType, CountryType>  country = u.get(UserType.address).create(AddressType.country);
-		 country.createItem(CountryType.languageList).setValue(LangType.name, "German").setValue(LangType.code, "de");
+		 country.create(CountryType.languageList).setValue(LangType.name, "German").setValue(LangType.code, "de");
 		 System.out.println("List: " + country.getUnmodifiableNodeList(CountryType.languageList).size());
 		 
 		u.remove(UserType.address);
 		
 		System.out.println("4 " +  u + " " + u.get(UserType.name).getValue() + " " + u.get(UserType.address));
+		
+		u.dispose();
 		
 
 	}

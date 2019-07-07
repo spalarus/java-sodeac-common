@@ -10,7 +10,9 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
-public abstract class Node<P extends BranchNodeMetaModel, T>
+import org.sodeac.common.function.ConplierBean;
+
+public interface IModifyListener
 {
-	protected abstract void disposeNode();
+	public <C extends INodeType<?,?>, T> void onModify(BranchNode<?, ?> parentNode, String nodeTypeName, Object staticNodeTypeInstance, Class<C> type, T oldValue, T newValue, ConplierBean<Boolean> doit);
 }

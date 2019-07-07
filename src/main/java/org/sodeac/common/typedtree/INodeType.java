@@ -27,7 +27,7 @@ public interface INodeType<A extends BranchNodeMetaModel, T>
 		}
 	}
 	
-	public default A getAnchor()
+	public default A get___Anchor()
 	{
 		try
 		{
