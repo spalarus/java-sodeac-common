@@ -22,11 +22,6 @@ import org.sodeac.common.function.ConplierBean;
 
 public class TypedTreeMetaModel<T extends BranchNodeMetaModel> extends BranchNodeMetaModel
 {
-	/**
-	 * 
-	 * @param field
-	 * @return RootNode of generic model tree
-	 */
 	public <F extends BranchNodeMetaModel> RootBranchNode<T,F> createRootNode(BranchNodeType<T,F> node)
 	{
 		return new RootBranchNode(node.getTypeClass());
