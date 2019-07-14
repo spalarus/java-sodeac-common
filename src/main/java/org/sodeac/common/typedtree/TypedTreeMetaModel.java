@@ -38,6 +38,7 @@ public class TypedTreeMetaModel<T extends BranchNodeMetaModel> extends BranchNod
 		private ReadLock readLock;
 		private WriteLock writeLock;
 		private ConplierBean<Boolean> sharedDoit;
+		private volatile long sequnceOID = 0L;
 		
 		protected RootBranchNode(Class<R> modelType)
 		{
@@ -113,6 +114,11 @@ public class TypedTreeMetaModel<T extends BranchNodeMetaModel> extends BranchNod
 		{
 			this.branchNodeComputeAutoCreate = branchNodeComputeAutoCreate;
 			return this;
+		}
+		
+		protected long nextOID()
+		{
+			return ++this.sequnceOID;
 		}
 
 		public void addModifyListener(IModifyListener modifyListener)

@@ -12,6 +12,7 @@ package org.sodeac.common.typedtree;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.function.BiConsumer;
@@ -28,6 +29,8 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	private List<NodeContainer<T,?>> nodeContainerList = null;
 	protected RootBranchNode<?,?> rootNode = null;
 	protected BranchNode<?,P> parentNode = null;
+	private long OID = -1;
+	private long positionInList = -1;
 	
 	protected BranchNode(RootBranchNode<?,?> rootNode, BranchNode<?,P> parentNode, Class<T> modelType)
 	{
@@ -60,6 +63,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 				if(this instanceof RootBranchNode)
 				{
 					this.rootNode = (RootBranchNode<?,?>)this;
+					this.OID = 0L;
 				}
 				else
 				{
@@ -69,8 +73,10 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			else
 			{
 				this.rootNode = rootNode;
+				this.OID = rootNode.nextOID();
 			}
 			this.parentNode = parentNode;
+			
 			
 		}
 		catch (Exception e) 
@@ -543,6 +549,72 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			}
 		}
 	}
+	
+	public <X extends BranchNodeMetaModel> BranchNode<P, T> setComperator(BranchNodeListType<T,X> nodeType, Comparator<BranchNode<T,X>> comparator)
+	{
+		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		
+		
+		Lock lock = this.rootNode.isSychronized() ? this.rootNode.getWriteLock() : null;
+		if(lock != null)
+		{
+			lock.lock();
+		}
+		try
+		{
+			if((nodeContainer.listComparator == null) && (comparator == null))
+			{
+				return this;
+			}
+			
+			nodeContainer.listComparator = comparator;
+			
+			if(this.rootNode.isImmutable())
+			{
+				return this;
+			}
+			
+			Collections.sort(nodeContainer.nodeList, nodeContainer.listComparator);
+			nodeContainer.unmodifiableNodeListSnapshot = null;
+		}
+		finally 
+		{
+			if(lock != null)
+			{
+				lock.unlock();
+			}
+		}
+		
+		return this;
+	}
+	
+	public <X extends BranchNodeMetaModel> BranchNode<T,X> get(BranchNodeListType<T,X> nodeType, Predicate<BranchNode<T,X>> predicate)
+	{
+		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		Lock lock = this.rootNode.isSychronized() ? this.rootNode.getWriteLock() : null;
+		if(lock != null)
+		{
+			lock.lock();
+		}
+		try
+		{
+			for(BranchNode<T,X> node : nodeContainer.nodeList)
+			{
+				if(predicate.test(node))
+				{
+					return node;
+				}
+			}
+		}
+		finally 
+		{
+			if(lock != null)
+			{
+				lock.unlock();
+			}
+		}
+		return null;
+	}
 
 	public <X extends BranchNodeMetaModel> BranchNode<T,X> create(BranchNodeListType<T,X> nodeType)
 	{
@@ -566,51 +638,8 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getNodeTypeName(), nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
 				{
 					nodeContainer.nodeList.add(node);
-					nodeContainer.unmodifiableNodeListSnapshot = null;
-					created = true;
-					return node;
-				}
-			}
-			finally
-			{
-				if(! created)
-				{
-					node.disposeNode();
-				}
-			}
-		}
-		finally 
-		{
-			if(lock != null)
-			{
-				lock.unlock();
-			}
-		}
-		return null;
-	}
-	
-	public <X extends BranchNodeMetaModel> BranchNode<T,X> create(BranchNodeListType<T,X> nodeType,int index)
-	{
-		if(this.rootNode.isImmutable())
-		{
-			return null;
-		}
-		
-		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
-		Lock lock = this.rootNode.isSychronized() ? this.rootNode.getWriteLock() : null;
-		if(lock != null)
-		{
-			lock.lock();
-		}
-		try
-		{
-			boolean created = false;
-			BranchNode<T,X> node = new BranchNode(this.rootNode,this,nodeContainer.preparedNodeType.getNodeTypeClass());
-			try
-			{
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getNodeTypeName(), nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
-				{
-					nodeContainer.nodeList.add(index,node);
+					node.positionInList = nodeContainer.nodeList.size() -1;
+					
 					nodeContainer.unmodifiableNodeListSnapshot = null;
 					created = true;
 					return node;
@@ -638,7 +667,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	{
 		if(this.rootNode.isImmutable())
 		{
-			return null;
+			return this;
 		}
 		
 		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
@@ -660,7 +689,87 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 				
 				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getNodeTypeName(), nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
 				{
-					nodeContainer.nodeList.add(node);
+					if((nodeContainer.listComparator == null) || nodeContainer.nodeList.isEmpty())
+					{
+						nodeContainer.nodeList.add(node);
+						node.positionInList = nodeContainer.nodeList.size() -1;
+					}
+					else
+					{
+						if(nodeContainer.nodeList.isEmpty() || nodeContainer.listComparator.compare(node, nodeContainer.nodeList.get(nodeContainer.nodeList.size() -1)) > 0)
+						{
+							nodeContainer.nodeList.add(node);
+							node.positionInList = nodeContainer.nodeList.size() -1;
+						}
+						else if(nodeContainer.listComparator.compare(node, nodeContainer.nodeList.get(0)) < 0)
+						{
+							nodeContainer.nodeList.add(0,node);
+							
+							int index = 0;
+							for(BranchNode nodeItem : nodeContainer.nodeList)
+							{
+								nodeItem.positionInList = index++;
+							}
+						}
+						else
+						{
+							int beginIndex = 0;
+							int rangeSize = nodeContainer.nodeList.size();
+							int endIndex = rangeSize -1;
+							int testIndex = endIndex / 2;
+							int testResult = nodeContainer.listComparator.compare(node, nodeContainer.nodeList.get(testIndex));
+							
+							while(rangeSize > 1)
+							{
+								
+								if(testResult < 0)
+								{
+									if(endIndex == testIndex)
+									{
+										testIndex = beginIndex;
+										rangeSize = endIndex - beginIndex;
+										testResult = nodeContainer.listComparator.compare(node, nodeContainer.nodeList.get(testIndex));
+										break;
+									}
+									endIndex = testIndex;
+								}
+								else
+								{
+									beginIndex = testIndex;
+								}
+								
+								testIndex = (beginIndex + endIndex) / 2;
+								rangeSize = endIndex - beginIndex;
+								testResult = nodeContainer.listComparator.compare(node, nodeContainer.nodeList.get(testIndex));
+							}
+							
+							if(testResult < 0)
+							{
+								nodeContainer.nodeList.add(testIndex,node);
+								
+								for(int i = testIndex; i < nodeContainer.nodeList.size(); i++)
+								{
+									BranchNode nodeItem = nodeContainer.nodeList.get(i);
+									nodeItem.positionInList = i;
+								}
+							}
+							else if(nodeContainer.nodeList.size() -1 > testIndex)
+							{
+								nodeContainer.nodeList.add(testIndex + 1,node);
+								
+								for(int i = testIndex + 1; i < nodeContainer.nodeList.size(); i++)
+								{
+									BranchNode nodeItem = nodeContainer.nodeList.get(i);
+									nodeItem.positionInList = i;
+								}
+							}
+							else
+							{
+								nodeContainer.nodeList.add(node);
+								node.positionInList = nodeContainer.nodeList.size() -1;
+							}
+						}
+					}
 					nodeContainer.unmodifiableNodeListSnapshot = null;
 					created = true;
 				}
@@ -683,11 +792,11 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		return this;
 	}
 	
-	public <X extends BranchNodeMetaModel> BranchNode<P, T> create(BranchNodeListType<T,X> nodeType, int index,  BiConsumer<BranchNode<P, T>, BranchNode<T,X>> consumer)
+	public <X extends BranchNodeMetaModel> BranchNode<P, T> createIfAbsent(BranchNodeListType<T,X> nodeType, Predicate<BranchNode<T,X>> predicate,  BiConsumer<BranchNode<P, T>, BranchNode<T,X>> consumer)
 	{
 		if(this.rootNode.isImmutable())
 		{
-			return null;
+			return this;
 		}
 		
 		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
@@ -698,6 +807,17 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		}
 		try
 		{
+			for(BranchNode<T,X> node : nodeContainer.nodeList)
+			{
+				if(predicate.test(node))
+				{
+					if(consumer != null)
+					{
+						consumer.accept(this, node);
+					}
+					return this;
+				}
+			}
 			boolean created = false;
 			BranchNode<T,X> node = new BranchNode(this.rootNode,this,nodeContainer.preparedNodeType.getNodeTypeClass());
 			try
@@ -709,7 +829,87 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 				
 				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getNodeTypeName(), nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
 				{
-					nodeContainer.nodeList.add(index,node);
+					if((nodeContainer.listComparator == null) || nodeContainer.nodeList.isEmpty())
+					{
+						nodeContainer.nodeList.add(node);
+						node.positionInList = nodeContainer.nodeList.size() -1;
+					}
+					else
+					{
+						if(nodeContainer.nodeList.isEmpty() || nodeContainer.listComparator.compare(node, nodeContainer.nodeList.get(nodeContainer.nodeList.size() -1)) > 0)
+						{
+							nodeContainer.nodeList.add(node);
+							node.positionInList = nodeContainer.nodeList.size() -1;
+						}
+						else if(nodeContainer.listComparator.compare(node, nodeContainer.nodeList.get(0)) < 0)
+						{
+							nodeContainer.nodeList.add(0,node);
+							
+							int index = 0;
+							for(BranchNode nodeItem : nodeContainer.nodeList)
+							{
+								nodeItem.positionInList = index++;
+							}
+						}
+						else
+						{
+							int beginIndex = 0;
+							int rangeSize = nodeContainer.nodeList.size();
+							int endIndex = rangeSize -1;
+							int testIndex = endIndex / 2;
+							int testResult = nodeContainer.listComparator.compare(node, nodeContainer.nodeList.get(testIndex));
+							
+							while(rangeSize > 1)
+							{
+								
+								if(testResult < 0)
+								{
+									if(endIndex == testIndex)
+									{
+										testIndex = beginIndex;
+										rangeSize = endIndex - beginIndex;
+										testResult = nodeContainer.listComparator.compare(node, nodeContainer.nodeList.get(testIndex));
+										break;
+									}
+									endIndex = testIndex;
+								}
+								else
+								{
+									beginIndex = testIndex;
+								}
+								
+								testIndex = (beginIndex + endIndex) / 2;
+								rangeSize = endIndex - beginIndex;
+								testResult = nodeContainer.listComparator.compare(node, nodeContainer.nodeList.get(testIndex));
+							}
+							
+							if(testResult < 0)
+							{
+								nodeContainer.nodeList.add(testIndex,node);
+								
+								for(int i = testIndex; i < nodeContainer.nodeList.size(); i++)
+								{
+									BranchNode nodeItem = nodeContainer.nodeList.get(i);
+									nodeItem.positionInList = i;
+								}
+							}
+							else if(nodeContainer.nodeList.size() -1 > testIndex)
+							{
+								nodeContainer.nodeList.add(testIndex + 1,node);
+								
+								for(int i = testIndex + 1; i < nodeContainer.nodeList.size(); i++)
+								{
+									BranchNode nodeItem = nodeContainer.nodeList.get(i);
+									nodeItem.positionInList = i;
+								}
+							}
+							else
+							{
+								nodeContainer.nodeList.add(node);
+								node.positionInList = nodeContainer.nodeList.size() -1;
+							}
+						}
+					}
 					nodeContainer.unmodifiableNodeListSnapshot = null;
 					created = true;
 				}
@@ -731,9 +931,6 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		}
 		return this;
 	}
-	
-	// TODO compute absent/present
-	// TODO comparator
 	
 
 	public <X extends BranchNodeMetaModel> boolean remove(BranchNodeListType<T,X> nodeType, BranchNode<P, T> node)
@@ -864,6 +1061,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		private volatile Node node = null;
 		private ArrayList<BranchNode> nodeList = null; 
 		private List unmodifiableNodeList = null;
+		private volatile Comparator listComparator = null; 
 		private volatile List unmodifiableNodeListSnapshot = null;
 		
 	}
