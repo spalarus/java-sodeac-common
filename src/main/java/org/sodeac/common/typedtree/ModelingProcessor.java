@@ -33,12 +33,14 @@ public class ModelingProcessor
 		this.writeLock = lock.writeLock();
 		this.metaModelIndex = new HashMap<Object,BranchNodeMetaModel>();
 		this.compiledEntityMetaIndex = new HashMap<BranchNodeMetaModel,PreparedMetaModel>();
+		this.modelIndex = new HashMap<Class<?>,TypedTreeMetaModel>();
 	}
 	
 	private Lock readLock = null;
 	private Lock writeLock = null;
 	private Map<Object,BranchNodeMetaModel> metaModelIndex = null;
 	private Map<BranchNodeMetaModel,PreparedMetaModel> compiledEntityMetaIndex = null;
+	private Map<Class<?>,TypedTreeMetaModel> modelIndex = null;
 	
 	public <T> BranchNodeMetaModel getModel(Class<T> modelClass) throws InstantiationException, IllegalAccessException
 	{
@@ -168,6 +170,50 @@ public class ModelingProcessor
 			
 			this.compiledEntityMetaIndex.put(model,preparedMetaModel);
 			return preparedMetaModel;
+		}
+		finally 
+		{
+			this.writeLock.unlock();
+		}
+	}
+	
+	protected <M extends TypedTreeMetaModel> M getModelObject(Class<M> clazz)
+	{
+		this.readLock.lock();
+		try
+		{
+			M modelObject = (M)this.modelIndex.get(clazz);
+			if(modelObject != null)
+			{
+				return modelObject;
+			}
+		}
+		finally 
+		{
+			this.readLock.unlock();
+		}
+		
+		this.writeLock.lock();
+		try
+		{
+			M modelObject = (M)this.modelIndex.get(clazz);
+			if(modelObject != null)
+			{
+				return modelObject;
+			}
+			
+			modelObject = (M) clazz.newInstance();
+			this.modelIndex.put(clazz, modelObject);
+			
+			return modelObject;
+		}
+		catch (RuntimeException e) 
+		{
+			throw e;
+		}
+		catch (Exception e) 
+		{
+			throw new RuntimeException(e);
 		}
 		finally 
 		{

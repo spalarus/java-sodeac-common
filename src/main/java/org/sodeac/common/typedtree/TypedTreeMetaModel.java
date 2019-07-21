@@ -20,19 +20,49 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.sodeac.common.function.ConplierBean;
 
-public class TypedTreeMetaModel<T extends BranchNodeMetaModel> extends BranchNodeMetaModel
+/**
+ * 
+ * @author Sebastian Palarus
+ *
+ * @param <T>
+ */
+public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNodeMetaModel
 {
-	public <F extends BranchNodeMetaModel> RootBranchNode<T,F> createRootNode(BranchNodeType<T,F> node)
+	/**
+	 * get cached model instanced by <code>modelClass</code> 
+	 * 
+	 * @param modelClass class of model instance
+	 * @return  model instance
+	 */
+	public static <M extends TypedTreeMetaModel> M getInstance(Class<M> modelClass)
 	{
-		return new RootBranchNode(node.getTypeClass());
+		return ModelingProcessor.DEFAULT_INSTANCE.getModelObject(modelClass);
 	}
 	
-	public static class RootBranchNode<P extends BranchNodeMetaModel,R  extends BranchNodeMetaModel> extends BranchNode<P,R>
+	/**
+	 * Create new root node instance provided by model
+	 * 
+	 * @param type type of root node
+	 * @return new root node instance
+	 */
+	public <F extends BranchNodeMetaModel> RootBranchNode<T,F> createRootNode(BranchNodeType<T,F> type)
 	{
-		private boolean sychronized;
+		return new RootBranchNode(type.getTypeClass());
+	}
+	
+	/**
+	 * 
+	 * @author Sebastian Palarus
+	 *
+	 * @param <P>
+	 * @param <R>
+	 */
+	public static class RootBranchNode<P extends TypedTreeMetaModel,R  extends BranchNodeMetaModel> extends BranchNode<P,R>
+	{
+		private boolean nodeSynchronized;
 		private boolean immutable;
 		private boolean branchNodeGetterAutoCreate;
-		private boolean branchNodeComputeAutoCreate;
+		private boolean branchNodeConsumeAutoCreate;
 		
 		private CopyOnWriteArrayList<IModifyListener> modifyListeners;
 		private ReadLock readLock;
@@ -44,10 +74,10 @@ public class TypedTreeMetaModel<T extends BranchNodeMetaModel> extends BranchNod
 		{
 			super(null,null,modelType);
 			
-			this.sychronized = false;
+			this.nodeSynchronized = false;
 			this.immutable = false;
 			this.branchNodeGetterAutoCreate = false;
-			this.branchNodeComputeAutoCreate = false;
+			this.branchNodeConsumeAutoCreate = false;
 			
 			this.modifyListeners = null;
 			this.sharedDoit = new ConplierBean<Boolean>(true);
@@ -78,13 +108,26 @@ public class TypedTreeMetaModel<T extends BranchNodeMetaModel> extends BranchNod
 			this.modifyListeners = null;
 			this.sharedDoit = null;
 		}
-		public boolean isSychronized()
+		
+		/**
+		 * getter for synchronized option 
+		 * 
+		 * @return true, if access to tree is synchronized, otherwise false
+		 */
+		public boolean isSynchronized()
 		{
-			return sychronized;
+			return nodeSynchronized;
 		}
-		public RootBranchNode<P,R> setSychronized(boolean sychronized)
+		
+		/**
+		 * setter for synchronized option that determines whether access to tree is synchronized or not
+		 * 
+		 * @param nodeSynchronized synchronized option to set
+		 * @return root node
+		 */
+		public RootBranchNode<P,R> setSynchronized(boolean nodeSynchronized)
 		{
-			this.sychronized = sychronized;
+			this.nodeSynchronized = nodeSynchronized;
 			return this;
 		}
 		public boolean isImmutable()
@@ -108,11 +151,11 @@ public class TypedTreeMetaModel<T extends BranchNodeMetaModel> extends BranchNod
 		
 		public boolean isBranchNodeComputeAutoCreate()
 		{
-			return branchNodeComputeAutoCreate;
+			return branchNodeConsumeAutoCreate;
 		}
-		public RootBranchNode<P,R> setBranchNodeComputeAutoCreate(boolean branchNodeComputeAutoCreate)
+		public RootBranchNode<P,R> setBranchNodeConsumeAutoCreate(boolean branchNodeConsumeAutoCreate)
 		{
-			this.branchNodeComputeAutoCreate = branchNodeComputeAutoCreate;
+			this.branchNodeConsumeAutoCreate = branchNodeConsumeAutoCreate;
 			return this;
 		}
 		
@@ -202,7 +245,7 @@ public class TypedTreeMetaModel<T extends BranchNodeMetaModel> extends BranchNod
 					if(doit == null)
 					{
 						doit = this.sharedDoit;
-						if(! isSychronized())
+						if(! isSynchronized())
 						{
 							doit = new ConplierBean<Boolean>(true); // TODO recycle
 						}

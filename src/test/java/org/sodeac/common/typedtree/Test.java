@@ -39,7 +39,7 @@ public class Test
 		
 		//userModel.name.getType()
 		
-		TestModel testModel = new TestModel();
+		TestModel testModel = TypedTreeMetaModel.getInstance(TestModel.class);
 		RootBranchNode<TestModel,UserType> u =  testModel.createRootNode(TestModel.user);
 		u
 			.setValue(UserType.name,"buzzt")
@@ -53,8 +53,8 @@ public class Test
 		
 		u =  testModel.createRootNode(TestModel.user);
 		u
-			.compute(x -> x.setValue(UserType.name,"buzzt"))
-			.compute
+			.consume(x -> x.setValue(UserType.name,"buzzt"))
+			.consume
 			(
 				x -> x.create(UserType.address).
 					setValue(AddressType.street,"MCA")
@@ -62,10 +62,10 @@ public class Test
 		
 		System.out.println("2 " +  u + " " + u.get(UserType.name).getValue() + " " + u.get(UserType.address).get(AddressType.street).getValue());
 		
-		u =  testModel.createRootNode(TestModel.user).setBranchNodeGetterAutoCreate(true);
+		u =  testModel.createRootNode(TestModel.user).setBranchNodeConsumeAutoCreate(true);
 		u
-			.compute(x -> x.setValue(UserType.name,"buzzt"))
-			.compute(x -> x.compute(UserType.address,(y,a) -> a.setValue(AddressType.street,"MCA")));
+			.consume(x -> x.setValue(UserType.name,"buzzt"))
+			.consume(x -> x.consume(UserType.address,(y,a) -> a.setValue(AddressType.street,"MCA")));
 		
 		System.out.println("3 " +  u + " " + u.get(UserType.name).getValue() + " " + u.get(UserType.address).get(AddressType.street).getValue());
 		

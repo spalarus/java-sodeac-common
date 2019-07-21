@@ -44,7 +44,7 @@ public class LeafNode<P extends BranchNodeMetaModel,T> extends Node<P,T>
 		{
 			return this;
 		}
-		Lock lock = this.parentNode.getRootNode().isSychronized() ? this.parentNode.getRootNode().getWriteLock() : null;
+		Lock lock = this.parentNode.getRootNode().isSynchronized() ? this.parentNode.getRootNode().getWriteLock() : null;
 		if(lock != null)
 		{
 			lock.lock();
