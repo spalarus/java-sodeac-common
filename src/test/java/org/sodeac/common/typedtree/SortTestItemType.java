@@ -15,5 +15,5 @@ import org.sodeac.common.typedtree.LeafNodeType;
 
 public class SortTestItemType extends BranchNodeMetaModel
 {
-	public static final LeafNodeType<SortTestItemType,Integer> random = new LeafNodeType<SortTestItemType,Integer>(SortTestItemType.class,Integer.class);
+	public static volatile LeafNodeType<SortTestItemType,Integer> random;
 }

@@ -10,28 +10,16 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
-public interface INodeType<A extends BranchNodeMetaModel, T>
+public interface INodeType<P extends BranchNodeMetaModel, T>
 {
 	public Class<T> getTypeClass();
-	public Class<A> getAnchorClass();
+	public Class<P> getParentNodeClass();
 	
 	public default T getType()
 	{
 		try
 		{
 			return getTypeClass().newInstance(); // TODO Registry, context of this field
-		} 
-		catch (InstantiationException | IllegalAccessException e)
-		{
-			throw new RuntimeException(e);
-		}
-	}
-	
-	public default A get___Anchor()
-	{
-		try
-		{
-			return getAnchorClass().newInstance(); // TODO Registry, context of this field
 		} 
 		catch (InstantiationException | IllegalAccessException e)
 		{

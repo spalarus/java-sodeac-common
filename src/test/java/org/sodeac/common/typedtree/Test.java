@@ -53,8 +53,8 @@ public class Test
 		
 		u =  testModel.createRootNode(TestModel.user);
 		u
-			.consume(x -> x.setValue(UserType.name,"buzzt"))
-			.consume
+			.applyToConsumer(x -> x.setValue(UserType.name,"buzzt"))
+			.applyToConsumer
 			(
 				x -> x.create(UserType.address).
 					setValue(AddressType.street,"MCA")
@@ -64,8 +64,8 @@ public class Test
 		
 		u =  testModel.createRootNode(TestModel.user).setBranchNodeConsumeAutoCreate(true);
 		u
-			.consume(x -> x.setValue(UserType.name,"buzzt"))
-			.consume(x -> x.consume(UserType.address,(y,a) -> a.setValue(AddressType.street,"MCA")));
+			.applyToConsumer(x -> x.setValue(UserType.name,"buzzt"))
+			.applyToConsumer(x -> x.applyToConsumer(UserType.address,(y,a) -> a.setValue(AddressType.street,"MCA")));
 		
 		System.out.println("3 " +  u + " " + u.get(UserType.name).getValue() + " " + u.get(UserType.address).get(AddressType.street).getValue());
 		
@@ -79,7 +79,24 @@ public class Test
 		
 		u.dispose();
 		
-
+		System.out.println("----------------");
+		
+		u =  testModel.createRootNode(TestModel.user).setBranchNodeConsumeAutoCreate(true);
+		u
+			.applyToConsumer(x -> x.setValue(UserType.name,"buzzt"))
+			.applyToConsumer(x -> x.applyToConsumer(UserType.address,(y,a) -> a.setValue(AddressType.street,"MCA")));
+		
+		System.out.println("3 " +  u + " " + u.get(UserType.name).getValue() + " " + u.get(UserType.address).get(AddressType.street).getValue());
+		
+		 country = u.get(UserType.address).create(AddressType.country);
+		 country.create(CountryType.languageList).setValue(LangType.name, "German").setValue(LangType.code, "de");
+		 System.out.println("List: " + country.getUnmodifiableNodeList(CountryType.languageList).size());
+		 
+		u.remove(UserType.address);
+		
+		System.out.println("4 " +  u + " " + u.get(UserType.name).getValue() + " " + u.get(UserType.address));
+		
+		u.dispose();
 	}
 
 }

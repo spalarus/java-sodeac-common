@@ -10,14 +10,36 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
-public class LeafNodeType<A extends BranchNodeMetaModel, T> implements INodeType<A, T>
+/**
+ * A leaf node type defines a simple node. This node contains single java objects and can not include other child nodes. Theoretical the leaf node type can be any java type, 
+ * but it's highly recommend to restrict the type to the following list
+ * 
+ * <p>{@link java.lang.Character}
+ * <p>{@link java.lang.String}
+ * <p>{@link java.lang.Boolean}
+ * <p>{@link java.lang.Byte}
+ * <p>{@link java.lang.Short}
+ * <p>{@link java.lang.Integer}
+ * <p>{@link java.lang.Long}
+ * <p>{@link java.lang.Float}
+ * <p>{@link java.lang.Double}
+ * <p>{@link java.util.UUID}
+ * <p>{@link java.util.Date}
+ * <p>{@link java.nio.ByteBuffer}
+ * 
+ * @author Sebastian Palarus
+ *
+ * @param <P> type of parent node
+ * @param <T> type of node
+ */
+public class LeafNodeType<P extends BranchNodeMetaModel, T> implements INodeType<P, T>
 {
 	private Class<T> typeClass = null;
-	private Class<A> anchorClass = null;
+	private Class<P> parentNodeClass = null;
 	
-	public LeafNodeType(Class<A> anchorClass, Class<T> typeClass)
+	public LeafNodeType(Class<P> parentNodeClass, Class<T> typeClass)
 	{
-		this.anchorClass = anchorClass;
+		this.parentNodeClass = parentNodeClass;
 		this.typeClass = typeClass;
 	}
 
@@ -26,9 +48,9 @@ public class LeafNodeType<A extends BranchNodeMetaModel, T> implements INodeType
 		return typeClass;
 	}
 
-	public Class<A> getAnchorClass()
+	public Class<P> getParentNodeClass()
 	{
-		return anchorClass;
+		return parentNodeClass;
 	}
 	
 

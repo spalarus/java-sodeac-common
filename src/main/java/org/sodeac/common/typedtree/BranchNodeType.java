@@ -10,14 +10,14 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
-public class BranchNodeType<A extends BranchNodeMetaModel, T extends BranchNodeMetaModel> implements INodeType<A, T>
+public class BranchNodeType<P extends BranchNodeMetaModel, T extends BranchNodeMetaModel> implements INodeType<P, T>
 {
 	private Class<T> typeClass = null;
-	private Class<A> anchorClass = null;
+	private Class<P> parentNodeClass = null;
 	
-	public BranchNodeType(Class<A> anchorClass, Class<T> typeClass)
+	public BranchNodeType(Class<P> parentNodeClass, Class<T> typeClass)
 	{
-		this.anchorClass = anchorClass;
+		this.parentNodeClass = parentNodeClass;
 		this.typeClass = typeClass;
 	}
 
@@ -26,9 +26,9 @@ public class BranchNodeType<A extends BranchNodeMetaModel, T extends BranchNodeM
 		return typeClass;
 	}
 
-	public Class<A> getAnchorClass()
+	public Class<P> getParentNodeClass()
 	{
-		return anchorClass;
+		return parentNodeClass;
 	}
 	
 

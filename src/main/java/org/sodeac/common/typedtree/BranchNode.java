@@ -105,7 +105,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * dispose this node and all child nodes
+	 * Dispose this node and all child nodes.
 	 */
 	protected void disposeNode()
 	{
@@ -141,7 +141,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * getter for root node
+	 * Getter for root node.
 	 * 
 	 * @return root node
 	 */
@@ -151,7 +151,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 
 	/**
-	 * getter for parent node
+	 * Getter for parent node.
 	 * 
 	 * @return parent node
 	 */
@@ -166,7 +166,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 * @param consumer consumer to consume this branch node
 	 * @return this branch node
 	 */
-	public BranchNode<P, T> consume(Consumer<BranchNode<P, T>> consumer)
+	public BranchNode<P, T> applyToConsumer(Consumer<BranchNode<P, T>> consumer)
 	{
 		if(consumer == null)
 		{
@@ -177,12 +177,12 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Applies this branch node to consumer locked tree's read lock
+	 * Applies this branch node to consumer locked by tree's read lock.
 	 * 
 	 * @param consumer consumer to consume this branch node
 	 * @return this branch node
 	 */
-	public BranchNode<P, T> consumeWithReadLock(Consumer<BranchNode<P, T>> consumer)
+	public BranchNode<P, T> applyToConsumerWithReadLock(Consumer<BranchNode<P, T>> consumer)
 	{
 		if(consumer == null)
 		{
@@ -202,12 +202,12 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Applies this branch node to consumer locked tree's write lock
+	 * Applies this branch node to consumer locked bytree's write lock.
 	 * 
 	 * @param consumer consumer to consume this branch node
 	 * @return this branch node
 	 */
-	public BranchNode<P, T> consumeWithWriteLock(Consumer<BranchNode<P, T>> consumer)
+	public BranchNode<P, T> applyToConsumerWithWriteLock(Consumer<BranchNode<P, T>> consumer)
 	{
 		if(consumer == null)
 		{
@@ -231,9 +231,9 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 */
 	
 	/**
-	 * Getter for leaf child node
+	 * Getter for child node of type {@link LeafNodeType}. 
 	 * 
-	 * @param nodeType type of child node
+	 * @param nodeType static child node type instance from meta model
 	 * @return child node
 	 */
 	public <X> LeafNode<T,X> get(LeafNodeType<T,X> nodeType)
@@ -242,13 +242,13 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Consume leaf child node.
+	 * Applies child node of type {@link LeafNodeType} to consumer.
 	 * 
-	 * @param nodeType type of child node
-	 * @param consumer consumer to consume leaf child node
+	 * @param nodeType static child node type instance from meta model
+	 * @param consumer consumer to consume child node
 	 * @return this branch node
 	 */
-	public <X> BranchNode<P,T> consume(LeafNodeType<T,X> nodeType, BiConsumer<BranchNode<P, T>, LeafNode<T,X>> consumer)
+	public <X> BranchNode<P,T> applyToConsumer(LeafNodeType<T,X> nodeType, BiConsumer<BranchNode<P, T>, LeafNode<T,X>> consumer)
 	{
 		LeafNode<T,X> node = (LeafNode<T,X>) this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType)).node;
 		
@@ -272,10 +272,10 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Sets leaf node value
+	 * Sets node value for child node of type {@link LeafNodeType}
 	 * 
-	 * @param nodeType type of leaf node
-	 * @param value value of leaf node
+	 * @param nodeType static child node type instance from meta model
+	 * @param value value for child node
 	 * @return this branch node
 	 */
 	public <X> BranchNode<P,T> setValue(LeafNodeType<T,X> nodeType, X value)
@@ -301,10 +301,10 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * get leaf node value
+	 * Getter for value of child node of type {@link LeafNodeType}
 	 * 
-	 * @param nodeType type of leaf node
-	 * @return leaf node value
+	 * @param nodeType static child node type instance from meta model
+	 * @return node value
 	 */
 	public <X> X getValue(LeafNodeType<T,X> nodeType)
 	{
@@ -316,13 +316,13 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 */
 	
 	/**
-	 * Applies branch child node to consumer.
+	 * Applies child node of type {@link BranchNodeType} to consumer.
 	 * 
-	 * @param nodeType type of child node to consume
+	 * @param nodeType static child node type instance from meta model
 	 * @param consumer consumer
 	 * @return this branch node
 	 */
-	public <X extends BranchNodeMetaModel> BranchNode<P, T> consume(BranchNodeType<T,X> nodeType, BiConsumer<BranchNode<P, T>, BranchNode<T,X>> consumer)
+	public <X extends BranchNodeMetaModel> BranchNode<P, T> applyToConsumer(BranchNodeType<T,X> nodeType, BiConsumer<BranchNode<P, T>, BranchNode<T,X>> consumer)
 	{
 		if(consumer == null)
 		{
@@ -377,14 +377,14 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Applies branch child node to consumer.
+	 * Applies child node of type {@link BranchNodeType} to consumer.
 	 *  
-	 * @param nodeType type of child node to consume
+	 * @param nodeType nodeType static child node type instance from meta model
 	 * @param ifAbsent consumer to use if the child node does not already exist
 	 * @param ifPresent consumer to use if the child node already exists
 	 * @return this branch node
 	 */
-	public <X extends BranchNodeMetaModel> BranchNode<P, T> consume(BranchNodeType<T,X> nodeType,BiConsumer<BranchNode<P, T>, BranchNode<T,X>> ifAbsent,BiConsumer<BranchNode<P, T>, BranchNode<T,X>> ifPresent)
+	public <X extends BranchNodeMetaModel> BranchNode<P, T> applyToConsumer(BranchNodeType<T,X> nodeType,BiConsumer<BranchNode<P, T>, BranchNode<T,X>> ifAbsent,BiConsumer<BranchNode<P, T>, BranchNode<T,X>> ifPresent)
 	{
 		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
 		
@@ -452,9 +452,9 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Remove branch child node.
+	 * Removes child node of type {@link BranchNodeType}.
 	 * 
-	 * @param nodeType type of child node
+	 * @param nodeType static child node type instance from meta model
 	 * @return this branch node
 	 */
 	public <X extends BranchNodeMetaModel> BranchNode<P, T> remove(BranchNodeType<T,X> nodeType)
@@ -491,9 +491,9 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Creates a new branch child node.
+	 * Creates a new child node of type {@link BranchNodeType}.
 	 * 
-	 * @param nodeType type of child node
+	 * @param nodeType static child node type instance from meta model
 	 * @return new child node
 	 */
 	public <X extends BranchNodeMetaModel> BranchNode<T,X> create(BranchNodeType<T,X> nodeType)
@@ -502,10 +502,10 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Creates a new branch child node.
+	 * Creates a new child node of type {@link BranchNodeType}.
 	 * 
-	 * @param nodeType type of child node
-	 * @param consumer builder to set up the branch node
+	 * @param nodeType static child node type instance from meta model
+	 * @param consumer builder to set up the child
 	 * @return new child node
 	 */
 	public <X extends BranchNodeMetaModel> BranchNode<T,X> create(BranchNodeType<T,X> nodeType, BiConsumer<BranchNode<P, T>, BranchNode<T,X>> consumer)
@@ -564,11 +564,11 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Getter for branch child node. If child node is not set (null) and {@link RootBranchNode#setBranchNodeGetterAutoCreate(boolean)} was invoked with parameter true, 
-	 * the child node will created.  
+	 * Getter for child node of type {@link BranchNodeType}. If this child node does not exist and {@link RootBranchNode#setBranchNodeGetterAutoCreate(boolean)} was invoked with parameter true, 
+	 * the child node will be created automatically.  
 	 * 
-	 * @param nodeType type of child node
-	 * @return child node or null, if absent and not auto created
+	 * @param nodeType static child node type instance from meta model
+	 * @return child node or null, if child node does not exist and auto-create-mode is off
 	 */
 	public <X extends BranchNodeMetaModel> BranchNode<T,X> get(BranchNodeType<T,X> nodeType)
 	{
@@ -633,15 +633,35 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 * BranchNode List
 	 */
 	
+	/**
+	 * Getter for unmodifiable child node list for all child nodes of type {@link BranchNodeListType}.
+	 *  
+	 * @param nodeType static child node type instance from meta model
+	 * @return unmodifiable node list
+	 */
 	public <X extends BranchNodeMetaModel> List<BranchNode<T,X>> getUnmodifiableNodeList(BranchNodeListType<T,X> nodeType)
 	{
 		return this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType)).unmodifiableNodeList;
 	}
 	
+	/**
+	 * Getter for a snapshot of unmodifiable child node list for all child nodes of type {@link BranchNodeListType}.
+	 * 
+	 * @param nodeType static child node type instance from meta model
+	 * @return unmodifiable node list snapshot
+	 */
 	public <X extends BranchNodeMetaModel> List<BranchNode<T,X>> getUnmodifiableNodeListSnapshot(BranchNodeListType<T,X> nodeType)
 	{
 		return getUnmodifiableNodeListSnapshot(nodeType, null);
 	}
+	
+	/**
+	 * Getter for a snapshot of unmodifiable child node list for all child nodes of type {@link BranchNodeListType}.
+	 * 
+	 * @param nodeType static child node type instance from meta model
+	 * @param predicate filter for snapshot
+	 * @return snapshot unmodifiable node list snapshot
+	 */
 	public <X extends BranchNodeMetaModel> List<BranchNode<T,X>> getUnmodifiableNodeListSnapshot(BranchNodeListType<T,X> nodeType, Predicate<BranchNode<T,X>> predicate)
 	{
 		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
@@ -689,6 +709,14 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		}
 	}
 	
+	/**
+	 * Sets a comparator to sort all child nodes of type {@link BranchNodeListType}.
+	 * 
+	 * @param nodeType static child node type instance from meta model.
+	 * @param comparator comparator to apply
+	 * @return this branch node
+	 *  
+	 */
 	public <X extends BranchNodeMetaModel> BranchNode<P, T> setComperator(BranchNodeListType<T,X> nodeType, Comparator<BranchNode<T,X>> comparator)
 	{
 		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
@@ -727,6 +755,13 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		return this;
 	}
 	
+	/**
+	 * Get first matched child node of type {@link BranchNodeListType}.
+	 * 
+	 * @param nodeType static child node type instance from meta model
+	 * @param predicate filter
+	 * @return first matched node
+	 */
 	public <X extends BranchNodeMetaModel> BranchNode<T,X> get(BranchNodeListType<T,X> nodeType, Predicate<BranchNode<T,X>> predicate)
 	{
 		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
@@ -755,6 +790,12 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		return null;
 	}
 
+	/**
+	 * Creates new a child node of type {@link BranchNodeListType}.
+	 * 
+	 * @param nodeType type static child node type instance from meta model.
+	 * @return new child node
+	 */
 	public <X extends BranchNodeMetaModel> BranchNode<T,X> create(BranchNodeListType<T,X> nodeType)
 	{
 		if(this.rootNode.isImmutable())
@@ -802,6 +843,13 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		return null;
 	}
 	
+	/**
+	 * Creates new a child node of type {@link BranchNodeListType}.
+	 * 
+	 * @param nodeType static child node type instance from meta model.
+	 * @param consumer setup new child node
+	 * @return this branch node
+	 */
 	public <X extends BranchNodeMetaModel> BranchNode<P, T> create(BranchNodeListType<T,X> nodeType, BiConsumer<BranchNode<P, T>, BranchNode<T,X>> consumer)
 	{
 		if(this.rootNode.isImmutable())
@@ -931,6 +979,15 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		return this;
 	}
 	
+	/**
+	 * Creates a new child node of type {@link BranchNodeListType}, if no item exists matched by <code>predicate</code>.
+	 * 
+	 * @param nodeType static child node type instance from meta model.
+	 * @param predicate predicate to test existing items
+	 * @param consumer setup new child node
+	 * 
+	 * @return this child node
+	 */
 	public <X extends BranchNodeMetaModel> BranchNode<P, T> createIfAbsent(BranchNodeListType<T,X> nodeType, Predicate<BranchNode<T,X>> predicate,  BiConsumer<BranchNode<P, T>, BranchNode<T,X>> consumer)
 	{
 		if(this.rootNode.isImmutable())
@@ -1071,7 +1128,13 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		return this;
 	}
 	
-
+	/**
+	 * Remove child node type {@link BranchNodeListType}.
+	 * 
+	 * @param nodeType static child node type instance from meta model
+	 * @param node node instance to remove
+	 * @return true, if node successfully removed, otherwise false
+	 */
 	public <X extends BranchNodeMetaModel> boolean remove(BranchNodeListType<T,X> nodeType, BranchNode<P, T> node)
 	{
 		if(this.rootNode.isImmutable())
@@ -1114,11 +1177,17 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		return false;
 	}
 
-	public <X extends BranchNodeMetaModel> void clear(BranchNodeListType<T,X> nodeType)
+	/** 
+	 * Remove all child nodes type {@link BranchNodeListType}.
+	 * 
+	 * @param nodeType static child node type instance from meta model
+	 * return this branch node
+	 */
+	public <X extends BranchNodeMetaModel> BranchNode<P, T>  clear(BranchNodeListType<T,X> nodeType)
 	{
 		if(this.rootNode.isImmutable())
 		{
-			return;
+			return this;
 		}
 		
 		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
@@ -1150,8 +1219,17 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 				lock.unlock();
 			}
 		}
+		return this;
 		
 	}
+	
+	/**
+	 * Remove child node type {@link BranchNodeListType}.
+	 * 
+	 * @param nodeType static child node type instance from meta model
+	 * @param index position index of child node in list
+	 * @return true, if node is successfully removed, otherwise false
+	 */
 	public <X extends BranchNodeMetaModel> boolean remove(BranchNodeListType<T,X> nodeType, int index)
 	{
 		if(this.rootNode.isImmutable())

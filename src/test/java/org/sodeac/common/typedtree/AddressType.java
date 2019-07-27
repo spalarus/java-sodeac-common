@@ -16,10 +16,10 @@ import org.sodeac.common.typedtree.LeafNodeType;
 
 public class AddressType extends BranchNodeMetaModel
 {
-	public static final LeafNodeType<AddressType,String> street = new LeafNodeType<AddressType,String>(AddressType.class,String.class);
-	public static final LeafNodeType<AddressType,String> number = new LeafNodeType<AddressType,String>(AddressType.class,String.class);
-	public static final LeafNodeType<AddressType,String> city = new LeafNodeType<AddressType,String>(AddressType.class,String.class);
-	public static final LeafNodeType<AddressType,Integer> zip = new LeafNodeType<AddressType,Integer>(AddressType.class,Integer.class);
-	public static final BranchNodeType<AddressType,CountryType> country = new BranchNodeType<AddressType,CountryType>(AddressType.class,CountryType.class);
-	public static final BranchNodeType<AddressType,UserType> parentuser = new BranchNodeType<AddressType,UserType>(AddressType.class,UserType.class);
+	public static volatile LeafNodeType<AddressType,String> street;
+	public static volatile LeafNodeType<AddressType,String> number;
+	public static volatile LeafNodeType<AddressType,String> city;
+	public static volatile LeafNodeType<AddressType,Integer> zip;
+	public static volatile BranchNodeType<AddressType,CountryType> country;
+	public static volatile BranchNodeType<AddressType,UserType> parentuser;
 }

@@ -17,6 +17,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
+import javax.security.auth.callback.LanguageCallback;
+
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
@@ -44,7 +46,7 @@ public class TreeTest
 		user.setValue(UserType.name, "Mike");
 		assertEquals("user name should be correct", "Mike", user.getValue(UserType.name));
 		assertEquals("user name should be correct", "Mike", user.get(UserType.name).getValue());
-		user.consume(UserType.name, (p,u) -> u.setValue("Mikkel"));
+		user.applyToConsumer(UserType.name, (p,u) -> u.setValue("Mikkel"));
 		assertEquals("user name should be correct", "Mikkel", user.getValue(UserType.name));
 		user.get(UserType.name).setValue("Michael");
 		assertEquals("user name should be correct", "Michael", user.getValue(UserType.name));
@@ -144,7 +146,7 @@ public class TreeTest
 	public void test0050CreateRootAndConsume()
 	{
 		RootBranchNode<TestModel,UserType> user = TypedTreeMetaModel.getInstance(TestModel.class).createRootNode(TestModel.user);
-		user.consume(u -> u.setValue(UserType.name, "Mike"));
+		user.applyToConsumer(u -> u.setValue(UserType.name, "Mike"));
 		assertEquals("user name should be correct", "Mike", user.getValue(UserType.name));
 		user.dispose();
 	}
@@ -153,7 +155,7 @@ public class TreeTest
 	public void test0051CreateRootAndConsumeReadLock()
 	{
 		RootBranchNode<TestModel,UserType> user = TypedTreeMetaModel.getInstance(TestModel.class).createRootNode(TestModel.user);
-		user.consumeWithReadLock(u -> u.setValue(UserType.name, "Mike"));
+		user.applyToConsumerWithReadLock(u -> u.setValue(UserType.name, "Mike"));
 		assertEquals("user name should be correct", "Mike", user.getValue(UserType.name));
 		user.dispose();
 	}
@@ -162,7 +164,7 @@ public class TreeTest
 	public void test0052CreateRootAndConsumeWriteLock()
 	{
 		RootBranchNode<TestModel,UserType> user = TypedTreeMetaModel.getInstance(TestModel.class).createRootNode(TestModel.user);
-		user.consumeWithWriteLock(u -> u.setValue(UserType.name, "Mike"));
+		user.applyToConsumerWithWriteLock(u -> u.setValue(UserType.name, "Mike"));
 		assertEquals("user name should be correct", "Mike", user.getValue(UserType.name));
 		user.dispose();
 	}
@@ -171,7 +173,7 @@ public class TreeTest
 	public void test0060CreateRootAndConsumeChildNodeSimpleNull()
 	{
 		RootBranchNode<TestModel,UserType> user = TypedTreeMetaModel.getInstance(TestModel.class).createRootNode(TestModel.user);
-		user.consume(UserType.address, (u,a) -> { });
+		user.applyToConsumer(UserType.address, (u,a) -> { });
 		assertNull("address should be not null", user.get(UserType.address));
 		user.dispose();
 	}
@@ -181,7 +183,7 @@ public class TreeTest
 	{
 		RootBranchNode<TestModel,UserType> user = TypedTreeMetaModel.getInstance(TestModel.class).createRootNode(TestModel.user);
 		user.create(UserType.address);
-		user.consume(UserType.address, (u,a) -> a.setValue(AddressType.city, "Berlin"));
+		user.applyToConsumer(UserType.address, (u,a) -> a.setValue(AddressType.city, "Berlin"));
 		assertEquals("city should be correct", "Berlin", user.get(UserType.address).getValue(AddressType.city));
 		user.dispose();
 	}
@@ -190,7 +192,7 @@ public class TreeTest
 	public void test0062CreateRootAndConsumeChildNodeAutoCreate()
 	{
 		RootBranchNode<TestModel,UserType> user = TypedTreeMetaModel.getInstance(TestModel.class).createRootNode(TestModel.user).setBranchNodeConsumeAutoCreate(true);
-		user.consume(UserType.address, (u,a) -> a.setValue(AddressType.city, "Berlin"));
+		user.applyToConsumer(UserType.address, (u,a) -> a.setValue(AddressType.city, "Berlin"));
 		assertEquals("city should be correct", "Berlin", user.get(UserType.address).getValue(AddressType.city));
 		user.dispose();
 	}
@@ -199,15 +201,15 @@ public class TreeTest
 	public void test0063CreateRootAndConsumeAbsentAndPresentChildNodeAutoCreate()
 	{
 		RootBranchNode<TestModel,UserType> user = TypedTreeMetaModel.getInstance(TestModel.class).createRootNode(TestModel.user).setBranchNodeConsumeAutoCreate(true);
-		user.consume(UserType.address, (u,a) -> a.setValue(AddressType.city, "Berlin"), (u,a) -> a.setValue(AddressType.city, "Tallinn"));
+		user.applyToConsumer(UserType.address, (u,a) -> a.setValue(AddressType.city, "Berlin"), (u,a) -> a.setValue(AddressType.city, "Tallinn"));
 		assertEquals("city should be correct", "Berlin", user.get(UserType.address).getValue(AddressType.city));
-		user.consume(UserType.address, (u,a) -> a.setValue(AddressType.city, "Berlin"), (u,a) -> a.setValue(AddressType.city, "Tallinn"));
+		user.applyToConsumer(UserType.address, (u,a) -> a.setValue(AddressType.city, "Berlin"), (u,a) -> a.setValue(AddressType.city, "Tallinn"));
 		assertEquals("city should be correct", "Tallinn", user.get(UserType.address).getValue(AddressType.city));
 		user.dispose();
 	}
 	
 	@Test
-	public void test0080CreateRootAndNodeList()
+	public void test0080CreateRootAndChildNodeList()
 	{
 		RootBranchNode<TestModel,CountryType> country = TypedTreeMetaModel.getInstance(TestModel.class).createRootNode(TestModel.country);
 		country.setValue(CountryType.name, "Schweiz");
@@ -216,6 +218,25 @@ public class TreeTest
 		country.create(CountryType.languageList, (m,c) -> c.setValue(LangType.code, "it").setValue(LangType.name, "Italienisch"));
 		List<BranchNode<CountryType,LangType>> languageList = country.getUnmodifiableNodeList(CountryType.languageList);
 		assertEquals("size of language list should be correct", 3, languageList.size());
+		assertEquals("code should be correct", "de", languageList.get(0).getValue(LangType.code));
+		assertEquals("code should be correct", "fr", languageList.get(1).getValue(LangType.code));
+		assertEquals("code should be correct", "it", languageList.get(2).getValue(LangType.code));
 		country.dispose();
+		assertEquals("size of language list should be correct", 0, languageList.size());
+	}
+	
+	@Test
+	public void test0081CreateRootAndChildNodeListIfNot()
+	{
+		RootBranchNode<TestModel,CountryType> country = TypedTreeMetaModel.getInstance(TestModel.class).createRootNode(TestModel.country);
+		country.setValue(CountryType.name, "Schweiz");
+		country.createIfAbsent(CountryType.languageList, n -> "de".equals(n.getValue(LangType.code)), (m,c) -> c.setValue(LangType.code, "de").setValue(LangType.name, "Deutsch"));
+		country.createIfAbsent(CountryType.languageList, n -> "de".equals(n.getValue(LangType.code)), (m,c) -> c.setValue(LangType.code, "de").setValue(LangType.name, "Deutsch"));
+		List<BranchNode<CountryType,LangType>> languageList = country.getUnmodifiableNodeList(CountryType.languageList);
+		assertEquals("size of language list should be correct", 1, languageList.size());
+		assertEquals("code should be correct", "de", languageList.get(0).getValue(LangType.code));
+		assertEquals("code should be correct", "Deutsch", languageList.get(0).getValue(LangType.name));
+		country.dispose();
+		assertEquals("size of language list should be correct", 0, languageList.size());
 	}
 }

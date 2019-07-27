@@ -15,8 +15,8 @@ import org.sodeac.common.typedtree.TypedTreeMetaModel;
 
 public class TestModel extends TypedTreeMetaModel<TestModel>
 {
-	public static final BranchNodeType<TestModel,UserType> user = new BranchNodeType<TestModel,UserType>(TestModel.class,UserType.class);
-	public static final BranchNodeType<TestModel,CountryType> country = new BranchNodeType<TestModel,CountryType>(TestModel.class,CountryType.class);
+	public static volatile BranchNodeType<TestModel,UserType> user;
+	public static volatile BranchNodeType<TestModel,CountryType> country;
 	
-	public static final BranchNodeType<TestModel,SortTestType> sortTest = new BranchNodeType<TestModel,SortTestType>(TestModel.class,SortTestType.class);
+	public static volatile BranchNodeType<TestModel,SortTestType> sortTest;
 }

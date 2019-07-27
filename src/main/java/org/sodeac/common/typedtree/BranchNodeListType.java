@@ -26,7 +26,7 @@ public class BranchNodeListType<A extends BranchNodeMetaModel, T extends BranchN
 		return typeClass;
 	}
 
-	public Class<A> getAnchorClass()
+	public Class<A> getParentNodeClass()
 	{
 		return anchorClass;
 	}
