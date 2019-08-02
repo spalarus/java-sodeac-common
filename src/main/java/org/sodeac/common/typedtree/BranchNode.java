@@ -24,7 +24,7 @@ import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
 import org.sodeac.common.typedtree.ModelingProcessor.PreparedMetaModel;
 
 /**
- * A branch node is an instance of complex tree node (not leaf node).
+ * A branch node is an instance of complex tree node.
  * 
  * @author Sebastian Palarus
  *
@@ -41,7 +41,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	private int positionInList = -1;
 	
 	/**
-	 * constructor to create new branch node
+	 * Constructor to create new branch node.
 	 * 
 	 * @param rootNode root node instance
 	 * @param parentNode parent node instance
@@ -161,7 +161,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 
 	/**
-	 * Applies this branch node to consumer.
+	 * Applies this branch node to a consumer.
 	 * 
 	 * @param consumer consumer to consume this branch node
 	 * @return this branch node
@@ -177,7 +177,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Applies this branch node to consumer locked by tree's read lock.
+	 * Applies this branch node to a consumer locked by tree's read lock.
 	 * 
 	 * @param consumer consumer to consume this branch node
 	 * @return this branch node
@@ -202,7 +202,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Applies this branch node to consumer locked bytree's write lock.
+	 * Applies this branch node to a consumer locked by tree's write lock.
 	 * 
 	 * @param consumer consumer to consume this branch node
 	 * @return this branch node
@@ -231,7 +231,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 */
 	
 	/**
-	 * Getter for child node of type {@link LeafNodeType}. 
+	 * Getter for a child node of requested {@link LeafNodeType}. 
 	 * 
 	 * @param nodeType static child node type instance from meta model
 	 * @return child node
@@ -242,7 +242,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Applies child node of type {@link LeafNodeType} to consumer.
+	 * Applies a child node of requested {@link LeafNodeType} to consumer.
 	 * 
 	 * @param nodeType static child node type instance from meta model
 	 * @param consumer consumer to consume child node
@@ -272,7 +272,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Sets node value for child node of type {@link LeafNodeType}
+	 * Sets a value for the child node of requested {@link LeafNodeType}
 	 * 
 	 * @param nodeType static child node type instance from meta model
 	 * @param value value for child node
@@ -301,7 +301,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Getter for value of child node of type {@link LeafNodeType}
+	 * Gets a value of the child node of requested {@link LeafNodeType}
 	 * 
 	 * @param nodeType static child node type instance from meta model
 	 * @return node value
@@ -316,7 +316,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 */
 	
 	/**
-	 * Applies child node of type {@link BranchNodeType} to consumer.
+	 * Applies a child node of requested {@link BranchNodeType} to consumer.
 	 * 
 	 * @param nodeType static child node type instance from meta model
 	 * @param consumer consumer
@@ -340,7 +340,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			BranchNode<T,X> node = (BranchNode<T,X>)nodeContainer.node;
 			if(node == null)
 			{
-				if(this.rootNode.isBranchNodeComputeAutoCreate())
+				if(this.rootNode.isBranchNodeApplyToConsumerAutoCreate())
 				{
 					boolean created = false;
 					
@@ -348,7 +348,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 					
 					try
 					{
-						if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getNodeTypeName(), nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+						if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
 						{
 							nodeContainer.node = node;
 							created = true;
@@ -377,9 +377,9 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Applies child node of type {@link BranchNodeType} to consumer.
+	 * Applies a child node of requested {@link BranchNodeType} to consumer.
 	 *  
-	 * @param nodeType nodeType static child node type instance from meta model
+	 * @param nodeType static child node type instance from meta model
 	 * @param ifAbsent consumer to use if the child node does not already exist
 	 * @param ifPresent consumer to use if the child node already exists
 	 * @return this branch node
@@ -398,7 +398,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			BranchNode<T,X> node = (BranchNode)nodeContainer.node;
 			if(node == null)
 			{
-				if(rootNode.isBranchNodeComputeAutoCreate() && (! rootNode.isImmutable()))
+				if(rootNode.isBranchNodeApplyToConsumerAutoCreate() && (! rootNode.isImmutable()))
 				{
 					boolean created = false;
 					node = new BranchNode(this.rootNode,this,nodeType.getTypeClass());
@@ -409,7 +409,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 							ifAbsent.accept(this, node);
 						}
 						
-						if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getNodeTypeName(), nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+						if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
 						{
 							nodeContainer.node = node;
 							created = true;
@@ -452,7 +452,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Removes child node of type {@link BranchNodeType}.
+	 * Removes a child node of requested {@link BranchNodeType}.
 	 * 
 	 * @param nodeType static child node type instance from meta model
 	 * @return this branch node
@@ -473,7 +473,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		{
 			if(nodeContainer.node != null)
 			{
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getNodeTypeName(), nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, nodeContainer.node, null))
+				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, nodeContainer.node, null))
 				{
 					nodeContainer.node.disposeNode();
 					nodeContainer.node = null;
@@ -491,7 +491,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Creates a new child node of type {@link BranchNodeType}.
+	 * Creates a new child node of requested {@link BranchNodeType}.
 	 * 
 	 * @param nodeType static child node type instance from meta model
 	 * @return new child node
@@ -502,7 +502,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Creates a new child node of type {@link BranchNodeType}.
+	 * Creates a new child node of requested {@link BranchNodeType}.
 	 * 
 	 * @param nodeType static child node type instance from meta model
 	 * @param consumer builder to set up the child
@@ -534,7 +534,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 				{
 					consumer.accept(this, newNode);
 				}
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getNodeTypeName(), nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, oldNode, newNode))
+				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, oldNode, newNode))
 				{
 					if(oldNode != null)
 					{
@@ -564,7 +564,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Getter for child node of type {@link BranchNodeType}. If this child node does not exist and {@link RootBranchNode#setBranchNodeGetterAutoCreate(boolean)} was invoked with parameter true, 
+	 * Getter for a child node of requested {@link BranchNodeType}. If the child node does not exist and {@link RootBranchNode#setBranchNodeGetterAutoCreate(boolean)} was invoked with parameter true, 
 	 * the child node will be created automatically.  
 	 * 
 	 * @param nodeType static child node type instance from meta model
@@ -605,7 +605,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			
 			try
 			{
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getNodeTypeName(), nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
 				{
 					nodeContainer.node = node;
 					created = true;
@@ -634,7 +634,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 */
 	
 	/**
-	 * Getter for unmodifiable child node list for all child nodes of type {@link BranchNodeListType}.
+	 * Getter for unmodifiable child node list with all child nodes of requested {@link BranchNodeListType}.
 	 *  
 	 * @param nodeType static child node type instance from meta model
 	 * @return unmodifiable node list
@@ -645,7 +645,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Getter for a snapshot of unmodifiable child node list for all child nodes of type {@link BranchNodeListType}.
+	 * Getter for a snapshot of unmodifiable child node list with all child nodes of requested {@link BranchNodeListType}.
 	 * 
 	 * @param nodeType static child node type instance from meta model
 	 * @return unmodifiable node list snapshot
@@ -656,7 +656,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Getter for a snapshot of unmodifiable child node list for all child nodes of type {@link BranchNodeListType}.
+	 * Getter for a snapshot of unmodifiable child node list with filtered child nodes of requested {@link BranchNodeListType}.
 	 * 
 	 * @param nodeType static child node type instance from meta model
 	 * @param predicate filter for snapshot
@@ -710,7 +710,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Sets a comparator to sort all child nodes of type {@link BranchNodeListType}.
+	 * Sets a comparator to sort all child nodes for requested {@link BranchNodeListType}.
 	 * 
 	 * @param nodeType static child node type instance from meta model.
 	 * @param comparator comparator to apply
@@ -756,7 +756,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Get first matched child node of type {@link BranchNodeListType}.
+	 * Get first matched child node of requested {@link BranchNodeListType}.
 	 * 
 	 * @param nodeType static child node type instance from meta model
 	 * @param predicate filter
@@ -791,7 +791,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 
 	/**
-	 * Creates new a child node of type {@link BranchNodeListType}.
+	 * Creates new a child node of requested {@link BranchNodeListType}.
 	 * 
 	 * @param nodeType type static child node type instance from meta model.
 	 * @return new child node
@@ -815,7 +815,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			BranchNode<T,X> node = new BranchNode(this.rootNode,this,nodeContainer.preparedNodeType.getNodeTypeClass());
 			try
 			{
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getNodeTypeName(), nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
 				{
 					nodeContainer.nodeList.add(node);
 					node.positionInList = nodeContainer.nodeList.size() -1;
@@ -844,7 +844,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Creates new a child node of type {@link BranchNodeListType}.
+	 * Creates new a child node of requested {@link BranchNodeListType}.
 	 * 
 	 * @param nodeType static child node type instance from meta model.
 	 * @param consumer setup new child node
@@ -874,7 +874,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 					consumer.accept(this, node);
 				}
 				
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getNodeTypeName(), nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
 				{
 					if((nodeContainer.listComparator == null) || nodeContainer.nodeList.isEmpty())
 					{
@@ -980,7 +980,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Creates a new child node of type {@link BranchNodeListType}, if no item exists matched by <code>predicate</code>.
+	 * Creates a new child node of requested {@link BranchNodeListType}, if no item exists matched by <code>predicate</code>.
 	 * 
 	 * @param nodeType static child node type instance from meta model.
 	 * @param predicate predicate to test existing items
@@ -1023,7 +1023,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 					consumer.accept(this, node);
 				}
 				
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getNodeTypeName(), nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
 				{
 					if((nodeContainer.listComparator == null) || nodeContainer.nodeList.isEmpty())
 					{
@@ -1129,7 +1129,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Remove child node type {@link BranchNodeListType}.
+	 * Remove child node of requested {@link BranchNodeListType}.
 	 * 
 	 * @param nodeType static child node type instance from meta model
 	 * @param node node instance to remove
@@ -1153,7 +1153,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		{
 			if(nodeContainer.nodeList.contains(node))
 			{
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getNodeTypeName(), nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null))
+				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null))
 				{
 					nodeContainer.nodeList.remove(node);
 					int positionInList = node.positionInList;
@@ -1178,7 +1178,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 
 	/** 
-	 * Remove all child nodes type {@link BranchNodeListType}.
+	 * Remove all child nodes of requested {@link BranchNodeListType}.
 	 * 
 	 * @param nodeType static child node type instance from meta model
 	 * return this branch node
@@ -1203,7 +1203,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			
 			for(BranchNode<P,T> node : copy)
 			{
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getNodeTypeName(), nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null))
+				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null))
 				{
 					nodeContainer.nodeList.remove(node);
 					node.disposeNode();
@@ -1224,7 +1224,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
-	 * Remove child node type {@link BranchNodeListType}.
+	 * Remove child node of requested {@link BranchNodeListType}.
 	 * 
 	 * @param nodeType static child node type instance from meta model
 	 * @param index position index of child node in list
@@ -1250,7 +1250,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			
 			if(node != null)
 			{
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getNodeTypeName(), nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null))
+				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null))
 				{
 					nodeContainer.nodeList.remove(index);
 					int positionInList = node.positionInList;

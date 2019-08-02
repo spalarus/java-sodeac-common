@@ -12,7 +12,26 @@ package org.sodeac.common.typedtree;
 
 import org.sodeac.common.function.ConplierBean;
 
+/**
+ * 
+ * A modify listener is a modify listener ;-)
+ * 
+ * @author Sebastian Palarus
+ *
+ */
 public interface IModifyListener
 {
-	public <C extends INodeType<?,?>, T> void onModify(BranchNode<?, ?> parentNode, String nodeTypeName, Object staticNodeTypeInstance, Class<C> type, T oldValue, T newValue, ConplierBean<Boolean> doit);
+	/**
+	 * 
+	 * Notify  before modification is invoked.
+	 * 
+	 * @param parentNode parent node of modified node
+	 * @param staticNodeTypeInstance static child node type instance from meta model
+	 * @param type
+	 * @param oldValue
+	 * @param newValue
+	 * @param doit
+	 */
+	public default <C extends INodeType<?,?>, T> void beforeModify(BranchNode<?, ?> parentNode, Object staticNodeTypeInstance, Class<C> type, T oldValue, T newValue, ConplierBean<Boolean> doit) {};
+	public default <C extends INodeType<?,?>, T> void afterModify(BranchNode<?, ?> parentNode, Object staticNodeTypeInstance, Class<C> type, T oldValue, T newValue) {};
 }

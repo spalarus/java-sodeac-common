@@ -22,6 +22,12 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+/**
+ * Intern helper class
+ * 
+ * @author Sebastian Palarus
+ *
+ */
 public class ModelingProcessor
 {
 	protected static final ModelingProcessor DEFAULT_INSTANCE = new ModelingProcessor();
@@ -33,16 +39,18 @@ public class ModelingProcessor
 		this.writeLock = lock.writeLock();
 		this.metaModelIndex = new HashMap<Object,BranchNodeMetaModel>();
 		this.compiledEntityMetaIndex = new HashMap<BranchNodeMetaModel,PreparedMetaModel>();
-		this.modelIndex = new HashMap<Class<?>,TypedTreeMetaModel>();
+		this.typedTreeModelIndex = new HashMap<Class<?>,TypedTreeMetaModel>();
+		this.branchNodeModelIndex = new HashMap<Class<?>,BranchNodeMetaModel>();
 	}
 	
 	private Lock readLock = null;
 	private Lock writeLock = null;
 	private Map<Object,BranchNodeMetaModel> metaModelIndex = null;
 	private Map<BranchNodeMetaModel,PreparedMetaModel> compiledEntityMetaIndex = null;
-	private Map<Class<?>,TypedTreeMetaModel> modelIndex = null;
+	private Map<Class<?>,TypedTreeMetaModel> typedTreeModelIndex = null;
+	private Map<Class<?>,BranchNodeMetaModel> branchNodeModelIndex = null;
 	
-	public <T> BranchNodeMetaModel getModel(Class<T> modelClass) throws InstantiationException, IllegalAccessException
+	protected <T> BranchNodeMetaModel getModel(Class<T> modelClass) throws InstantiationException, IllegalAccessException
 	{
 		this.readLock.lock();
 		try
@@ -77,7 +85,7 @@ public class ModelingProcessor
 	}
 	
 	@SuppressWarnings("unchecked")
-	public <T extends BranchNodeMetaModel> PreparedMetaModel getPreparedMetaModel(T model) throws IllegalArgumentException, IllegalAccessException
+	protected <T extends BranchNodeMetaModel> PreparedMetaModel getPreparedMetaModel(T model) throws IllegalArgumentException, IllegalAccessException
 	{
 		this.readLock.lock();
 		try
@@ -132,7 +140,6 @@ public class ModelingProcessor
 							Type type2 = pType.getActualTypeArguments()[1];
 							PreparedNodeType prepatedNodeType = new PreparedNodeType();
 							prepatedNodeType.clazz = ((Class<?>)type2);
-							prepatedNodeType.nodeTypeName = field.getName();
 							if(pType.getRawType() == LeafNodeType.class)
 							{
 								prepatedNodeType.nodeType = PreparedNodeType.NodeType.LeafNode;
@@ -145,7 +152,7 @@ public class ModelingProcessor
 							{
 								prepatedNodeType.nodeType = PreparedNodeType.NodeType.BranchNodeList;
 							}
-							prepatedNodeType.staticNodeTypeInstance = field.get(model);
+							prepatedNodeType.staticNodeTypeInstance = (INodeType)field.get(model);
 							list.add(prepatedNodeType);
 						}
 					}
@@ -161,8 +168,8 @@ public class ModelingProcessor
 			for(int i = 0; i < preparedMetaModel.preparedNodeTypeList.size(); i++)
 			{
 				PreparedNodeType compiledEntityFieldMeta = preparedMetaModel.preparedNodeTypeList.get(i);
-				preparedMetaModel.nodeTypeNames[i] = compiledEntityFieldMeta.getNodeTypeName();
-				nodeTypeIndexByName.put(compiledEntityFieldMeta.getNodeTypeName(), i);
+				preparedMetaModel.nodeTypeNames[i] = compiledEntityFieldMeta.staticNodeTypeInstance.getNodeName();
+				nodeTypeIndexByName.put(compiledEntityFieldMeta.staticNodeTypeInstance.getNodeName(), i);
 				nodeTypeIndexByClass.put(compiledEntityFieldMeta.staticNodeTypeInstance, i);
 			}
 			preparedMetaModel.nodeTypeIndexByName = Collections.unmodifiableMap(nodeTypeIndexByName);
@@ -177,12 +184,12 @@ public class ModelingProcessor
 		}
 	}
 	
-	protected <M extends TypedTreeMetaModel> M getModelObject(Class<M> clazz)
+	protected <M extends TypedTreeMetaModel> M getCachedTypedTreeMetaModel(Class<M> clazz)
 	{
 		this.readLock.lock();
 		try
 		{
-			M modelObject = (M)this.modelIndex.get(clazz);
+			M modelObject = (M)this.typedTreeModelIndex.get(clazz);
 			if(modelObject != null)
 			{
 				return modelObject;
@@ -196,14 +203,58 @@ public class ModelingProcessor
 		this.writeLock.lock();
 		try
 		{
-			M modelObject = (M)this.modelIndex.get(clazz);
+			M modelObject = (M)this.typedTreeModelIndex.get(clazz);
 			if(modelObject != null)
 			{
 				return modelObject;
 			}
 			
 			modelObject = (M) clazz.newInstance();
-			this.modelIndex.put(clazz, modelObject);
+			this.typedTreeModelIndex.put(clazz, modelObject);
+			
+			return modelObject;
+		}
+		catch (RuntimeException e) 
+		{
+			throw e;
+		}
+		catch (Exception e) 
+		{
+			throw new RuntimeException(e);
+		}
+		finally 
+		{
+			this.writeLock.unlock();
+		}
+	}
+	
+	protected <M extends BranchNodeMetaModel> M getCachedBranchNodeMetaModel(Class<M> clazz)
+	{
+		this.readLock.lock();
+		try
+		{
+			M modelObject = (M)this.branchNodeModelIndex.get(clazz);
+			if(modelObject != null)
+			{
+				return modelObject;
+			}
+		}
+		finally 
+		{
+			this.readLock.unlock();
+		}
+		
+		this.writeLock.lock();
+		try
+		{
+			M modelObject = (M)this.branchNodeModelIndex.get(clazz);
+			if(modelObject != null)
+			{
+				return modelObject;
+			}
+			
+			modelObject = (M) clazz.newInstance();
+			this.branchNodeModelIndex.put(clazz, modelObject);
 			
 			return modelObject;
 		}
@@ -256,23 +307,18 @@ public class ModelingProcessor
 		protected enum NodeType {LeafNode,BranchNode,BranchNodeList};
 		
 		private Class<?> clazz = null;
-		private String nodeTypeName = null;
 		private NodeType nodeType = null;
-		private Object staticNodeTypeInstance = null; // static field in metamodel
+		private INodeType staticNodeTypeInstance = null; // static field in metamodel
 		
 		protected Class<?> getNodeTypeClass()
 		{
 			return clazz;
 		}
-		protected String getNodeTypeName()
-		{
-			return nodeTypeName;
-		}
 		protected NodeType getNodeType()
 		{
 			return nodeType;
 		}
-		public Object getStaticNodeTypeInstance()
+		public INodeType getStaticNodeTypeInstance()
 		{
 			return staticNodeTypeInstance;
 		}

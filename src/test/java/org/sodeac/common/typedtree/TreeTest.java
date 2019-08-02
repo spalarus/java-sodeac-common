@@ -191,7 +191,7 @@ public class TreeTest
 	@Test
 	public void test0062CreateRootAndConsumeChildNodeAutoCreate()
 	{
-		RootBranchNode<TestModel,UserType> user = TypedTreeMetaModel.getInstance(TestModel.class).createRootNode(TestModel.user).setBranchNodeConsumeAutoCreate(true);
+		RootBranchNode<TestModel,UserType> user = TypedTreeMetaModel.getInstance(TestModel.class).createRootNode(TestModel.user).setBranchNodeApplyToConsumerAutoCreate(true);
 		user.applyToConsumer(UserType.address, (u,a) -> a.setValue(AddressType.city, "Berlin"));
 		assertEquals("city should be correct", "Berlin", user.get(UserType.address).getValue(AddressType.city));
 		user.dispose();
@@ -200,7 +200,7 @@ public class TreeTest
 	@Test
 	public void test0063CreateRootAndConsumeAbsentAndPresentChildNodeAutoCreate()
 	{
-		RootBranchNode<TestModel,UserType> user = TypedTreeMetaModel.getInstance(TestModel.class).createRootNode(TestModel.user).setBranchNodeConsumeAutoCreate(true);
+		RootBranchNode<TestModel,UserType> user = TypedTreeMetaModel.getInstance(TestModel.class).createRootNode(TestModel.user).setBranchNodeApplyToConsumerAutoCreate(true);
 		user.applyToConsumer(UserType.address, (u,a) -> a.setValue(AddressType.city, "Berlin"), (u,a) -> a.setValue(AddressType.city, "Tallinn"));
 		assertEquals("city should be correct", "Berlin", user.get(UserType.address).getValue(AddressType.city));
 		user.applyToConsumer(UserType.address, (u,a) -> a.setValue(AddressType.city, "Berlin"), (u,a) -> a.setValue(AddressType.city, "Tallinn"));

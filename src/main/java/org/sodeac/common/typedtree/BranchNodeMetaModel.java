@@ -15,6 +15,12 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
+/**
+ * A branch node meta model defines type and cardinality of child nodes.
+ * 
+ * @author Sebastian Palarus
+ *
+ */
 public class BranchNodeMetaModel
 {
 	protected BranchNodeMetaModel()
@@ -57,7 +63,7 @@ public class BranchNodeMetaModel
 							{
 								if(field.get(null) == null)
 								{
-									Object nodeType = fieldClass.getConstructor(Class.class,Class.class).newInstance(modelClass,type2);
+									Object nodeType = fieldClass.getConstructor(Class.class,Class.class, String.class).newInstance(modelClass,type2,field.getName());
 									field.set(null, nodeType);
 								}
 							}

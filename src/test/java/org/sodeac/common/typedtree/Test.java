@@ -13,18 +13,31 @@ public class Test
 		// entity.getModel().buildPath() <= PathBuilder
 		// Fields sind vom Type Optional,1z1,0zn,1zn
 		
-		RootModelPathBuilder<UserType,String> builder = ModelPathBuilder.newBuilder(userModel,String.class);
-		ModelPathBuilder<UserType,AddressType,String> x1 = builder.with(UserType.address);
-		ModelPathBuilder<UserType,CountryType,String> x2 = x1.with(AddressType.country);
-		ModelPath<UserType, String> p = x2.buildFor(CountryType.name);
+		RootModelPathBuilder<UserType> builder = ModelPathBuilder.newBuilder(userModel);
+		ModelPathBuilder<UserType,AddressType> x1 = builder.to(UserType.address);
+		ModelPathBuilder<UserType,CountryType> x2 = x1.to(AddressType.country);
+		ModelPath<UserType, String> p = x2.buildForValue(CountryType.name);
 		
-		System.out.println("xxx " + p);
+		System.out.println("xxx " + p + " -- " + CountryType.languageList.getNodeName());
 		
-		ModelPath<UserType, String> p2 = ModelPathBuilder.newBuilder(UserType.class,String.class)
-																	.with(UserType.address)
-																	.with(AddressType.country)
-																	.buildFor(CountryType.name);
+		ModelPath<UserType, String> p2 = ModelPathBuilder.newBuilder(UserType.class)
+																	.to(UserType.address)
+																	.to(AddressType.country)
+																	.buildForValue(CountryType.name);
 		System.out.println("yyy " + p2);
+		
+		ModelPath<UserType, LeafNode<?,String>> p3 = ModelPathBuilder.newBuilder(UserType.class)
+				.to(UserType.address)
+				.to(AddressType.country)
+				.buildForNode(CountryType.name);
+		
+		System.out.println("zzz " + p3);
+		
+		ModelPath<UserType, BranchNode<AddressType,UserType>> p4 = ModelPathBuilder.newBuilder(UserType.class)
+				.to(UserType.address)
+				.buildForNode(AddressType.parentuser);
+		
+		System.out.println("aaa " + p4);
 		
 		
 		ModelPath<UserType, String> mp = new ModelPath<UserType, String>(null); // TODO protected
@@ -62,7 +75,7 @@ public class Test
 		
 		System.out.println("2 " +  u + " " + u.get(UserType.name).getValue() + " " + u.get(UserType.address).get(AddressType.street).getValue());
 		
-		u =  testModel.createRootNode(TestModel.user).setBranchNodeConsumeAutoCreate(true);
+		u =  testModel.createRootNode(TestModel.user).setBranchNodeApplyToConsumerAutoCreate(true);
 		u
 			.applyToConsumer(x -> x.setValue(UserType.name,"buzzt"))
 			.applyToConsumer(x -> x.applyToConsumer(UserType.address,(y,a) -> a.setValue(AddressType.street,"MCA")));
@@ -81,7 +94,7 @@ public class Test
 		
 		System.out.println("----------------");
 		
-		u =  testModel.createRootNode(TestModel.user).setBranchNodeConsumeAutoCreate(true);
+		u =  testModel.createRootNode(TestModel.user).setBranchNodeApplyToConsumerAutoCreate(true);
 		u
 			.applyToConsumer(x -> x.setValue(UserType.name,"buzzt"))
 			.applyToConsumer(x -> x.applyToConsumer(UserType.address,(y,a) -> a.setValue(AddressType.street,"MCA")));

@@ -10,16 +10,46 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
+/**
+ * A node type defines the type of node.
+ * 
+ * @author Sebastian Palarus
+ *
+ * @param <P> type parent node
+ * @param <T> type of node
+ */
 public interface INodeType<P extends BranchNodeMetaModel, T>
 {
+	/**
+	 * Getter for node's type.
+	 * 
+	 * @return type of node.
+	 */
 	public Class<T> getTypeClass();
+	
+	/**
+	 * Getter for type of parent node.
+	 * 
+	 * @return type of parent node
+	 */
 	public Class<P> getParentNodeClass();
 	
-	public default T getType()
+	/**
+	 * Getter for name of node type.
+	 * 
+	 * @return name of node type
+	 */
+	public String getNodeName();
+	
+	/**
+	 * 
+	 * @return instance of node's type
+	 */
+	public default T getTypeMetaInstance()
 	{
 		try
 		{
-			return getTypeClass().newInstance(); // TODO Registry, context of this field
+			return getTypeClass().newInstance();
 		} 
 		catch (InstantiationException | IllegalAccessException e)
 		{

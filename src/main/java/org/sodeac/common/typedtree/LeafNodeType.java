@@ -11,47 +11,62 @@
 package org.sodeac.common.typedtree;
 
 /**
- * A leaf node type defines a simple node. This node contains single java objects and can not include other child nodes. Theoretical the leaf node type can be any java type, 
- * but it's highly recommend to restrict the type to the following list
+ * A leaf node type defines a simple child node. This kind of child type can not include other child nodes. It is recommend to restrict the type of node to one of the following list:
  * 
- * <p>{@link java.lang.Character}
- * <p>{@link java.lang.String}
- * <p>{@link java.lang.Boolean}
- * <p>{@link java.lang.Byte}
- * <p>{@link java.lang.Short}
- * <p>{@link java.lang.Integer}
- * <p>{@link java.lang.Long}
- * <p>{@link java.lang.Float}
- * <p>{@link java.lang.Double}
- * <p>{@link java.util.UUID}
- * <p>{@link java.util.Date}
- * <p>{@link java.nio.ByteBuffer}
+ * <br>{@link java.lang.Character}
+ * <br>{@link java.lang.String}
+ * <br>{@link java.lang.Boolean}
+ * <br>{@link java.lang.Byte}
+ * <br>{@link java.lang.Short}
+ * <br>{@link java.lang.Integer}
+ * <br>{@link java.lang.Long}
+ * <br>{@link java.lang.Float}
+ * <br>{@link java.lang.Double}
+ * <br>{@link java.util.UUID}
+ * <br>{@link java.util.Date}
+ * <br>{@link java.nio.ByteBuffer}
+ * <br>array of bytes
  * 
  * @author Sebastian Palarus
  *
  * @param <P> type of parent node
- * @param <T> type of node
+ * @param <T> type of leaf node
  */
 public class LeafNodeType<P extends BranchNodeMetaModel, T> implements INodeType<P, T>
 {
 	private Class<T> typeClass = null;
 	private Class<P> parentNodeClass = null;
+	private String name = null;
 	
-	public LeafNodeType(Class<P> parentNodeClass, Class<T> typeClass)
+	/**
+	 * Constructor for leaf node type.
+	 * 
+	 * @param parentNodeClass class of parent node (should be a class of {@link BranchNodeMetaModel})
+	 * @param typeClass type of child node's value
+	 * @param name name of node type
+	 */
+	public LeafNodeType(Class<P> parentNodeClass, Class<T> typeClass, String name)
 	{
 		this.parentNodeClass = parentNodeClass;
 		this.typeClass = typeClass;
+		this.name = name;
 	}
 
+	@Override
 	public Class<T> getTypeClass()
 	{
 		return typeClass;
 	}
 
+	@Override
 	public Class<P> getParentNodeClass()
 	{
 		return parentNodeClass;
 	}
-	
 
+	@Override
+	public String getNodeName()
+	{
+		return this.name;
+	}
 }

@@ -10,7 +10,18 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
+/**
+ * A node is part of a tree.
+ * 
+ * @author Sebastian Palarus
+ *
+ * @param <P> type of parent branch node
+ * @param <T> type of node
+ */
 public abstract class Node<P extends BranchNodeMetaModel, T>
 {
+	/**
+	 * Dispose this node. 
+	 */
 	protected abstract void disposeNode();
 }

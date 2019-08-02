@@ -21,6 +21,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import org.sodeac.common.function.ConplierBean;
 
 /**
+ * A typed tree meta model defines all root nodes (trees) of this model.
  * 
  * @author Sebastian Palarus
  *
@@ -36,7 +37,7 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 	 */
 	public static <M extends TypedTreeMetaModel> M getInstance(Class<M> modelClass)
 	{
-		return ModelingProcessor.DEFAULT_INSTANCE.getModelObject(modelClass);
+		return ModelingProcessor.DEFAULT_INSTANCE.getCachedTypedTreeMetaModel(modelClass);
 	}
 	
 	/**
@@ -51,13 +52,14 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 	}
 	
 	/**
+	 * A root node represents a typed tree
 	 * 
 	 * @author Sebastian Palarus
 	 *
-	 * @param <P>
-	 * @param <R>
+	 * @param <P> type of parent model
+	 * @param <R> type of root node
 	 */
-	public static class RootBranchNode<P extends TypedTreeMetaModel,R  extends BranchNodeMetaModel> extends BranchNode<P,R>
+	public static class RootBranchNode<P extends TypedTreeMetaModel,R  extends BranchNodeMetaModel> extends BranchNode<P,R> implements ITree<P,R>
 	{
 		private boolean nodeSynchronized;
 		private boolean immutable;
@@ -70,6 +72,11 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 		private ConplierBean<Boolean> sharedDoit;
 		private volatile long sequnceOID = 0L;
 		
+		/**
+		 * Constructor of root node.
+		 * 
+		 * @param modelType type of root node
+		 */
 		protected RootBranchNode(Class<R> modelType)
 		{
 			super(null,null,modelType);
@@ -96,6 +103,7 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 			return writeLock;
 		}
 
+		@Override
 		public void dispose()
 		{
 			if(this.modifyListeners != null)
@@ -109,82 +117,93 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 			this.sharedDoit = null;
 		}
 		
-		/**
-		 * getter for synchronized option 
-		 * 
-		 * @return true, if access to tree is synchronized, otherwise false
-		 */
+		@Override
 		public boolean isSynchronized()
 		{
 			return nodeSynchronized;
 		}
 		
-		/**
-		 * setter for synchronized option that determines whether access to tree is synchronized or not
-		 * 
-		 * @param nodeSynchronized synchronized option to set
-		 * @return root node
-		 */
+		@Override
 		public RootBranchNode<P,R> setSynchronized(boolean nodeSynchronized)
 		{
 			this.nodeSynchronized = nodeSynchronized;
 			return this;
 		}
+		
+		@Override
 		public boolean isImmutable()
 		{
 			return immutable;
 		}
+		
+		@Override
 		public RootBranchNode<P,R> setImmutable()
 		{
 			this.immutable = true;
 			return this;
 		}
+		
+		@Override
 		public boolean isBranchNodeGetterAutoCreate()
 		{
 			return branchNodeGetterAutoCreate;
 		}
+		
+		@Override
 		public RootBranchNode<P,R> setBranchNodeGetterAutoCreate(boolean branchNodeGetterAutoCreate)
 		{
 			this.branchNodeGetterAutoCreate = branchNodeGetterAutoCreate;
 			return this;
 		}
 		
-		public boolean isBranchNodeComputeAutoCreate()
+		@Override
+		public boolean isBranchNodeApplyToConsumerAutoCreate()
 		{
 			return branchNodeConsumeAutoCreate;
 		}
-		public RootBranchNode<P,R> setBranchNodeConsumeAutoCreate(boolean branchNodeConsumeAutoCreate)
+		
+		@Override
+		public RootBranchNode<P,R> setBranchNodeApplyToConsumerAutoCreate(boolean branchNodeConsumeAutoCreate)
 		{
 			this.branchNodeConsumeAutoCreate = branchNodeConsumeAutoCreate;
 			return this;
 		}
 		
+		/**
+		 * Sequencer for tree's object-ID
+		 * 
+		 * @return next objectId
+		 */
 		protected long nextOID()
 		{
 			return ++this.sequnceOID;
 		}
 
-		public void addModifyListener(IModifyListener modifyListener)
+		@Override
+		public RootBranchNode<P,R> addModifyListener(IModifyListener modifyListener)
 		{
 			if(modifyListener == null)
 			{
-				return;
+				return this;
 			}
 			if(this.modifyListeners == null)
 			{
 				this.modifyListeners = new CopyOnWriteArrayList<IModifyListener>();
 			}
 			this.modifyListeners.addIfAbsent(modifyListener);
+			return this;
 		}
-		public void addModifyListeners(IModifyListener... modifyListeners)
+		
+		@Override
+		public RootBranchNode<P,R> addModifyListeners(IModifyListener... modifyListeners)
 		{
 			if(modifyListeners == null)
 			{
-				return;
+				return this;
 			}
 			if(modifyListeners.length == 0)
 			{
-				return;
+				return this;
 			}
 			if(this.modifyListeners == null)
 			{
@@ -211,7 +230,7 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 				}
 				if(modifyListenerList.isEmpty())
 				{
-					return;
+					return this;
 				}
 				this.modifyListeners.addAllAbsent(modifyListenerList);
 			}
@@ -219,22 +238,26 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 			{
 				this.modifyListeners.addAllAbsent(Arrays.asList(modifyListeners));
 			}
+			return this;
 		}
-		public void removeModifyListener(IModifyListener modifyListener)
+		
+		@Override
+		public RootBranchNode<P,R> removeModifyListener(IModifyListener modifyListener)
 		{
 			if(modifyListener == null)
 			{
-				return;
+				return this;
 			}
 			if(this.modifyListeners == null)
 			{
-				return;
+				return this;
 			}
 			
 			this.modifyListeners.remove(modifyListener);
+			return this;
 		}
 		
-		protected <C extends INodeType<?,?>, T> boolean publishModify(BranchNode<?, ?> parentNode, String nodeTypeName, Object staticNodeTypeInstance, Class<C> type, T oldValue, T newValue)
+		protected <C extends INodeType<?,?>, T> boolean publishModify(BranchNode<?, ?> parentNode, Object staticNodeTypeInstance, Class<C> type, T oldValue, T newValue)
 		{
 			ConplierBean<Boolean> doit = null;
 			
@@ -250,7 +273,7 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 							doit = new ConplierBean<Boolean>(true); // TODO recycle
 						}
 					}
-					modifyListener.onModify(parentNode, nodeTypeName, staticNodeTypeInstance, type, oldValue, newValue, doit);
+					modifyListener.beforeModify(parentNode, staticNodeTypeInstance, type, oldValue, newValue, doit);
 					
 					if((doit.get() != null) && (! doit.get().booleanValue()))
 					{
@@ -259,7 +282,7 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 				}
 			}
 			
-			return doit == null ? true : ( doit.get() == null ? true : doit.get().booleanValue());
+			return true;
 		}
 	}
 }
