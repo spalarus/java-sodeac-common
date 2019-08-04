@@ -81,19 +81,29 @@ public class LeafNode<P extends BranchNodeMetaModel,T> extends Node<P,T>
 		}
 		try
 		{
+			T oldValue = this.value;
 			if
 			(
-				parentNode.getRootNode().publishModify
+				parentNode.getRootNode().notifyBeforeModify
 				(
 					this.parentNode,
 					this.preparedNodeType.getStaticNodeTypeInstance(), 
 					LeafNodeType.class, 
-					this.value, 
+					oldValue, 
 					value
 				)
 			)
 			{
 				this.value = value;
+				
+				parentNode.getRootNode().notifyAfterModify
+				(
+					this.parentNode,
+					this.preparedNodeType.getStaticNodeTypeInstance(), 
+					LeafNodeType.class, 
+					oldValue, 
+					value
+				);
 			}
 		}
 		finally 

@@ -257,7 +257,7 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 			return this;
 		}
 		
-		protected <C extends INodeType<?,?>, T> boolean publishModify(BranchNode<?, ?> parentNode, Object staticNodeTypeInstance, Class<C> type, T oldValue, T newValue)
+		protected <C extends INodeType<?,?>, T> boolean notifyBeforeModify(BranchNode<?, ?> parentNode, Object staticNodeTypeInstance, Class<C> type, T oldValue, T newValue)
 		{
 			ConplierBean<Boolean> doit = null;
 			
@@ -283,6 +283,17 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 			}
 			
 			return true;
+		}
+		
+		protected <C extends INodeType<?,?>, T> void notifyAfterModify(BranchNode<?, ?> parentNode, Object staticNodeTypeInstance, Class<C> type, T oldValue, T newValue)
+		{
+			if((modifyListeners != null) && (! modifyListeners.isEmpty()))
+			{
+				for(IModifyListener modifyListener : this.modifyListeners)
+				{
+					modifyListener.afterModify(parentNode, staticNodeTypeInstance, type, oldValue, newValue);		
+				}
+			}
 		}
 	}
 }

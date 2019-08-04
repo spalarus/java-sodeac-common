@@ -348,10 +348,11 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 					
 					try
 					{
-						if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+						if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
 						{
 							nodeContainer.node = node;
 							created = true;
+							this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node);
 						}
 					}
 					finally 
@@ -409,10 +410,11 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 							ifAbsent.accept(this, node);
 						}
 						
-						if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+						if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
 						{
 							nodeContainer.node = node;
 							created = true;
+							this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node);
 						}
 					}
 					finally 
@@ -473,10 +475,18 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		{
 			if(nodeContainer.node != null)
 			{
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, nodeContainer.node, null))
+				Node oldNode = nodeContainer.node;
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, oldNode, null))
 				{
-					nodeContainer.node.disposeNode();
-					nodeContainer.node = null;
+					try
+					{
+						this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, oldNode, null);
+					}
+					finally
+					{
+						nodeContainer.node.disposeNode();
+						nodeContainer.node = null;
+					}
 				}
 			}
 			return this;
@@ -534,14 +544,21 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 				{
 					consumer.accept(this, newNode);
 				}
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, oldNode, newNode))
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, oldNode, newNode))
 				{
-					if(oldNode != null)
+					try
 					{
-						nodeContainer.node.disposeNode();
+						nodeContainer.node = newNode;
+						created = true;
+						this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, oldNode, newNode);
 					}
-					nodeContainer.node = newNode;
-					created = true;
+					finally
+					{
+						if(oldNode != null)
+						{
+							oldNode.disposeNode();
+						}
+					}
 					return newNode;
 				}
 			}
@@ -605,10 +622,11 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			
 			try
 			{
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
 				{
 					nodeContainer.node = node;
 					created = true;
+					this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node);
 				}
 			}
 			finally 
@@ -815,13 +833,16 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			BranchNode<T,X> node = new BranchNode(this.rootNode,this,nodeContainer.preparedNodeType.getNodeTypeClass());
 			try
 			{
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
 				{
 					nodeContainer.nodeList.add(node);
 					node.positionInList = nodeContainer.nodeList.size() -1;
 					
 					nodeContainer.unmodifiableNodeListSnapshot = null;
 					created = true;
+					
+					this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node);
+					
 					return node;
 				}
 			}
@@ -874,7 +895,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 					consumer.accept(this, node);
 				}
 				
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
 				{
 					if((nodeContainer.listComparator == null) || nodeContainer.nodeList.isEmpty())
 					{
@@ -959,6 +980,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 					}
 					nodeContainer.unmodifiableNodeListSnapshot = null;
 					created = true;
+					this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node);
 				}
 			}
 			finally 
@@ -1023,7 +1045,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 					consumer.accept(this, node);
 				}
 				
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
 				{
 					if((nodeContainer.listComparator == null) || nodeContainer.nodeList.isEmpty())
 					{
@@ -1108,6 +1130,8 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 					}
 					nodeContainer.unmodifiableNodeListSnapshot = null;
 					created = true;
+					
+					this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node);
 				}
 			}
 			finally 
@@ -1153,15 +1177,22 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		{
 			if(nodeContainer.nodeList.contains(node))
 			{
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null))
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null))
 				{
 					nodeContainer.nodeList.remove(node);
 					int positionInList = node.positionInList;
-					node.disposeNode();
-					nodeContainer.unmodifiableNodeListSnapshot = null;
-					for(int i = positionInList; i < nodeContainer.nodeList.size(); i++)
+					try
 					{
-						nodeContainer.nodeList.get(i).positionInList = i;
+						nodeContainer.unmodifiableNodeListSnapshot = null;
+						for(int i = positionInList; i < nodeContainer.nodeList.size(); i++)
+						{
+							nodeContainer.nodeList.get(i).positionInList = i;
+						}
+						this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null);
+					}
+					finally 
+					{
+						node.disposeNode();
 					}
 					return true;
 				}
@@ -1203,10 +1234,18 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			
 			for(BranchNode<P,T> node : copy)
 			{
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null))
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null))
 				{
 					nodeContainer.nodeList.remove(node);
-					node.disposeNode();
+					try
+					{
+						this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null);
+					}
+					finally 
+					{
+						node.disposeNode();
+					}
+					
 				}
 			}
 			
@@ -1250,15 +1289,21 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			
 			if(node != null)
 			{
-				if(this.rootNode.publishModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null))
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null))
 				{
 					nodeContainer.nodeList.remove(index);
 					int positionInList = node.positionInList;
-					node.disposeNode();
-					nodeContainer.unmodifiableNodeListSnapshot = null;
-					for(int i = positionInList; i < nodeContainer.nodeList.size(); i++)
+					try
 					{
-						nodeContainer.nodeList.get(i).positionInList = i;
+						nodeContainer.unmodifiableNodeListSnapshot = null;
+						for(int i = positionInList; i < nodeContainer.nodeList.size(); i++)
+						{
+							nodeContainer.nodeList.get(i).positionInList = i;
+						}
+					}
+					finally 
+					{
+						node.disposeNode();
 					}
 					return true;
 				}
