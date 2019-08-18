@@ -13,11 +13,10 @@ package org.sodeac.common.typedtree;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
-
-import javax.security.auth.callback.LanguageCallback;
 
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -36,7 +35,11 @@ public class TreeTest
 	@Test
 	public void test0002CreateRootNode()
 	{
-		assertNotNull("user root instance should not be null", TypedTreeMetaModel.getInstance(TestModel.class).createRootNode(TestModel.user));
+		RootBranchNode<TestModel,UserType> user = TypedTreeMetaModel.getInstance(TestModel.class).createRootNode(TestModel.user);
+		assertNotNull("user root instance should not be null", user);
+		assertSame("nodetype should be same",UserType.name,user.getLeafNodeTypeList().get(0));
+		assertSame("nodetype should be same",UserType.address,user.getBranchNodeTypeList().get(0));
+		user.dispose();
 	}
 	
 	@Test
@@ -50,6 +53,8 @@ public class TreeTest
 		assertEquals("user name should be correct", "Mikkel", user.getValue(UserType.name));
 		user.get(UserType.name).setValue("Michael");
 		assertEquals("user name should be correct", "Michael", user.getValue(UserType.name));
+		assertSame("nodetype should be same",TestModel.user,user.getNodeType());
+		assertSame("nodetype should be same",UserType.name,user.get(UserType.name).getNodeType());
 		user.dispose();
 	}
 	
@@ -77,6 +82,7 @@ public class TreeTest
 		RootBranchNode<TestModel,UserType> user = TypedTreeMetaModel.getInstance(TestModel.class).createRootNode(TestModel.user);
 		user.create(UserType.address).setValue(AddressType.city, "Berlin");
 		assertEquals("city should be correct", "Berlin", user.get(UserType.address).getValue(AddressType.city));
+		assertSame("nodetype should be same",UserType.address,user.get(UserType.address).getNodeType());
 		user.dispose();
 	}
 	

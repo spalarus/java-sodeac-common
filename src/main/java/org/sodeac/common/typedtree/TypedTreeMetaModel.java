@@ -10,6 +10,7 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -43,12 +44,13 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 	/**
 	 * Create new root node instance provided by model
 	 * 
-	 * @param type type of root node
+	 * @param type static type instance defined in model
 	 * @return new root node instance
 	 */
 	public <F extends BranchNodeMetaModel> RootBranchNode<T,F> createRootNode(BranchNodeType<T,F> type)
 	{
-		return new RootBranchNode(type.getTypeClass());
+		// TODO validate type
+		return new RootBranchNode(type);
 	}
 	
 	/**
@@ -66,7 +68,7 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 		private boolean branchNodeGetterAutoCreate;
 		private boolean branchNodeConsumeAutoCreate;
 		
-		private CopyOnWriteArrayList<IModifyListener> modifyListeners;
+		private CopyOnWriteArrayList<ITreeModifyListener> modifyListeners;
 		private ReadLock readLock;
 		private WriteLock writeLock;
 		private ConplierBean<Boolean> sharedDoit;
@@ -75,11 +77,11 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 		/**
 		 * Constructor of root node.
 		 * 
-		 * @param modelType type of root node
+		 * @param type static type instance defined in model
 		 */
-		protected RootBranchNode(Class<R> modelType)
+		protected RootBranchNode(BranchNodeType<P,R> type)
 		{
-			super(null,null,modelType);
+			super(null,null,new NodeContainer(type));
 			
 			this.nodeSynchronized = false;
 			this.immutable = false;
@@ -180,7 +182,7 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 		}
 
 		@Override
-		public RootBranchNode<P,R> addModifyListener(IModifyListener modifyListener)
+		public RootBranchNode<P,R> addTreeModifyListener(ITreeModifyListener modifyListener)
 		{
 			if(modifyListener == null)
 			{
@@ -188,14 +190,14 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 			}
 			if(this.modifyListeners == null)
 			{
-				this.modifyListeners = new CopyOnWriteArrayList<IModifyListener>();
+				this.modifyListeners = new CopyOnWriteArrayList<ITreeModifyListener>();
 			}
 			this.modifyListeners.addIfAbsent(modifyListener);
 			return this;
 		}
 		
 		@Override
-		public RootBranchNode<P,R> addModifyListeners(IModifyListener... modifyListeners)
+		public RootBranchNode<P,R> addTreeModifyListeners(ITreeModifyListener... modifyListeners)
 		{
 			if(modifyListeners == null)
 			{
@@ -207,10 +209,10 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 			}
 			if(this.modifyListeners == null)
 			{
-				this.modifyListeners = new CopyOnWriteArrayList<IModifyListener>();
+				this.modifyListeners = new CopyOnWriteArrayList<ITreeModifyListener>();
 			}
 			boolean hasNullItem = false;
-			for(IModifyListener modifyListener : modifyListeners)
+			for(ITreeModifyListener modifyListener : modifyListeners)
 			{
 				if(modifyListener == null)
 				{
@@ -220,8 +222,8 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 			}
 			if(hasNullItem)
 			{
-				List<IModifyListener> modifyListenerList = new ArrayList<IModifyListener>();
-				for(IModifyListener modifyListener : modifyListeners)
+				List<ITreeModifyListener> modifyListenerList = new ArrayList<ITreeModifyListener>();
+				for(ITreeModifyListener modifyListener : modifyListeners)
 				{
 					if(modifyListener != null)
 					{
@@ -242,7 +244,7 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 		}
 		
 		@Override
-		public RootBranchNode<P,R> removeModifyListener(IModifyListener modifyListener)
+		public RootBranchNode<P,R> removeTreeModifyListener(ITreeModifyListener modifyListener)
 		{
 			if(modifyListener == null)
 			{
@@ -257,13 +259,13 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 			return this;
 		}
 		
-		protected <C extends INodeType<?,?>, T> boolean notifyBeforeModify(BranchNode<?, ?> parentNode, Object staticNodeTypeInstance, Class<C> type, T oldValue, T newValue)
+		protected <C extends INodeType<?,?>, T> boolean notifyBeforeModify(BranchNode<?, ?> parentNode, NodeContainer nodeContainer, T oldValue, T newValue)
 		{
 			ConplierBean<Boolean> doit = null;
 			
 			if((modifyListeners != null) && (! modifyListeners.isEmpty()))
 			{
-				for(IModifyListener modifyListener : this.modifyListeners)
+				for(ITreeModifyListener modifyListener : this.modifyListeners)
 				{
 					if(doit == null)
 					{
@@ -273,7 +275,7 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 							doit = new ConplierBean<Boolean>(true); // TODO recycle
 						}
 					}
-					modifyListener.beforeModify(parentNode, staticNodeTypeInstance, type, oldValue, newValue, doit);
+					modifyListener.beforeModify(parentNode, nodeContainer.getNodeType(), oldValue, newValue, doit);
 					
 					if((doit.get() != null) && (! doit.get().booleanValue()))
 					{
@@ -285,14 +287,32 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 			return true;
 		}
 		
-		protected <C extends INodeType<?,?>, T> void notifyAfterModify(BranchNode<?, ?> parentNode, Object staticNodeTypeInstance, Class<C> type, T oldValue, T newValue)
+		protected <C extends INodeType<?,?>, T> void notifyAfterModify(BranchNode<?, ?> parentNode, NodeContainer nodeContainer, T oldValue, T newValue)
 		{
 			if((modifyListeners != null) && (! modifyListeners.isEmpty()))
 			{
-				for(IModifyListener modifyListener : this.modifyListeners)
+				for(ITreeModifyListener modifyListener : this.modifyListeners)
 				{
-					modifyListener.afterModify(parentNode, staticNodeTypeInstance, type, oldValue, newValue);		
+					modifyListener.afterModify(parentNode, nodeContainer.getNodeType(), oldValue, newValue);		
 				}
+			}
+			if(nodeContainer.getNodeListenerList() != null)
+			{
+				if(nodeContainer.getNodeType() instanceof LeafNodeType)
+				{
+					for(IChildNodeListener listener : nodeContainer.getNodeListenerList())
+					{
+						listener.accept(nodeContainer.getNode(), oldValue);
+					}
+				}
+				else
+				{
+					for(IChildNodeListener listener : nodeContainer.getNodeListenerList())
+					{
+						listener.accept(newValue, oldValue);
+					}
+				}
+				
 			}
 		}
 	}

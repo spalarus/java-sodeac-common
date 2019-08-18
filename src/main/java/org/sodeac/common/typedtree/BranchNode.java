@@ -13,15 +13,23 @@ package org.sodeac.common.typedtree;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import org.sodeac.common.typedtree.ModelingProcessor.PreparedNodeType;
 import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
-import org.sodeac.common.typedtree.ModelingProcessor.PreparedMetaModel;
+import org.sodeac.common.typedtree.IChildNodeListener.ILeafNodeListener;
+import org.sodeac.common.typedtree.ModelPath.NodeSelector;
+import org.sodeac.common.typedtree.ModelPath.NodeSelector.Axis;
 
 /**
  * A branch node is an instance of complex tree node.
@@ -33,45 +41,58 @@ import org.sodeac.common.typedtree.ModelingProcessor.PreparedMetaModel;
  */
 public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaModel> extends Node<P,T>
 {
-	private PreparedMetaModel preparedMetaModel = null;
-	private List<NodeContainer<T,?>> nodeContainerList = null;
+	private INodeType<P,T> nodeType = null;
+	private BranchNodeMetaModel model = null;
+	private List<NodeContainer> _nodeContainerList = null;
+	private List<NodeContainer> nodeContainerList = null;
 	protected RootBranchNode<?,?> rootNode = null;
 	protected BranchNode<?,P> parentNode = null;
 	private long OID = -1;
 	private int positionInList = -1;
+	private volatile List<ModifyListenerRegistration<?>> modifyListenerRegistrationList = null;
 	
 	/**
 	 * Constructor to create new branch node.
 	 * 
 	 * @param rootNode root node instance
 	 * @param parentNode parent node instance
-	 * @param modelType type of branch node
+	 * @param referencedNodeContainer static type instance defined in model
 	 */
-	protected BranchNode(RootBranchNode<?,?> rootNode, BranchNode<?,P> parentNode, Class<T> modelType)
+	protected BranchNode(RootBranchNode<?,?> rootNode, BranchNode<?,P> parentNode, NodeContainer referencedNodeContainer)
 	{
+		INodeType<P,T> nodeType = referencedNodeContainer.getNodeType();
+		this.nodeType = nodeType;
+		Class<T> modelType = nodeType.getTypeClass();
 		try
 		{
-			BranchNodeMetaModel model = ModelingProcessor.DEFAULT_INSTANCE.getModel(modelType);
-			this.preparedMetaModel = ModelingProcessor.DEFAULT_INSTANCE.getPreparedMetaModel(model);
+			if((rootNode == null) && (parentNode == null))
+			{
+				super.rootLinked = true;	// self root
+			}
+			
+			this.model = ModelingProcessor.DEFAULT_INSTANCE.getModel(modelType);
 			
 			this.nodeContainerList = new ArrayList<>();
-			for(int i = 0; i < this.preparedMetaModel.getNodeTypeNames().length; i++)
+			for(int i = 0; i < this.model.getNodeTypeNames().length; i++)
 			{
-				PreparedNodeType preparedNodeType = preparedMetaModel.getPreparedNodeTypeList().get(i);
+				INodeType childNodeType = model.getNodeTypeList().get(i);
 				
-				NodeContainer<T, ?> nodeContainer = new NodeContainer<>();
-				if(preparedNodeType.getNodeType() == PreparedNodeType.NodeType.LeafNode)
+				NodeContainer nodeContainer = new NodeContainer();
+				nodeContainer.nodeType = childNodeType;
+				if(childNodeType.getClass() == LeafNodeType.class)
 				{
-					nodeContainer.node = new LeafNode<>(this,preparedNodeType);
+					nodeContainer.node = new LeafNode<>(this,nodeContainer);
+					nodeContainer.node.setRootLinked(super.rootLinked);
 				}
-				else if (preparedNodeType.getNodeType() == PreparedNodeType.NodeType.BranchNodeList)
+				else if (childNodeType.getClass() == BranchNodeListType.class)
 				{
 					nodeContainer.nodeList = new ArrayList<BranchNode>();
 					nodeContainer.unmodifiableNodeList = Collections.unmodifiableList(nodeContainer.nodeList);
 				}
-				nodeContainer.preparedNodeType = preparedNodeType;
+				
 				nodeContainerList.add(nodeContainer);
 			}
+			this._nodeContainerList = this.nodeContainerList;
 			this.nodeContainerList = Collections.unmodifiableList(this.nodeContainerList);
 			if(rootNode == null)
 			{
@@ -91,8 +112,6 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 				this.OID = rootNode.nextOID();
 			}
 			this.parentNode = parentNode;
-			
-			
 		}
 		catch (Exception e) 
 		{
@@ -109,35 +128,109 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 */
 	protected void disposeNode()
 	{
-		List<NodeContainer<T,?>> nodeContainerList = this.nodeContainerList;
-		if(nodeContainerList != null)
+		try
 		{
-			for(NodeContainer<T,?> container : nodeContainerList)
+			if(modifyListenerRegistrationList != null)
 			{
-				if(container.node != null)
+				for(ModifyListenerRegistration<?> registration : modifyListenerRegistrationList)
 				{
-					container.node.disposeNode();
+					registration.unregister();
 				}
-				if(container.nodeList != null)
-				{
-					for(BranchNode<?,?> item : container.nodeList)
-					{
-						item.disposeNode();
-					}
-					container.nodeList.clear();
-				}
-				container.node = null;
-				container.nodeList = null;
-				container.unmodifiableNodeList = null;
-				container.preparedNodeType = null;
+				
+				modifyListenerRegistrationList.clear();
 			}
 		}
-		this.preparedMetaModel = null;
-		this.nodeContainerList = null;
-		this.rootNode = null;
-		this.parentNode = null;
-		this.OID = -1;
-		this.positionInList = -1;
+		finally 
+		{
+			
+			try
+			{
+				List<NodeContainer> nodeContainerList = this._nodeContainerList;
+				
+				if(nodeContainerList != null)
+				{
+					for(NodeContainer container : nodeContainerList)
+					{
+						try
+						{
+							if(container.node != null)
+							{
+								container.node.disposeNode();
+							}
+							if(container.nodeList != null)
+							{
+								for(BranchNode<?,?> item : container.nodeList)
+								{
+									item.disposeNode();
+								}
+								container.nodeList.clear();
+							}
+							if(container.nodeListenerList != null)
+							{
+								container.nodeListenerList.clear();
+							}
+						}
+						finally 
+						{
+							container.node = null;
+							container.nodeList = null;
+							container.unmodifiableNodeList = null;
+							container.nodeType = null;
+							container.listComparator = null;
+							container.unmodifiableNodeListSnapshot = null;
+							container.nodeListenerList = null;
+						}
+					}
+					nodeContainerList.clear();
+				}
+			}
+			finally 
+			{
+				this.model = null;
+				this.nodeContainerList = null;
+				this._nodeContainerList = null;
+				this.rootNode = null;
+				this.parentNode = null;
+				this.OID = -1;
+				this.positionInList = -1;
+				this.nodeType = null;
+				this.setRootLinked(false);
+			}
+		}
+	}
+	
+	@Override
+	public INodeType<P, T> getNodeType()
+	{
+		return this.nodeType;
+	}
+
+	@Override
+	protected void setRootLinked(boolean rootLinked)
+	{
+		if(super.rootLinked == rootLinked)
+		{
+			return;
+		}
+		super.rootLinked = rootLinked;
+		List<NodeContainer> nodeContainerList = this.nodeContainerList;
+		if(nodeContainerList != null)
+		{
+			for(NodeContainer nodeContainer : nodeContainerList)
+			{
+				if(nodeContainer.node != null)
+				{
+					nodeContainer.node.setRootLinked(rootLinked);
+				}
+				if(nodeContainer.nodeList != null)
+				{
+					for(BranchNode<?,?> node : nodeContainer.nodeList)
+					{
+						node.setRootLinked(rootLinked);
+					}
+				}
+			}
+		}
 	}
 	
 	/**
@@ -236,9 +329,9 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 * @param nodeType static child node type instance from meta model
 	 * @return child node
 	 */
-	public <X> LeafNode<T,X> get(LeafNodeType<T,X> nodeType)
+	public <X> LeafNode<T,X> get(LeafNodeType<? super T,X> nodeType)
 	{
-		return (LeafNode<T,X>) this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType)).node;
+		return (LeafNode<T,X>) this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType)).node;
 	}
 	
 	/**
@@ -248,9 +341,9 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 * @param consumer consumer to consume child node
 	 * @return this branch node
 	 */
-	public <X> BranchNode<P,T> applyToConsumer(LeafNodeType<T,X> nodeType, BiConsumer<BranchNode<P, T>, LeafNode<T,X>> consumer)
+	public <X> BranchNode<P,T> applyToConsumer(LeafNodeType<? super T,X> nodeType, BiConsumer<BranchNode<P, ? super T>, LeafNode<? super T,X>> consumer)
 	{
-		LeafNode<T,X> node = (LeafNode<T,X>) this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType)).node;
+		LeafNode<T,X> node = (LeafNode<T,X>) this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType)).node;
 		
 		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
 		if(lock != null)
@@ -278,9 +371,9 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 * @param value value for child node
 	 * @return this branch node
 	 */
-	public <X> BranchNode<P,T> setValue(LeafNodeType<T,X> nodeType, X value)
+	public <X> BranchNode<P,T> setValue(LeafNodeType<? super T,X> nodeType, X value)
 	{
-		LeafNode<T,X> node = (LeafNode<T,X>) this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType)).node;
+		LeafNode<T,X> node = (LeafNode<T,X>) this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType)).node;
 		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
 		if(lock != null)
 		{
@@ -306,9 +399,9 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 * @param nodeType static child node type instance from meta model
 	 * @return node value
 	 */
-	public <X> X getValue(LeafNodeType<T,X> nodeType)
+	public <X> X getValue(LeafNodeType<? super T,X> nodeType)
 	{
-		return ((LeafNode<T,X>) this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType)).node).getValue();
+		return ((LeafNode<T,X>) this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType)).node).getValue();
 	}
 	
 	/*
@@ -322,7 +415,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 * @param consumer consumer
 	 * @return this branch node
 	 */
-	public <X extends BranchNodeMetaModel> BranchNode<P, T> applyToConsumer(BranchNodeType<T,X> nodeType, BiConsumer<BranchNode<P, T>, BranchNode<T,X>> consumer)
+	public <X extends BranchNodeMetaModel> BranchNode<P, T> applyToConsumer(BranchNodeType<T,X> nodeType, BiConsumer<BranchNode<P, T>, BranchNode<?,X>> consumer)
 	{
 		if(consumer == null)
 		{
@@ -336,7 +429,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		}
 		try
 		{
-			NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+			NodeContainer nodeContainer = this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType));
 			BranchNode<T,X> node = (BranchNode<T,X>)nodeContainer.node;
 			if(node == null)
 			{
@@ -344,15 +437,16 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 				{
 					boolean created = false;
 					
-					node = new BranchNode(this.rootNode,this,nodeType.getTypeClass());
+					node = new BranchNode(this.rootNode,this,nodeContainer);
 					
 					try
 					{
-						if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+						if(this.rootNode.notifyBeforeModify(this, nodeContainer, null, node))
 						{
 							nodeContainer.node = node;
+							nodeContainer.node.setRootLinked(super.rootLinked);
 							created = true;
-							this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node);
+							this.rootNode.notifyAfterModify(this, nodeContainer, null, node);
 						}
 					}
 					finally 
@@ -387,7 +481,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 */
 	public <X extends BranchNodeMetaModel> BranchNode<P, T> applyToConsumer(BranchNodeType<T,X> nodeType,BiConsumer<BranchNode<P, T>, BranchNode<T,X>> ifAbsent,BiConsumer<BranchNode<P, T>, BranchNode<T,X>> ifPresent)
 	{
-		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		NodeContainer nodeContainer = this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType));
 		
 		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
 		if(lock != null)
@@ -402,7 +496,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 				if(rootNode.isBranchNodeApplyToConsumerAutoCreate() && (! rootNode.isImmutable()))
 				{
 					boolean created = false;
-					node = new BranchNode(this.rootNode,this,nodeType.getTypeClass());
+					node = new BranchNode(this.rootNode,this,nodeContainer);
 					try
 					{
 						if(ifAbsent != null)
@@ -410,11 +504,12 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 							ifAbsent.accept(this, node);
 						}
 						
-						if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+						if(this.rootNode.notifyBeforeModify(this, nodeContainer, null, node))
 						{
 							nodeContainer.node = node;
+							nodeContainer.node.setRootLinked(super.rootLinked);
 							created = true;
-							this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node);
+							this.rootNode.notifyAfterModify(this, nodeContainer, null, node);
 						}
 					}
 					finally 
@@ -465,7 +560,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		{
 			return this;
 		}
-		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		NodeContainer nodeContainer = this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType));
 		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
 		if(lock != null)
 		{
@@ -476,11 +571,11 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			if(nodeContainer.node != null)
 			{
 				Node oldNode = nodeContainer.node;
-				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, oldNode, null))
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer, oldNode, null))
 				{
 					try
 					{
-						this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, oldNode, null);
+						this.rootNode.notifyAfterModify(this, nodeContainer, oldNode, null);
 					}
 					finally
 					{
@@ -525,7 +620,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			return null;
 		}
 		
-		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		NodeContainer nodeContainer = this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType));
 		
 		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
 		if(lock != null)
@@ -536,7 +631,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		{
 			boolean created = false;
 			BranchNode<T,X> oldNode = (BranchNode<T,X>)nodeContainer.node;
-			BranchNode<T,X> newNode = new BranchNode(this.rootNode,this,nodeType.getTypeClass());
+			BranchNode<T,X> newNode = new BranchNode(this.rootNode,this,nodeContainer);
 			
 			try
 			{
@@ -544,13 +639,14 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 				{
 					consumer.accept(this, newNode);
 				}
-				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, oldNode, newNode))
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer, oldNode, newNode))
 				{
 					try
 					{
 						nodeContainer.node = newNode;
+						nodeContainer.node.setRootLinked(super.rootLinked);
 						created = true;
-						this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, oldNode, newNode);
+						this.rootNode.notifyAfterModify(this, nodeContainer, oldNode, newNode);
 					}
 					finally
 					{
@@ -589,7 +685,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 */
 	public <X extends BranchNodeMetaModel> BranchNode<T,X> get(BranchNodeType<T,X> nodeType)
 	{
-		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		NodeContainer nodeContainer = this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType));
 		
 		if(! this.rootNode.isBranchNodeGetterAutoCreate())
 		{
@@ -618,15 +714,16 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			}
 			boolean created = false;
 			
-			node = new BranchNode(this.rootNode,this,nodeType.getTypeClass());
+			node = new BranchNode(this.rootNode,this,nodeContainer);
 			
 			try
 			{
-				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer, null, node))
 				{
 					nodeContainer.node = node;
+					nodeContainer.node.setRootLinked(super.rootLinked);
 					created = true;
-					this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node);
+					this.rootNode.notifyAfterModify(this, nodeContainer, null, node);
 				}
 			}
 			finally 
@@ -659,7 +756,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 */
 	public <X extends BranchNodeMetaModel> List<BranchNode<T,X>> getUnmodifiableNodeList(BranchNodeListType<T,X> nodeType)
 	{
-		return this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType)).unmodifiableNodeList;
+		return this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType)).unmodifiableNodeList;
 	}
 	
 	/**
@@ -682,7 +779,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 */
 	public <X extends BranchNodeMetaModel> List<BranchNode<T,X>> getUnmodifiableNodeListSnapshot(BranchNodeListType<T,X> nodeType, Predicate<BranchNode<T,X>> predicate)
 	{
-		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		NodeContainer nodeContainer = this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType));
 		
 		if(predicate == null)
 		{
@@ -737,7 +834,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 */
 	public <X extends BranchNodeMetaModel> BranchNode<P, T> setComperator(BranchNodeListType<T,X> nodeType, Comparator<BranchNode<T,X>> comparator)
 	{
-		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		NodeContainer nodeContainer = this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType));
 		
 		
 		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
@@ -782,7 +879,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 */
 	public <X extends BranchNodeMetaModel> BranchNode<T,X> get(BranchNodeListType<T,X> nodeType, Predicate<BranchNode<T,X>> predicate)
 	{
-		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		NodeContainer nodeContainer = this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType));
 		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
 		if(lock != null)
 		{
@@ -821,7 +918,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			return null;
 		}
 		
-		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		NodeContainer nodeContainer = this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType));
 		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
 		if(lock != null)
 		{
@@ -830,18 +927,19 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		try
 		{
 			boolean created = false;
-			BranchNode<T,X> node = new BranchNode(this.rootNode,this,nodeContainer.preparedNodeType.getNodeTypeClass());
+			BranchNode<T,X> node = new BranchNode(this.rootNode,this,nodeContainer);
 			try
 			{
-				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer, null, node))
 				{
 					nodeContainer.nodeList.add(node);
+					node.setRootLinked(super.rootLinked);
 					node.positionInList = nodeContainer.nodeList.size() -1;
 					
 					nodeContainer.unmodifiableNodeListSnapshot = null;
 					created = true;
 					
-					this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node);
+					this.rootNode.notifyAfterModify(this, nodeContainer, null, node);
 					
 					return node;
 				}
@@ -878,7 +976,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			return this;
 		}
 		
-		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		NodeContainer nodeContainer = this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType));
 		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
 		if(lock != null)
 		{
@@ -887,7 +985,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		try
 		{
 			boolean created = false;
-			BranchNode<T,X> node = new BranchNode(this.rootNode,this,nodeContainer.preparedNodeType.getNodeTypeClass());
+			BranchNode<T,X> node = new BranchNode(this.rootNode,this,nodeContainer);
 			try
 			{
 				if(consumer != null)
@@ -895,11 +993,12 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 					consumer.accept(this, node);
 				}
 				
-				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer, null, node))
 				{
 					if((nodeContainer.listComparator == null) || nodeContainer.nodeList.isEmpty())
 					{
 						nodeContainer.nodeList.add(node);
+						node.setRootLinked(super.rootLinked);
 						node.positionInList = nodeContainer.nodeList.size() -1;
 					}
 					else
@@ -907,16 +1006,19 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 						if(nodeContainer.nodeList.isEmpty() || nodeContainer.listComparator.compare(node, nodeContainer.nodeList.get(nodeContainer.nodeList.size() -1)) > 0)
 						{
 							nodeContainer.nodeList.add(node);
+							node.setRootLinked(super.rootLinked);
 							node.positionInList = nodeContainer.nodeList.size() -1;
 						}
 						else if(nodeContainer.listComparator.compare(node, nodeContainer.nodeList.get(0)) < 0)
 						{
 							nodeContainer.nodeList.add(0,node);
+							node.setRootLinked(super.rootLinked);
 							
 							int index = 0;
 							for(BranchNode nodeItem : nodeContainer.nodeList)
 							{
 								nodeItem.positionInList = index++;
+								this.rootNode.notifyAfterModify(this, nodeContainer, nodeItem, nodeItem);
 							}
 						}
 						else
@@ -954,33 +1056,37 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 							if(testResult < 0)
 							{
 								nodeContainer.nodeList.add(testIndex,node);
+								node.setRootLinked(super.rootLinked);
 								
 								for(int i = testIndex; i < nodeContainer.nodeList.size(); i++)
 								{
 									BranchNode nodeItem = nodeContainer.nodeList.get(i);
 									nodeItem.positionInList = i;
+									this.rootNode.notifyAfterModify(this, nodeContainer, nodeItem, nodeItem);
 								}
 							}
 							else if(nodeContainer.nodeList.size() -1 > testIndex)
 							{
 								nodeContainer.nodeList.add(testIndex + 1,node);
-								
+								node.setRootLinked(super.rootLinked);
 								for(int i = testIndex + 1; i < nodeContainer.nodeList.size(); i++)
 								{
 									BranchNode nodeItem = nodeContainer.nodeList.get(i);
 									nodeItem.positionInList = i;
+									this.rootNode.notifyAfterModify(this, nodeContainer, nodeItem, nodeItem);
 								}
 							}
 							else
 							{
 								nodeContainer.nodeList.add(node);
+								node.setRootLinked(super.rootLinked);
 								node.positionInList = nodeContainer.nodeList.size() -1;
 							}
 						}
 					}
 					nodeContainer.unmodifiableNodeListSnapshot = null;
 					created = true;
-					this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node);
+					this.rootNode.notifyAfterModify(this, nodeContainer, null, node);
 				}
 			}
 			finally 
@@ -1017,7 +1123,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			return this;
 		}
 		
-		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		NodeContainer nodeContainer = this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType));
 		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
 		if(lock != null)
 		{
@@ -1037,7 +1143,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 				}
 			}
 			boolean created = false;
-			BranchNode<T,X> node = new BranchNode(this.rootNode,this,nodeContainer.preparedNodeType.getNodeTypeClass());
+			BranchNode<T,X> node = new BranchNode(this.rootNode,this,nodeContainer);
 			try
 			{
 				if(consumer != null)
@@ -1045,11 +1151,12 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 					consumer.accept(this, node);
 				}
 				
-				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node))
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer, null, node))
 				{
 					if((nodeContainer.listComparator == null) || nodeContainer.nodeList.isEmpty())
 					{
 						nodeContainer.nodeList.add(node);
+						node.setRootLinked(super.rootLinked);
 						node.positionInList = nodeContainer.nodeList.size() -1;
 					}
 					else
@@ -1057,16 +1164,18 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 						if(nodeContainer.nodeList.isEmpty() || nodeContainer.listComparator.compare(node, nodeContainer.nodeList.get(nodeContainer.nodeList.size() -1)) > 0)
 						{
 							nodeContainer.nodeList.add(node);
+							node.setRootLinked(super.rootLinked);
 							node.positionInList = nodeContainer.nodeList.size() -1;
 						}
 						else if(nodeContainer.listComparator.compare(node, nodeContainer.nodeList.get(0)) < 0)
 						{
 							nodeContainer.nodeList.add(0,node);
-							
+							node.setRootLinked(super.rootLinked);
 							int index = 0;
 							for(BranchNode nodeItem : nodeContainer.nodeList)
 							{
 								nodeItem.positionInList = index++;
+								this.rootNode.notifyAfterModify(this, nodeContainer, nodeItem, nodeItem);
 							}
 						}
 						else
@@ -1104,26 +1213,29 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 							if(testResult < 0)
 							{
 								nodeContainer.nodeList.add(testIndex,node);
-								
+								node.setRootLinked(super.rootLinked);
 								for(int i = testIndex; i < nodeContainer.nodeList.size(); i++)
 								{
 									BranchNode nodeItem = nodeContainer.nodeList.get(i);
 									nodeItem.positionInList = i;
+									this.rootNode.notifyAfterModify(this, nodeContainer, nodeItem, nodeItem);
 								}
 							}
 							else if(nodeContainer.nodeList.size() -1 > testIndex)
 							{
 								nodeContainer.nodeList.add(testIndex + 1,node);
-								
+								node.setRootLinked(super.rootLinked);
 								for(int i = testIndex + 1; i < nodeContainer.nodeList.size(); i++)
 								{
 									BranchNode nodeItem = nodeContainer.nodeList.get(i);
 									nodeItem.positionInList = i;
+									this.rootNode.notifyAfterModify(this, nodeContainer, nodeItem, nodeItem);
 								}
 							}
 							else
 							{
 								nodeContainer.nodeList.add(node);
+								node.setRootLinked(super.rootLinked);
 								node.positionInList = nodeContainer.nodeList.size() -1;
 							}
 						}
@@ -1131,7 +1243,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 					nodeContainer.unmodifiableNodeListSnapshot = null;
 					created = true;
 					
-					this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, null, node);
+					this.rootNode.notifyAfterModify(this, nodeContainer, null, node);
 				}
 			}
 			finally 
@@ -1166,7 +1278,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			return false;
 		}
 		
-		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		NodeContainer nodeContainer = this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType));
 		
 		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
 		if(lock != null)
@@ -1177,18 +1289,21 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		{
 			if(nodeContainer.nodeList.contains(node))
 			{
-				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null))
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer, node, null))
 				{
 					nodeContainer.nodeList.remove(node);
+					node.setRootLinked(false);
 					int positionInList = node.positionInList;
 					try
 					{
 						nodeContainer.unmodifiableNodeListSnapshot = null;
 						for(int i = positionInList; i < nodeContainer.nodeList.size(); i++)
 						{
+							BranchNode nodeItem = nodeContainer.nodeList.get(i);
 							nodeContainer.nodeList.get(i).positionInList = i;
+							this.rootNode.notifyAfterModify(this, nodeContainer, nodeItem, nodeItem);
 						}
-						this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null);
+						this.rootNode.notifyAfterModify(this, nodeContainer, node, null);
 					}
 					finally 
 					{
@@ -1221,7 +1336,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			return this;
 		}
 		
-		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		NodeContainer nodeContainer = this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType));
 		
 		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
 		if(lock != null)
@@ -1234,12 +1349,13 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			
 			for(BranchNode<P,T> node : copy)
 			{
-				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null))
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer, node, null))
 				{
 					nodeContainer.nodeList.remove(node);
+					node.setRootLinked(false);
 					try
 					{
-						this.rootNode.notifyAfterModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null);
+						this.rootNode.notifyAfterModify(this, nodeContainer, node, null);
 					}
 					finally 
 					{
@@ -1276,7 +1392,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			return false;
 		}
 		
-		NodeContainer<T,?> nodeContainer = this.nodeContainerList.get(this.preparedMetaModel.getNodeTypeIndexByClass().get(nodeType));
+		NodeContainer nodeContainer = this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(nodeType));
 		
 		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
 		if(lock != null)
@@ -1289,17 +1405,21 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			
 			if(node != null)
 			{
-				if(this.rootNode.notifyBeforeModify(this, nodeContainer.preparedNodeType.getStaticNodeTypeInstance(), BranchNodeType.class, node, null))
+				if(this.rootNode.notifyBeforeModify(this, nodeContainer, node, null))
 				{
 					nodeContainer.nodeList.remove(index);
+					node.setRootLinked(false);
 					int positionInList = node.positionInList;
 					try
 					{
 						nodeContainer.unmodifiableNodeListSnapshot = null;
 						for(int i = positionInList; i < nodeContainer.nodeList.size(); i++)
 						{
+							BranchNode nodeItem = nodeContainer.nodeList.get(i);
 							nodeContainer.nodeList.get(i).positionInList = i;
+							this.rootNode.notifyAfterModify(this, nodeContainer, nodeItem, nodeItem);
 						}
+						this.rootNode.notifyAfterModify(this, nodeContainer, node, null);
 					}
 					finally 
 					{
@@ -1318,19 +1438,459 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		}
 		return false;
 	}
+	
+	/*
+	 * Child node listener
+	 */
+	
+	/**
+	 * Removes child node listener
+	 * 
+	 * @param listener listener to remove
+	 * @return this branch node
+	 */
+	public BranchNode<P, T> removeChildNodeListener(IChildNodeListener<T> listener)
+	{
+		if(listener == null)
+		{
+			return this;
+		}
+		
+		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
+		if(lock != null)
+		{
+			lock.lock();
+		}
+		try
+		{
+		
+			for(NodeContainer container :  this.nodeContainerList)
+			{
+				if(container.nodeListenerList != null)
+				{
+					container.nodeListenerList.remove(listener);
+				}
+			}
+		}
+		finally 
+		{
+			if(lock != null)
+			{
+				lock.unlock();
+			}
+		}
+		
+		return this;
+	}
+	
+	public <X> BranchNode<P,T> addChildNodeListener(LeafNodeType<T,X> nodeType,ILeafNodeListener<T, X> listener)
+	{
+		return addChildNodeListener(listener, nodeType);
+	}
+	
+	/**
+	 * Add listener to get notified if child leaf nodes are updated , and child branch nodes are removed or created.
+	 *  
+	 * @param listener listener to register
+	 * @param filter child node filter apply to listener
+	 * @return this branch node
+	 */
+	public BranchNode<P, T> addChildNodeListener(IChildNodeListener<T> listener, INodeType<T,?>... filter)
+	{
+		if(listener == null)
+		{
+			return this;
+		}
+		
+		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
+		if(lock != null)
+		{
+			lock.lock();
+		}
+		try
+		{
+		
+			if((filter == null) || (filter.length == 0))
+			{
+				for(NodeContainer container :  this.nodeContainerList)
+				{
+					if(container.nodeListenerList == null)
+					{
+						container.nodeListenerList = new LinkedList<IChildNodeListener>();
+					}
+					else if(container.nodeListenerList.contains(listener))
+					{
+						continue;
+					}
+					container.nodeListenerList.add(listener);
+				}
+			}
+			else
+			{
+				for(INodeType<T, ?> filteredType : filter)
+				{
+					if(filteredType == null)
+					{
+						continue;
+					}
+					NodeContainer container = this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(filteredType));
+					if(container == null)
+					{
+						continue;
+					}
+					
+					if(container.nodeListenerList == null)
+					{
+						container.nodeListenerList = new LinkedList<IChildNodeListener>();
+					}
+					else if(container.nodeListenerList.contains(listener))
+					{
+						continue;
+					}
+					container.nodeListenerList.add(listener);
+				}
+			}
+		}
+		finally 
+		{
+			if(lock != null)
+			{
+				lock.unlock();
+			}
+		}
+		
+		return this;
+	}
+	
+	/*
+	 * Path Modify
+	 */
+	
+	public <X> ModifyListenerRegistration<X> registerForModify(ModelPath<T, X> path, IModifyListener<X> listener)
+	{
+		Objects.requireNonNull(path, "Model path is null");
+		Objects.requireNonNull(path.getNodeSelectorList(), "Model path is disposed");
+		Objects.requireNonNull(path.getClazz(), "Model path is disposed");
+		Objects.requireNonNull(listener, "Listener path is null");
+		
+		if(path.getNodeSelectorList().isEmpty())
+		{
+			throw new RuntimeException("path is empty");
+		}
+		
+		NodeSelector rootNodeSelector = path.getNodeSelectorList().getFirst();
+		Objects.requireNonNull(rootNodeSelector.getNextSelector(), "path contains root self only");
+		
+		
+		ModifyListenerRegistration registration = new ModifyListenerRegistration(path.getClazz());
+		
+		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
+		if(lock != null)
+		{
+			lock.lock();
+		}
+		try
+		{
+			if(this.modifyListenerRegistrationList == null)
+			{
+				this.modifyListenerRegistrationList = new ArrayList<ModifyListenerRegistration<?>>();
+			}
+			
+			// TODO root Predicate
+			
+			NodeSelector nextSelector = rootNodeSelector.getNextSelector();
+			
+			if(nextSelector.getNextSelector() == null)
+			{
+				for(NodeContainer container : this.nodeContainerList)
+				{
+					if(container.getNodeType() == nextSelector.getType())
+					{
+						ModifyListenerContainer foundListener = null;
+						if(container.nodeListenerList == null)
+						{
+							container.nodeListenerList = new ArrayList<IChildNodeListener>();
+						}
+						else
+						{
+							for(IChildNodeListener childNodeListener : container.nodeListenerList)
+							{
+								if((childNodeListener instanceof BranchNode.ModifyListenerContainer) && ((BranchNode.ModifyListenerContainer)childNodeListener).selector.equals(nextSelector))
+								{
+									foundListener = (BranchNode.ModifyListenerContainer) childNodeListener;
+									break;
+								}
+							}
+						}
+						if(foundListener == null)
+						{
+							foundListener = new BranchNode.ModifyListenerContainer();
+							foundListener.selector = nextSelector.clone(null);
+							foundListener.selector.setRoot(null);
+							
+							container.nodeListenerList.add(foundListener);
+						}
+						
+						Set<ModifyListenerRegistration> registrationSet = foundListener.registrationListByListener.get(listener);
+						if(registrationSet == null)
+						{
+							registrationSet = new HashSet<ModifyListenerRegistration>();
+							foundListener.registrationListByListener.put(listener,registrationSet);
+						}
+						registrationSet.add(registration);
+						break;
+					}
+				}
+			}
+			else
+			{
+				for(NodeContainer container : this.nodeContainerList)
+				{
+					if(container.getNodeType() == nextSelector.getType())
+					{
+						ModifyListenerNodeSelector foundListener = null;
+						if(container.nodeListenerList == null)
+						{
+							container.nodeListenerList = new ArrayList<IChildNodeListener>();
+						}
+						else
+						{
+							for(IChildNodeListener childNodeListener : container.nodeListenerList)
+							{
+								if((childNodeListener instanceof BranchNode.ModifyListenerNodeSelector) && ((BranchNode.ModifyListenerNodeSelector)childNodeListener).selector.equals(nextSelector))
+								{
+									foundListener = (BranchNode.ModifyListenerNodeSelector) childNodeListener;
+									break;
+								}
+							}
+						}
+						if(foundListener == null)
+						{
+							foundListener = new BranchNode.ModifyListenerNodeSelector();
+							foundListener.selector = nextSelector.clone(null);
+							foundListener.selector.setRoot(null);
+							container.nodeListenerList.add(foundListener);
+						}
+						
+						foundListener.pathPositionByModifyListenerRegistration.put(registration, 1);
+						break;
+					}
+				}
+			}
+			
+			this.modifyListenerRegistrationList.add(registration);
+		}
+		finally 
+		{
+			if(lock != null)
+			{
+				lock.unlock();
+			}
+		}
+		
+		return registration;
+	}
+	
+	protected class ModifyListenerNodeSelector implements IChildNodeListener<T>
+	{
+		private NodeSelector selector = null;
+		private Map<ModifyListenerRegistration, Integer> pathPositionByModifyListenerRegistration = new HashMap<ModifyListenerRegistration,Integer>();
+		private boolean active = false;
 
+		@Override
+		public void accept(Node<T, ?> node, Object oldValue)
+		{
+			System.out.print("XXX: " + node);
+		}
+		
+	}
+	
+	protected class ModifyListenerContainer implements IChildNodeListener<T>
+	{
+		private NodeSelector selector = null;
+		private Map<IModifyListener,Set<ModifyListenerRegistration>> registrationListByListener = new HashMap<IModifyListener,Set<ModifyListenerRegistration>>();
+		private boolean active = true;
+		
+		@Override
+		public void accept(Node<T, ?> node, Object oldValue)
+		{
+			if(! this.active)
+			{
+				return;
+			}
+			
+			for(IModifyListener modifyListener: registrationListByListener.keySet())
+			{
+				if(selector.getAxis() == Axis.VALUE)
+				{
+					modifyListener.accept(((LeafNode)node).getValue(), oldValue);
+				}
+				else
+				{
+					modifyListener.accept(node, oldValue);
+				}
+			}
+		}
+		
+		protected void checkActive()
+		{
+			// TODO
+		}
+		
+	}
+	
+	public class ModifyListenerRegistration<X>
+	{
+		private Class<X> clazz = null;
+		private UUID id = null;
+		
+		private ModifyListenerRegistration(Class<X> clazz)
+		{
+			super();
+			this.clazz = clazz;
+			this.id = UUID.randomUUID();
+		}
+		
+		@Override
+		public int hashCode()
+		{
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + getOuterType().hashCode();
+			result = prime * result + ((clazz == null) ? 0 : clazz.hashCode());
+			result = prime * result + ((id == null) ? 0 : id.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj)
+		{
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			ModifyListenerRegistration other = (ModifyListenerRegistration) obj;
+			if (!getOuterType().equals(other.getOuterType()))
+				return false;
+			if (clazz == null)
+			{
+				if (other.clazz != null)
+					return false;
+			} else if (!clazz.equals(other.clazz))
+				return false;
+			if (id == null)
+			{
+				if (other.id != null)
+					return false;
+			} else if (!id.equals(other.id))
+				return false;
+			return true;
+		}
+		
+		public void unregister()
+		{
+			// TODO
+		}
+
+		private BranchNode getOuterType()
+		{
+			return BranchNode.this;
+		}
+	}
 	
 	// Helper Node
 	
-	private static class NodeContainer<P,T>
+	protected static class NodeContainer
 	{
-		private PreparedNodeType preparedNodeType = null;
+		protected NodeContainer()
+		{
+			super();
+		}
+		protected NodeContainer(INodeType nodeType)
+		{
+			super();
+			this.nodeType = nodeType;
+		}
+		private INodeType nodeType = null;
 		private volatile Node node = null;
 		private ArrayList<BranchNode> nodeList = null; 
 		private List unmodifiableNodeList = null;
 		private volatile Comparator listComparator = null; 
 		private volatile List unmodifiableNodeListSnapshot = null;
+		private volatile List<IChildNodeListener> nodeListenerList = null;
 		
+		protected INodeType getNodeType()
+		{
+			return nodeType;
+		}
+		protected void setNodeType(INodeType nodeType)
+		{
+			this.nodeType = nodeType;
+		}
+		protected Node getNode()
+		{
+			return node;
+		}
+		protected void setNode(Node node)
+		{
+			this.node = node;
+		}
+		protected ArrayList<BranchNode> getNodeList()
+		{
+			return nodeList;
+		}
+		protected void setNodeList(ArrayList<BranchNode> nodeList)
+		{
+			this.nodeList = nodeList;
+		}
+		protected List getUnmodifiableNodeList()
+		{
+			return unmodifiableNodeList;
+		}
+		protected void setUnmodifiableNodeList(List unmodifiableNodeList)
+		{
+			this.unmodifiableNodeList = unmodifiableNodeList;
+		}
+		protected Comparator getListComparator()
+		{
+			return listComparator;
+		}
+		protected void setListComparator(Comparator listComparator)
+		{
+			this.listComparator = listComparator;
+		}
+		protected List getUnmodifiableNodeListSnapshot()
+		{
+			return unmodifiableNodeListSnapshot;
+		}
+		protected void setUnmodifiableNodeListSnapshot(List unmodifiableNodeListSnapshot)
+		{
+			this.unmodifiableNodeListSnapshot = unmodifiableNodeListSnapshot;
+		}
+		protected List<IChildNodeListener> getNodeListenerList()
+		{
+			return nodeListenerList;
+		}
+		protected void setNodeListenerList(List<IChildNodeListener> nodeListenerList)
+		{
+			this.nodeListenerList = nodeListenerList;
+		}
+		
+	}
+	
+	public List<LeafNodeType> getLeafNodeTypeList()
+	{
+		return this.model.getLeafNodeTypeList();
+	}
+	public List<BranchNodeType> getBranchNodeTypeList()
+	{
+		return this.model.getBranchNodeTypeList();
+	}
+	public List<BranchNodeListType> getBranchNodeListTypeList()
+	{
+		return this.model.getBranchNodeListTypeList();
 	}
 	
 	// for tests only
@@ -1338,8 +1898,9 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	protected boolean isDisposed()
 	{
 		return 
-			preparedMetaModel == null &&
+			model == null &&
 			nodeContainerList == null &&
+			modifyListenerRegistrationList == null &&
 			rootNode == null &&
 			parentNode == null &&
 			OID == -1L &&

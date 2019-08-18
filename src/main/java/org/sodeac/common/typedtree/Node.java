@@ -20,8 +20,26 @@ package org.sodeac.common.typedtree;
  */
 public abstract class Node<P extends BranchNodeMetaModel, T>
 {
+	protected boolean rootLinked = false;
+
+	/**
+	 * 
+	 * @return true if, this node is connected with root node
+	 */
+	public boolean isRootLinked()
+	{
+		return rootLinked;
+	}
+
+	protected void setRootLinked(boolean rootLinked)
+	{
+		this.rootLinked = rootLinked;
+	}
+
 	/**
 	 * Dispose this node. 
 	 */
 	protected abstract void disposeNode();
+	
+	public abstract INodeType<P,T> getNodeType();
 }

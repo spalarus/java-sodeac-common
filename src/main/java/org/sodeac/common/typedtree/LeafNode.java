@@ -12,7 +12,7 @@ package org.sodeac.common.typedtree;
 
 import java.util.concurrent.locks.Lock;
 
-import org.sodeac.common.typedtree.ModelingProcessor.PreparedNodeType;
+import org.sodeac.common.typedtree.BranchNode.NodeContainer;
 
 /**
  * A leaf node is an instance of simple tree node with a value, but without child nodes.
@@ -29,16 +29,16 @@ public class LeafNode<P extends BranchNodeMetaModel,T> extends Node<P,T>
 	 * Constructor for leaf node
 	 * 
 	 * @param parentNode parent node instance
-	 * @param preparedNodeType container for leaf node
+	 * @param nodeContainer container for leaf node
 	 */
-	protected LeafNode(BranchNode<?,P> parentNode, PreparedNodeType preparedNodeType)
+	protected LeafNode(BranchNode<?,P> parentNode, NodeContainer nodeContainer)
 	{
 		super();
 		this.parentNode = parentNode;
-		this.preparedNodeType = preparedNodeType;
+		this.nodeContainer = nodeContainer;
 	}
 	
-	private PreparedNodeType preparedNodeType = null;
+	private NodeContainer nodeContainer = null;
 	private BranchNode<?,P> parentNode = null;
 	private T value = null;
 	
@@ -49,6 +49,7 @@ public class LeafNode<P extends BranchNodeMetaModel,T> extends Node<P,T>
 	{
 		this.value = null;
 		this.parentNode = null;
+		this.nodeContainer = null;
 	}
 	
 	/**
@@ -87,8 +88,7 @@ public class LeafNode<P extends BranchNodeMetaModel,T> extends Node<P,T>
 				parentNode.getRootNode().notifyBeforeModify
 				(
 					this.parentNode,
-					this.preparedNodeType.getStaticNodeTypeInstance(), 
-					LeafNodeType.class, 
+					this.nodeContainer, 
 					oldValue, 
 					value
 				)
@@ -99,8 +99,7 @@ public class LeafNode<P extends BranchNodeMetaModel,T> extends Node<P,T>
 				parentNode.getRootNode().notifyAfterModify
 				(
 					this.parentNode,
-					this.preparedNodeType.getStaticNodeTypeInstance(), 
-					LeafNodeType.class, 
+					this.nodeContainer, 
 					oldValue, 
 					value
 				);
@@ -124,6 +123,12 @@ public class LeafNode<P extends BranchNodeMetaModel,T> extends Node<P,T>
 	protected BranchNode<?, P> getParentNode()
 	{
 		return parentNode;
+	}
+
+	@Override
+	public INodeType<P, T> getNodeType()
+	{
+		return this.nodeContainer.getNodeType();
 	}
 	
 }

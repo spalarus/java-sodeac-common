@@ -10,8 +10,10 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
+import java.lang.reflect.Field;
+
 /**
- * A leaf node type defines a simple child node. This kind of child type can not include other child nodes. But for serialization it is recommend to restrict the type of node to one of the following list:
+ * A leaf node type defines a simple child node. This kind of child type can not include other child nodes. But for serialization reasons it is recommend to restrict the type of node to one of the following list:
  * 
  * <br>{@link java.lang.Character}
  * <br>{@link java.lang.String}
@@ -37,19 +39,30 @@ public class LeafNodeType<P extends BranchNodeMetaModel, T> implements INodeType
 	private Class<T> typeClass = null;
 	private Class<P> parentNodeClass = null;
 	private String name = null;
+	private Field field = null;
+	private int hashCode = 1;
 	
 	/**
 	 * Constructor for leaf node type.
 	 * 
 	 * @param parentNodeClass class of parent node (should be a class of {@link BranchNodeMetaModel})
 	 * @param typeClass type of child node's value
-	 * @param name name of node type
+	 * @param field referenced by field
 	 */
-	public LeafNodeType(Class<P> parentNodeClass, Class<T> typeClass, String name)
+	public LeafNodeType(Class<P> parentNodeClass, Class<T> typeClass, Field field)
 	{
 		this.parentNodeClass = parentNodeClass;
 		this.typeClass = typeClass;
-		this.name = name;
+		this.name = field.getName();
+		this.field = field;
+		
+		// generate hashcode
+		
+		final int prime = 31;
+		hashCode = prime * hashCode + ((field == null) ? 0 : field.hashCode());
+		hashCode = prime * hashCode + ((name == null) ? 0 : name.hashCode());
+		hashCode = prime * hashCode + ((parentNodeClass == null) ? 0 : parentNodeClass.hashCode());
+		hashCode = prime * hashCode + ((typeClass == null) ? 0 : typeClass.hashCode());
 	}
 
 	@Override
@@ -68,5 +81,23 @@ public class LeafNodeType<P extends BranchNodeMetaModel, T> implements INodeType
 	public String getNodeName()
 	{
 		return this.name;
+	}
+	
+	@Override
+	public Field referencedByField()
+	{
+		return this.field;
+	}
+	
+	@Override
+	public int hashCode()
+	{
+		return this.hashCode;
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		return this == obj;
 	}
 }

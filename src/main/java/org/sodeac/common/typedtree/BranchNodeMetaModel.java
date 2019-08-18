@@ -11,9 +11,15 @@
 package org.sodeac.common.typedtree;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A branch node meta model defines type and cardinality of child nodes.
@@ -28,6 +34,10 @@ public class BranchNodeMetaModel
 		super();
 		
 		Class<?> modelClass = getClass();
+		
+		// create static instances of types
+		
+		List<INodeType> list = new ArrayList<INodeType>();
 		
 		for(Field field : modelClass.getDeclaredFields())
 		{
@@ -55,26 +65,103 @@ public class BranchNodeMetaModel
 				{
 					if(pType.getActualTypeArguments()[0] == modelClass)
 					{
+						
 						Type type2 = pType.getActualTypeArguments()[1];
 						
-						if(Modifier.isStatic(fieldModifier) && (! Modifier.isFinal(fieldModifier)))
+						try
 						{
-							try
+							if(Modifier.isStatic(fieldModifier) && (! Modifier.isFinal(fieldModifier)))
 							{
 								if(field.get(null) == null)
 								{
-									Object nodeType = fieldClass.getConstructor(Class.class,Class.class, String.class).newInstance(modelClass,type2,field.getName());
+									Object nodeType = fieldClass.getConstructor(Class.class,Class.class, Field.class).newInstance(modelClass,type2,field);
 									field.set(null, nodeType);
 								}
 							}
-							catch (Exception e) 
-							{
-								e.printStackTrace();
-							}
+							
+							list.add((INodeType)field.get(this));
+						}
+						catch (Exception e) 
+						{
+							throw new RuntimeException(e);
 						}
 					}
 				}
 			}
 		}
+		
+		// create helper stuff
+		
+		this.leafNodeTypeList = new ArrayList<LeafNodeType>();
+		this.branchNodeTypeList = new ArrayList<BranchNodeType>();
+		this.branchNodeListTypeList = new ArrayList<BranchNodeListType>();
+		this.nodeTypeList = Collections.unmodifiableList(list);
+		this.nodeTypeNames = new String[this.nodeTypeList.size()];
+		Map<String,Integer> nodeTypeIndexByName = new HashMap<String,Integer>();
+		Map<Object,Integer> nodeTypeIndexByClass = new HashMap<Object,Integer>();
+		for(int i = 0; i < this.nodeTypeList.size(); i++)
+		{
+			INodeType staticNodeTypeInstance = this.nodeTypeList.get(i);
+			this.nodeTypeNames[i] = staticNodeTypeInstance.getNodeName();
+			nodeTypeIndexByName.put(staticNodeTypeInstance.getNodeName(), i);
+			nodeTypeIndexByClass.put(staticNodeTypeInstance, i);
+			
+			if(staticNodeTypeInstance instanceof LeafNodeType)
+			{
+				this.leafNodeTypeList.add((LeafNodeType)staticNodeTypeInstance);
+			}
+			if(staticNodeTypeInstance instanceof BranchNodeType)
+			{
+				this.branchNodeTypeList.add((BranchNodeType)staticNodeTypeInstance);
+			}
+			if(staticNodeTypeInstance instanceof BranchNodeListType)
+			{
+				this.branchNodeListTypeList.add((BranchNodeListType)staticNodeTypeInstance);
+			}
+		}
+		this.leafNodeTypeList = Collections.unmodifiableList(this.leafNodeTypeList);
+		this.branchNodeTypeList = Collections.unmodifiableList(this.branchNodeTypeList);
+		this.branchNodeListTypeList = Collections.unmodifiableList(this.branchNodeListTypeList);
+		this.nodeTypeIndexByName = Collections.unmodifiableMap(nodeTypeIndexByName);
+		this.nodeTypeIndexByClass = Collections.unmodifiableMap(nodeTypeIndexByClass);
 	}
+	
+	private String[] nodeTypeNames = null;
+	private List<INodeType> nodeTypeList = null;
+	private List<LeafNodeType> leafNodeTypeList = null;
+	private List<BranchNodeType> branchNodeTypeList = null;
+	private List<BranchNodeListType> branchNodeListTypeList = null;
+	private Map<String, Integer> nodeTypeIndexByName = null;
+	private Map<Object, Integer> nodeTypeIndexByClass = null;
+	
+	protected String[] getNodeTypeNames()
+	{
+		return nodeTypeNames;
+	}
+	public List<INodeType> getNodeTypeList()
+	{
+		return nodeTypeList;
+	}
+	public List<LeafNodeType> getLeafNodeTypeList()
+	{
+		return leafNodeTypeList;
+	}
+	public List<BranchNodeType> getBranchNodeTypeList()
+	{
+		return branchNodeTypeList;
+	}
+	public List<BranchNodeListType> getBranchNodeListTypeList()
+	{
+		return branchNodeListTypeList;
+	}
+	public Map<String, Integer> getNodeTypeIndexByName()
+	{
+		return nodeTypeIndexByName;
+	}
+	public Map<Object, Integer> getNodeTypeIndexByClass()
+	{
+		return nodeTypeIndexByClass;
+	}
+	
+	
 }

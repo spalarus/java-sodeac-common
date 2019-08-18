@@ -95,7 +95,7 @@ public interface ITree<P extends TypedTreeMetaModel,R  extends BranchNodeMetaMod
 	 * @param modifyListener modify listener to add
 	 * @return root node
 	 */
-	public RootBranchNode<P,R> addModifyListener(IModifyListener modifyListener);
+	public RootBranchNode<P,R> addTreeModifyListener(ITreeModifyListener modifyListener);
 	
 	/**
 	 * Adds modify listeners to tree.
@@ -103,7 +103,7 @@ public interface ITree<P extends TypedTreeMetaModel,R  extends BranchNodeMetaMod
 	 * @param modifyListeners modify listeners to add
 	 * @return root node
 	 */
-	public RootBranchNode<P,R> addModifyListeners(IModifyListener... modifyListeners);
+	public RootBranchNode<P,R> addTreeModifyListeners(ITreeModifyListener... modifyListeners);
 	
 	/**
 	 * Removes modify listener to tree.
@@ -111,5 +111,5 @@ public interface ITree<P extends TypedTreeMetaModel,R  extends BranchNodeMetaMod
 	 * @param modifyListener modify listeners to remove
 	 * @return root node
 	 */
-	public RootBranchNode<P,R> removeModifyListener(IModifyListener modifyListener);
+	public RootBranchNode<P,R> removeTreeModifyListener(ITreeModifyListener modifyListener);
 }

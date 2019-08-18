@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
+import java.lang.reflect.Field;
+
 /**
  * A node type defines the type of node.
  * 
@@ -41,11 +43,13 @@ public interface INodeType<P extends BranchNodeMetaModel, T>
 	 */
 	public String getNodeName();
 	
+	public Field referencedByField();
+	
 	/**
 	 * 
-	 * @return instance of node's type
+	 * @return default instance of node value
 	 */
-	public default T getTypeMetaInstance()
+	public default T getValueDefaultInstance()
 	{
 		try
 		{
