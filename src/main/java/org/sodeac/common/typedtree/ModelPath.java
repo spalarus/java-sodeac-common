@@ -61,7 +61,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 		while(current != null)
 		{
 			selectorList.addFirst(current);
-			current = current.getPreviousSelector();
+			current = current.getParentSelector();
 		}
 	}
 	
@@ -127,9 +127,29 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 		if(this.selectorList != null)
 		{
 			clonedModelPath.selectorList = new LinkedList<NodeSelector<?,?>>();
+			
+			NodeSelector previewsNodeSelector = null;
 			for(NodeSelector nodeSelector :  this.selectorList)
 			{
-				clonedModelPath.selectorList.add(nodeSelector.clone(null));
+				NodeSelector<R,T> clonedNodeSelector = new NodeSelector<>();
+				clonedNodeSelector.root = nodeSelector.root;
+				clonedNodeSelector.parentSelector = previewsNodeSelector;
+				clonedNodeSelector.type = nodeSelector.type;
+				clonedNodeSelector.axis = nodeSelector.axis;
+				clonedNodeSelector.predicate = nodeSelector.predicate;
+				
+				if(nodeSelector.childSelectorList == null)
+				{
+					clonedNodeSelector.childSelectorList = new ArrayList<NodeSelector<?,?>>();
+				}
+				
+				if((previewsNodeSelector != null) && (previewsNodeSelector.childSelectorList != null))
+				{
+					previewsNodeSelector.childSelectorList.add(clonedNodeSelector);
+				}
+				
+				previewsNodeSelector = clonedNodeSelector;
+				clonedModelPath.selectorList.add(clonedNodeSelector);
 			}
 		}
 		clonedModelPath.clazz = this.clazz;
@@ -195,17 +215,29 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 		 */
 		public <N extends BranchNodeMetaModel> ModelPathBuilder<R,N> child(BranchNodeType<S, N> field)
 		{
+			if((this.selector.childSelectorList != null) && (!this.selector.childSelectorList.isEmpty()))
+			{
+				throw new RuntimeException(getClass() + ": child already exists ");
+			}
 			return new ModelPathBuilder<R,N>(this.root,field,this.selector);
 		}
 		
 		public <N extends BranchNodeMetaModel> BranchNodePredicateBuilder<R,N> childWithPredicates(BranchNodeType<S, N> field)
 		{
+			if((this.selector.childSelectorList != null) && (!this.selector.childSelectorList.isEmpty()))
+			{
+				throw new RuntimeException(getClass() + ": child already exists ");
+			}
 			ModelPathBuilder<R,N> builder = new ModelPathBuilder<R,N>(this.root,field,selector);
 			return new BranchNodePredicateBuilder(builder);
 		}
 		
 		public <T> ModelPath<R, T> buildForValue(LeafNodeType<S, T> field) 
 		{
+			if((this.selector.childSelectorList != null) && (!this.selector.childSelectorList.isEmpty()))
+			{
+				throw new RuntimeException(getClass() + ": child already exists ");
+			}
 			return new ModelPath(new NodeSelector<R,T>(this.root,this.selector,field, NodeSelector.Axis.VALUE));
 		}
 		
@@ -216,11 +248,19 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 		
 		public <T> ModelPath<R, LeafNode<?, T>> buildForNode(LeafNodeType<S, T> field) 
 		{
+			if((this.selector.childSelectorList != null) && (!this.selector.childSelectorList.isEmpty()))
+			{
+				throw new RuntimeException(getClass() + ": child already exists ");
+			}
 			return new ModelPath(new NodeSelector<R,LeafNode<?, T>>(this.root,this.selector, (INodeType)field, NodeSelector.Axis.CHILD));
 		}
 		
 		public <T extends BranchNodeMetaModel> ModelPath<R, BranchNode<S, T>> buildForNode(BranchNodeType<S, T> field) 
 		{
+			if((this.selector.childSelectorList != null) && (!this.selector.childSelectorList.isEmpty()))
+			{
+				throw new RuntimeException(getClass() + ": child already exists ");
+			}
 			return new ModelPath(new NodeSelector<R,BranchNode<S, T>>(this.root,this.selector, (INodeType)field , NodeSelector.Axis.CHILD));
 		}
 		
@@ -317,8 +357,9 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 	{
 		protected static enum Axis {SELF,CHILD,VALUE}
 		
-		private NodeSelector<?,?> previousSelector = null;
-		private NodeSelector<?,?> nextSelector = null;
+		private NodeSelector<?,?> parentSelector = null;
+		private List<NodeSelector<?,?>> childSelectorList = null; // Set?
+		private List<IModifyListener<?>> modifyListenerList = null;
 		private PathPredicate predicate = null;
 		private INodeType<?, ?> type = null;
 		private BranchNodeMetaModel root = null;
@@ -331,16 +372,20 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			this.axis = Axis.SELF;
 		}
 		
-		public NodeSelector<R,T> clone(NodeSelector<?,?> clonedPreviousSelector)
+		protected NodeSelector<R,T> copy(NodeSelector<?,?> clonedParentSelector, boolean deep)
 		{
 			NodeSelector<R,T> clonedNodeSelector = new NodeSelector<>();
 			clonedNodeSelector.root = this.root;
-			clonedNodeSelector.previousSelector = clonedPreviousSelector;
+			clonedNodeSelector.parentSelector = clonedParentSelector;
 			clonedNodeSelector.type = this.type;
 			clonedNodeSelector.axis = this.axis;
-			if(nextSelector != null)
+			if((childSelectorList != null) && deep)
 			{
-				clonedNodeSelector.nextSelector = nextSelector.clone(clonedNodeSelector);
+				clonedNodeSelector.childSelectorList = new ArrayList<NodeSelector<?,?>>(); 
+				for(NodeSelector<?, ?> child : this.childSelectorList)
+				{
+					clonedNodeSelector.childSelectorList.add(child.copy(clonedNodeSelector,true));
+				}
 			}
 			clonedNodeSelector.predicate = this.predicate;
 			
@@ -356,9 +401,13 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 		{
 			super();
 			this.root = root;
-			this.previousSelector = previousSelector;
+			this.parentSelector = previousSelector;
 			this.type = type;
-			previousSelector.nextSelector = this;
+			if(previousSelector.childSelectorList == null)
+			{
+				previousSelector.childSelectorList = new ArrayList<NodeSelector<?,?>>();
+			}
+			previousSelector.childSelectorList.add(this);
 			if(axis == null)
 			{
 				axis = Axis.CHILD;
@@ -366,24 +415,24 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			this.axis = axis;
 		}
 		
-		protected NodeSelector<?, ?> getPreviousSelector()
+		protected NodeSelector<?, ?> getParentSelector()
 		{
-			return previousSelector;
+			return parentSelector;
 		}
-		protected NodeSelector<?, ?> setPreviousSelector(NodeSelector<?, ?> previousSelector)
+		protected NodeSelector<?, ?> setParentSelector(NodeSelector<?, ?> parentSelector)
 		{
-			this.previousSelector = previousSelector;
+			this.parentSelector = parentSelector;
 			return this;
 		}
-		protected NodeSelector<?, ?> getNextSelector()
+		protected List<NodeSelector<?, ?>> getChildSelectorList()
 		{
-			return nextSelector;
+			return this.childSelectorList;
 		}
-		protected NodeSelector<?, ?> setNextSelector(NodeSelector<?, ?> nextSelector)
+		protected void setChildSelectorList(List<NodeSelector<?, ?>> childSelectorList)
 		{
-			this.nextSelector = nextSelector;
-			return this;
+			this.childSelectorList = childSelectorList;
 		}
+
 		protected NodeSelector<?, ?> setPredicate(PathPredicate predicate)
 		{
 			this.predicate = predicate;
@@ -415,11 +464,25 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			return axis;
 		}
 
+		protected List<IModifyListener<?>> getModifyListenerList()
+		{
+			return modifyListenerList;
+		}
+
+		protected void setModifyListenerList(List<IModifyListener<?>> modifyListenerList)
+		{
+			this.modifyListenerList = modifyListenerList;
+		}
+
 		protected void dispose()
 		{
-			if(nextSelector != null)
+			if(childSelectorList != null)
 			{
-				nextSelector.dispose();
+				for(NodeSelector<?, ?> child : this.childSelectorList)
+				{
+					child.dispose();
+				}
+				this.childSelectorList.clear();
 			}
 			
 			if(predicate != null)
@@ -427,8 +490,8 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 				predicate.dispose();
 			}
 			
-			previousSelector = null;
-			nextSelector = null;
+			parentSelector = null;
+			childSelectorList = null;
 			predicate = null;
 			type = null;
 			root = null;

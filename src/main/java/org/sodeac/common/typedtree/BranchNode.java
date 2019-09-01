@@ -1492,10 +1492,10 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 * Add listener to get notified if child leaf nodes are updated , and child branch nodes are removed or created.
 	 *  
 	 * @param listener listener to register
-	 * @param filter child node filter apply to listener
+	 * @param childNodeTypeMask affected child node types
 	 * @return this branch node
 	 */
-	public BranchNode<P, T> addChildNodeListener(IChildNodeListener<T> listener, INodeType<T,?>... filter)
+	public BranchNode<P, T> addChildNodeListener(IChildNodeListener<T> listener, INodeType<T,?>... childNodeTypeMask)
 	{
 		if(listener == null)
 		{
@@ -1510,7 +1510,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		try
 		{
 		
-			if((filter == null) || (filter.length == 0))
+			if((childNodeTypeMask == null) || (childNodeTypeMask.length == 0))
 			{
 				for(NodeContainer container :  this.nodeContainerList)
 				{
@@ -1527,7 +1527,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			}
 			else
 			{
-				for(INodeType<T, ?> filteredType : filter)
+				for(INodeType<T, ?> filteredType : childNodeTypeMask)
 				{
 					if(filteredType == null)
 					{
@@ -1579,10 +1579,12 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		}
 		
 		NodeSelector rootNodeSelector = path.getNodeSelectorList().getFirst();
-		Objects.requireNonNull(rootNodeSelector.getNextSelector(), "path contains root self only");
+		Objects.requireNonNull(rootNodeSelector.getChildSelectorList(), "path contains root self only");
 		
 		
 		ModifyListenerRegistration registration = new ModifyListenerRegistration(path.getClazz());
+		
+		System.out.print(path.getClazz());
 		
 		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
 		if(lock != null)
@@ -1598,82 +1600,86 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			
 			// TODO root Predicate
 			
-			NodeSelector nextSelector = rootNodeSelector.getNextSelector();
-			
-			if(nextSelector.getNextSelector() == null)
+			if(rootNodeSelector.getChildSelectorList() != null)
 			{
-				for(NodeContainer container : this.nodeContainerList)
+				for(NodeSelector<?,?> nextSelector : (List<NodeSelector<?, ?>>)rootNodeSelector.getChildSelectorList())
 				{
-					if(container.getNodeType() == nextSelector.getType())
+					if((nextSelector.getChildSelectorList()== null) || nextSelector.getChildSelectorList().isEmpty()) // Endpoint
 					{
-						ModifyListenerContainer foundListener = null;
-						if(container.nodeListenerList == null)
+						for(NodeContainer container : this.nodeContainerList)
 						{
-							container.nodeListenerList = new ArrayList<IChildNodeListener>();
-						}
-						else
-						{
-							for(IChildNodeListener childNodeListener : container.nodeListenerList)
+							if(container.getNodeType() == nextSelector.getType())
 							{
-								if((childNodeListener instanceof BranchNode.ModifyListenerContainer) && ((BranchNode.ModifyListenerContainer)childNodeListener).selector.equals(nextSelector))
+								ModifyListenerContainer foundListener = null;
+								if(container.nodeListenerList == null)
 								{
-									foundListener = (BranchNode.ModifyListenerContainer) childNodeListener;
-									break;
+									container.nodeListenerList = new ArrayList<IChildNodeListener>();
 								}
+								else
+								{
+									for(IChildNodeListener childNodeListener : container.nodeListenerList)
+									{
+										if((childNodeListener instanceof BranchNode.ModifyListenerContainer) && ((BranchNode.ModifyListenerContainer)childNodeListener).selector.equals(nextSelector))
+										{
+											foundListener = (BranchNode.ModifyListenerContainer) childNodeListener;
+											break;
+										}
+									}
+								}
+								if(foundListener == null)
+								{
+									foundListener = new BranchNode.ModifyListenerContainer();
+									foundListener.selector = nextSelector.copy(null, false);
+									foundListener.selector.setRoot(null);
+									
+									container.nodeListenerList.add(foundListener);
+								}
+								
+								Set<ModifyListenerRegistration> registrationSet = foundListener.registrationListByListener.get(listener);
+								if(registrationSet == null)
+								{
+									registrationSet = new HashSet<ModifyListenerRegistration>();
+									foundListener.registrationListByListener.put(listener,registrationSet);
+								}
+								registrationSet.add(registration);
+								break;
 							}
 						}
-						if(foundListener == null)
-						{
-							foundListener = new BranchNode.ModifyListenerContainer();
-							foundListener.selector = nextSelector.clone(null);
-							foundListener.selector.setRoot(null);
-							
-							container.nodeListenerList.add(foundListener);
-						}
-						
-						Set<ModifyListenerRegistration> registrationSet = foundListener.registrationListByListener.get(listener);
-						if(registrationSet == null)
-						{
-							registrationSet = new HashSet<ModifyListenerRegistration>();
-							foundListener.registrationListByListener.put(listener,registrationSet);
-						}
-						registrationSet.add(registration);
-						break;
 					}
-				}
-			}
-			else
-			{
-				for(NodeContainer container : this.nodeContainerList)
-				{
-					if(container.getNodeType() == nextSelector.getType())
+					else
 					{
-						ModifyListenerNodeSelector foundListener = null;
-						if(container.nodeListenerList == null)
+						for(NodeContainer container : this.nodeContainerList)
 						{
-							container.nodeListenerList = new ArrayList<IChildNodeListener>();
-						}
-						else
-						{
-							for(IChildNodeListener childNodeListener : container.nodeListenerList)
+							if(container.getNodeType() == nextSelector.getType())
 							{
-								if((childNodeListener instanceof BranchNode.ModifyListenerNodeSelector) && ((BranchNode.ModifyListenerNodeSelector)childNodeListener).selector.equals(nextSelector))
+								ModifyListenerNodeSelector foundListener = null;
+								if(container.nodeListenerList == null)
 								{
-									foundListener = (BranchNode.ModifyListenerNodeSelector) childNodeListener;
-									break;
+									container.nodeListenerList = new ArrayList<IChildNodeListener>();
 								}
+								else
+								{
+									for(IChildNodeListener childNodeListener : container.nodeListenerList)
+									{
+										if((childNodeListener instanceof BranchNode.ModifyListenerNodeSelector) && ((BranchNode.ModifyListenerNodeSelector)childNodeListener).selector.equals(nextSelector))
+										{
+											foundListener = (BranchNode.ModifyListenerNodeSelector) childNodeListener;
+											break;
+										}
+									}
+								}
+								if(foundListener == null)
+								{
+									foundListener = new BranchNode.ModifyListenerNodeSelector();
+									foundListener.selector = nextSelector.copy(null, false);
+									foundListener.selector.setRoot(null);
+									container.nodeListenerList.add(foundListener);
+								}
+								
+								foundListener.pathPositionByModifyListenerRegistration.put(registration, 1);
+								break;
 							}
 						}
-						if(foundListener == null)
-						{
-							foundListener = new BranchNode.ModifyListenerNodeSelector();
-							foundListener.selector = nextSelector.clone(null);
-							foundListener.selector.setRoot(null);
-							container.nodeListenerList.add(foundListener);
-						}
-						
-						foundListener.pathPositionByModifyListenerRegistration.put(registration, 1);
-						break;
 					}
 				}
 			}
