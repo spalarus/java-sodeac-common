@@ -13,7 +13,9 @@ package org.sodeac.common.typedtree;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import org.sodeac.common.typedtree.ModelPath.NodeSelector.Axis;
@@ -43,7 +45,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 		
 		if(lastSelector.getType() == null)
 		{
-			this.clazz = (Class<T>) lastSelector.getRoot().getClass();
+			this.clazz = (Class<T>) lastSelector.getRootType().getClass();
 		}
 		else
 		{
@@ -138,7 +140,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 				clonedNodeSelector.axis = nodeSelector.axis;
 				clonedNodeSelector.predicate = nodeSelector.predicate;
 				
-				if(nodeSelector.childSelectorList == null)
+				if(nodeSelector.childSelectorList != null)
 				{
 					clonedNodeSelector.childSelectorList = new ArrayList<NodeSelector<?,?>>();
 				}
@@ -360,6 +362,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 		private NodeSelector<?,?> parentSelector = null;
 		private List<NodeSelector<?,?>> childSelectorList = null; // Set?
 		private List<IModifyListener<?>> modifyListenerList = null;
+		private Map<Object,Set<IModifyListener<?>>> registrationObjects = null;
 		private PathPredicate predicate = null;
 		private INodeType<?, ?> type = null;
 		private BranchNodeMetaModel root = null;
@@ -449,7 +452,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			return type;
 		}
 
-		protected BranchNodeMetaModel getRoot()
+		protected BranchNodeMetaModel getRootType()
 		{
 			return root;
 		}
@@ -474,6 +477,16 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			this.modifyListenerList = modifyListenerList;
 		}
 
+		protected Map<Object, Set<IModifyListener<?>>> getRegistrationObjects()
+		{
+			return registrationObjects;
+		}
+
+		protected void setRegistrationObjects(Map<Object, Set<IModifyListener<?>>> registrationObjects)
+		{
+			this.registrationObjects = registrationObjects;
+		}
+
 		protected void dispose()
 		{
 			if(childSelectorList != null)
@@ -485,6 +498,11 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 				this.childSelectorList.clear();
 			}
 			
+			if(registrationObjects != null)
+			{
+				registrationObjects.clear();
+			}
+			
 			if(predicate != null)
 			{
 				predicate.dispose();
@@ -493,6 +511,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			parentSelector = null;
 			childSelectorList = null;
 			predicate = null;
+			registrationObjects = null;
 			type = null;
 			root = null;
 			axis = null;
