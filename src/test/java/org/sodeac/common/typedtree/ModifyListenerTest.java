@@ -220,10 +220,33 @@ public class ModifyListenerTest
 		ConplierBean<String> value = new ConplierBean<String>();
 		user.registerForModify(namePath, IModifyListener.onModify(value));
 		
+		ModelPath<UserType, String> cityPath = ModelPathBuilder.newBuilder(UserType.class).child(UserType.address).buildForValue(AddressType.city);
+		ConplierBean<String> city = new ConplierBean<String>();
+		user.registerForModify(cityPath, IModifyListener.onModify(city));
+		
+		ModelPath<UserType, String> countryPath = ModelPathBuilder.newBuilder(UserType.class).child(UserType.address).child(AddressType.country).buildForValue(CountryType.name);
+		ConplierBean<String> country = new ConplierBean<String>();
+		user.registerForModify(countryPath, IModifyListener.onModify(country));
+		
 		assertNull("name should be null", value.get());
 		
 		user.setValue(UserType.name, "user");
 		assertEquals("name should be correct", "user", value.get());
+		
+		BranchNode<UserType,AddressType> address = user.create(UserType.address);
+		address.setValue(AddressType.city, "Bln");
+		assertEquals("city should be correct", "Bln", city.get());
+		
+		user.remove(UserType.address);
+		address = user.create(UserType.address);
+		address.setValue(AddressType.city, "Bln");
+		assertEquals("city should be correct", "Bln", city.get());
+		
+		address.create(AddressType.country).setValue(CountryType.name, "Ger");
+		assertEquals("country should be correct", "Ger", country.get());
+		
+		countryPath.dispose();
+		cityPath.dispose();
 		namePath.dispose();
 		user.dispose();
 	}

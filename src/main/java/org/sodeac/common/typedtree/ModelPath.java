@@ -457,7 +457,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			return root;
 		}
 
-		protected void setRoot(BranchNodeMetaModel root)
+		protected void setRootType(BranchNodeMetaModel root)
 		{
 			this.root = root;
 		}
