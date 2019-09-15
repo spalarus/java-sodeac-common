@@ -160,11 +160,9 @@ public class ModifyListenerTest
 		assertSame("root type of selector should be correct", ModelingProcessor.DEFAULT_INSTANCE.getModel(UserType.class), rootSelector.getRootType());
 		assertSame("type of selector should be correct", UserType.name, childSelector.getType());
 		
-		List<IModifyListener<?>> listenerList = childSelector.getModifyListenerList(); 
+		Set<IModifyListener<?>> listenerList = childSelector.getModifyListenerList(); 
 		assertNotNull("child listener list should not be null", listenerList);
 		assertEquals("size of child listener list should be correct", 1, listenerList.size());
-		
-		assertSame("listener instance should be correct",listener1,listenerList.get(0));
 		
 		Map<Object,Set<IModifyListener<?>>> registrations = childSelector.getRegistrationObjects();
 		assertEquals("registrations size should be correct", 1, registrations.size());
@@ -195,9 +193,6 @@ public class ModifyListenerTest
 		listenerList = childSelector.getModifyListenerList(); 
 		assertNotNull("child listener list should not be null", listenerList);
 		assertEquals("size of child listener list should be correct", 2, listenerList.size());
-		
-		assertSame("listener instance should be correct",listener1,listenerList.get(0));
-		assertSame("listener instance should be correct",listener2,listenerList.get(1));
 		
 		registrations = childSelector.getRegistrationObjects();
 		assertEquals("registrations size should be correct", 1, registrations.size());
@@ -243,6 +238,11 @@ public class ModifyListenerTest
 		assertEquals("city should be correct", "Bln", city.get());
 		
 		address.create(AddressType.country).setValue(CountryType.name, "Ger");
+		assertEquals("country should be correct", "Ger", country.get());
+		
+		user.unregisterForModify(countryPath);
+		
+		address.create(AddressType.country).setValue(CountryType.name, "reG");
 		assertEquals("country should be correct", "Ger", country.get());
 		
 		countryPath.dispose();

@@ -13,14 +13,11 @@ package org.sodeac.common.typedtree;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -130,16 +127,55 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 */
 	protected void disposeNode()
 	{
+		super.disposed = true;
 		try
 		{
-			if(modifyListenerRegistration != null)
+			
+			List<NodeContainer> nodeContainerList = this._nodeContainerList;
+			
+			if(nodeContainerList != null)
 			{
-				try
+				for(NodeContainer container : nodeContainerList)
 				{
-					modifyListenerRegistration.dispose();
+					try
+					{
+						if(container.node != null)
+						{
+							// notify ??
+							container.node.disposeNode();
+						}
+						if(container.nodeList != null)
+						{
+							for(BranchNode<?,?> item : container.nodeList)
+							{
+								item.disposeNode();
+							}
+							container.nodeList.clear();
+						}
+						if(container.nodeListenerList != null)
+						{
+							for(IChildNodeListener<?> childNodeListener : container.nodeListenerList)
+							{
+								if(childNodeListener.getClass() == ModifyListenerContainer.class)
+								{
+									(((ModifyListenerContainer)childNodeListener)).dispose();
+								}
+							}
+							container.nodeListenerList.clear();
+						}
+					}
+					finally 
+					{
+						container.node = null;
+						container.nodeList = null;
+						container.unmodifiableNodeList = null;
+						container.nodeType = null;
+						container.listComparator = null;
+						container.unmodifiableNodeListSnapshot = null;
+						container.nodeListenerList = null;
+					}
 				}
-				catch (Exception e) {}
-				modifyListenerRegistration = null;
+				nodeContainerList.clear();
 			}
 		}
 		finally 
@@ -147,50 +183,14 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			
 			try
 			{
-				List<NodeContainer> nodeContainerList = this._nodeContainerList;
-				
-				if(nodeContainerList != null)
+				if(modifyListenerRegistration != null)
 				{
-					for(NodeContainer container : nodeContainerList)
+					try
 					{
-						try
-						{
-							if(container.node != null)
-							{
-								container.node.disposeNode();
-							}
-							if(container.nodeList != null)
-							{
-								for(BranchNode<?,?> item : container.nodeList)
-								{
-									item.disposeNode();
-								}
-								container.nodeList.clear();
-							}
-							if(container.nodeListenerList != null)
-							{
-								for(IChildNodeListener<?> childNodeListener : container.nodeListenerList)
-								{
-									if(childNodeListener.getClass() == ModifyListenerContainer.class)
-									{
-										(((ModifyListenerContainer)childNodeListener)).dispose();
-									}
-								}
-								container.nodeListenerList.clear();
-							}
-						}
-						finally 
-						{
-							container.node = null;
-							container.nodeList = null;
-							container.unmodifiableNodeList = null;
-							container.nodeType = null;
-							container.listComparator = null;
-							container.unmodifiableNodeListSnapshot = null;
-							container.nodeListenerList = null;
-						}
+						modifyListenerRegistration.dispose();
 					}
-					nodeContainerList.clear();
+					catch (Exception e) {}
+					modifyListenerRegistration = null;
 				}
 			}
 			finally 
@@ -1572,168 +1572,8 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/*
-	 * Path Modify
+	 * Path Modify Listener
 	 */
-	
-	private void registerIModifyListener(List<NodeSelector<?, ?>> selectorList, PathPredicate rootPredicate)
-	{
-		if(selectorList == null)
-		{
-			return;
-		}
-		
-		for(NodeSelector<?, ?> selector : selectorList)
-		{
-			for(NodeContainer container : this.nodeContainerList)
-			{
-				if(container.getNodeType() != selector.getType())
-				{
-					continue;
-				}
-										
-				ModifyListenerContainer childNodeListener = null;
-				if(container.nodeListenerList == null)
-				{
-					container.nodeListenerList = new ArrayList<IChildNodeListener>();
-				}
-				else
-				{
-					for(IChildNodeListener child : container.nodeListenerList)
-					{
-						if
-						(
-							(child instanceof BranchNode.ModifyListenerContainer) && 
-							(((BranchNode.ModifyListenerContainer)child).selector.equals(selector)) 
-						)
-						{
-							childNodeListener = (BranchNode.ModifyListenerContainer) child;
-							break;
-						}
-					}
-				}
-				if(childNodeListener == null)
-				{
-					childNodeListener = new BranchNode.ModifyListenerContainer();
-					childNodeListener.selector = selector.copy(null, false);
-					childNodeListener.selector.setRootType(null);
-					
-					container.nodeListenerList.add(childNodeListener);
-				}
-				
-				ModifyListenerWrapper listenerWrapper = null;
-				for(ModifyListenerWrapper child : childNodeListener.listenerWrapperList)
-				{
-					if((child.selector == selector) && (child.equalsRootPredicate(rootPredicate)))
-					{
-						listenerWrapper  = child;
-						break;
-					}
-				}
-				
-				if(listenerWrapper == null)
-				{
-					listenerWrapper = childNodeListener.new ModifyListenerWrapper();
-					listenerWrapper.rootPathPredicate = rootPredicate;
-					listenerWrapper.selector = selector;
-					childNodeListener.listenerWrapperList.add(listenerWrapper);
-				}
-				
-				if((selector.getAxis() == Axis.CHILD) &&  (! (selector.getType() instanceof LeafNodeType)))
-				{
-					if((listenerWrapper.selector.getChildSelectorList() != null) && (!listenerWrapper.selector.getChildSelectorList().isEmpty()))
-					{
-						if(container.getNode() instanceof BranchNode)
-						{
-							((BranchNode)container.getNode()).registerIModifyListener(listenerWrapper.selector.getChildSelectorList(), null);
-						}
-						if(container.getNodeList() != null)
-						{
-							for(BranchNode node : container.getNodeList())
-							{
-								node.registerIModifyListener(listenerWrapper.selector.getChildSelectorList(), null);
-							}
-						}
-					}
-				}
-				
-				childNodeListener.checkMultipleListeners();
-				
-				break;
-				
-			}
-		}
-	}
-	
-	/*private void unregisterIModifyListener(List<NodeSelector<?, ?>> selectorList, PathPredicate rootPredicate)
-	{
-		if(selectorList == null)
-		{
-			return;
-		}
-		
-		for(NodeSelector<?, ?> selector : selectorList)
-		{
-			for(NodeContainer container : this.nodeContainerList)
-			{
-				if(container.getNodeType() != selector.getType())
-				{
-					continue;
-				}
-										
-				ModifyListenerContainer childNodeListener = null;
-				if(container.nodeListenerList != null)
-				{
-					for(IChildNodeListener child : container.nodeListenerList)
-					{
-						if
-						(
-							(child instanceof BranchNode.ModifyListenerContainer) && 
-							(((BranchNode.ModifyListenerContainer)child).selector.equals(selector)) 
-						)
-						{
-							childNodeListener = (BranchNode.ModifyListenerContainer) child;
-							break;
-						}
-					}
-				}
-				if(childNodeListener == null)
-				{
-					continue;
-				}
-				
-				LinkedList<Integer> toRemove = null;
-				for(ModifyListenerWrapper child : childNodeListener.listenerWrapperList)
-				{
-					int index = 0;
-					if((child.selector == selector) && (child.equalsRootPredicate(rootPredicate)))
-					{
-						if(toRemove == null)
-						{
-							toRemove = new LinkedList<>();
-						}
-						toRemove.addFirst(index);
-						
-						index++;
-					}
-				}
-				
-				if(toRemove == null)
-				{
-					continue;
-				}
-				
-				for(int index : toRemove)
-				{
-					childNodeListener.listenerWrapperList.remove(index);
-				}
-				
-				toRemove.clear();
-				
-				break;
-				
-			}
-		}
-	}*/
 	
 	public <X> void registerForModify(ModelPath<T, X> path, IModifyListener<X> listener)
 	{
@@ -1772,7 +1612,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 					continue;
 				}
 				
-				this.registerIModifyListener(rootSelector.getChildSelectorList(),rootSelector.getPredicate());
+				this.recursiveRegisterIModifyListener(rootSelector.getChildSelectorList(),rootSelector.getPredicate());
 			}
 		}
 		finally 
@@ -1784,44 +1624,233 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		}
 	}
 	
+	public <X> void unregisterForModify(ModelPath<T, X> path)
+	{
+		if(path == null)
+		{
+			return;
+		}
+		
+		Lock lock = this.rootNode.isSynchronized() ? this.rootNode.getWriteLock() : null;
+		if(lock != null)
+		{
+			lock.lock();
+		}
+		try
+		{
+			if(this.modifyListenerRegistration == null)
+			{
+				return;
+			}
+			
+			this.modifyListenerRegistration.unregister(path);
+			this.recursiveCleanIModifyListener();
+		}
+		finally 
+		{
+			if(lock != null)
+			{
+				lock.unlock();
+			}
+		}
+	}
+	
+	private void recursiveRegisterIModifyListener(List<NodeSelector<?, ?>> selectorList, PathPredicate rootPredicate)
+	{
+		if(selectorList == null)
+		{
+			return;
+		}
+		
+		for(NodeSelector<?, ?> selector : selectorList)
+		{
+			for(NodeContainer container : this.nodeContainerList)
+			{
+				if(container.getNodeType() != selector.getType())
+				{
+					continue;
+				}
+				
+				// ensure  BranchNode.ModifyListenerContainer is registered as IChildNodeListener
+										
+				ModifyListenerContainer childNodeListener = null;
+				if(container.nodeListenerList == null)
+				{
+					container.nodeListenerList = new ArrayList<IChildNodeListener>();
+				}
+				else
+				{
+					for(IChildNodeListener child : container.nodeListenerList)
+					{
+						if
+						(
+							(child instanceof BranchNode.ModifyListenerContainer) && 
+							(((BranchNode.ModifyListenerContainer)child).selector.equals(selector)) // compare axis, predicate and type
+						)
+						{
+							childNodeListener = (BranchNode.ModifyListenerContainer) child;
+							break;
+						}
+					}
+				}
+				
+				if(childNodeListener == null)
+				{
+					childNodeListener = new BranchNode.ModifyListenerContainer();
+					childNodeListener.selector = selector.copy(null, false); // copy for equals match
+					childNodeListener.selector.setRootType(null);
+					childNodeListener.container = container;
+					
+					container.nodeListenerList.add(childNodeListener);
+				}
+				
+				// ensure ModifyListenerWrapper is registered (same selector and equal rootPredicate)
+				
+				ModifyListenerWrapper listenerWrapper = null;
+				for(ModifyListenerWrapper child : childNodeListener.listenerWrapperList)
+				{
+					if((child.selector == selector) && (child.equalsRootPredicate(rootPredicate)))
+					{
+						listenerWrapper  = child;
+						break;
+					}
+				}
+				
+				if(listenerWrapper == null)
+				{
+					listenerWrapper = childNodeListener.new ModifyListenerWrapper();
+					listenerWrapper.rootPathPredicate = rootPredicate;
+					listenerWrapper.selector = selector;
+					childNodeListener.listenerWrapperList.add(listenerWrapper);
+				}
+				
+				childNodeListener.mergeActiveModifyListener();
+				
+				// for branch nodes and branch node lists : register recursive, if child and selector has child selectors
+				
+				if((selector.getAxis() == Axis.CHILD) &&  (! (selector.getType() instanceof LeafNodeType)))
+				{
+					if((listenerWrapper.selector.getChildSelectorList() != null) && (!listenerWrapper.selector.getChildSelectorList().isEmpty()))
+					{
+						if(container.getNode() instanceof BranchNode) // branch node
+						{
+							((BranchNode)container.getNode()).recursiveRegisterIModifyListener(listenerWrapper.selector.getChildSelectorList(), null);
+						}
+						if(container.getNodeList() != null)
+						{
+							for(BranchNode node : container.getNodeList()) // branch node list
+							{
+								node.recursiveRegisterIModifyListener(listenerWrapper.selector.getChildSelectorList(), null);
+							}
+						}
+					}
+				}
+				
+				break;
+				
+			}
+		}
+	}
+	
+	private void recursiveCleanIModifyListener()
+	{
+		for(NodeContainer container : this.nodeContainerList)
+		{
+			if(container.nodeListenerList != null)
+			{
+				if(container.getNode() instanceof BranchNode) // branch node
+				{
+					((BranchNode)container.getNode()).recursiveCleanIModifyListener();
+				}
+				if(container.getNodeList() != null)
+				{
+					for(BranchNode node : container.getNodeList()) // branch node list
+					{
+						node.recursiveCleanIModifyListener();
+					}
+				}
+				
+				int listenerIndex = 0;
+				LinkedList<Integer> listenerToRemove = null;
+				for(IChildNodeListener child : container.nodeListenerList)
+				{
+					if(child instanceof BranchNode.ModifyListenerContainer) 
+					{
+						BranchNode.ModifyListenerContainer childNodeListener = (BranchNode.ModifyListenerContainer)child;
+						
+						int wrapperIndex = 0;
+						LinkedList<Integer> wrapperToRemove = null;
+						for(ModifyListenerWrapper wrapper : (List<ModifyListenerWrapper>)childNodeListener.listenerWrapperList)
+						{
+							if((wrapper.selector == null) || wrapper.selector.isDisposed())
+							{
+								if(wrapperToRemove == null)
+								{
+									wrapperToRemove = new LinkedList<>();
+								}
+								wrapperToRemove.addFirst(wrapperIndex);
+							}
+							wrapperIndex++;
+						}
+						
+						if(wrapperToRemove != null)
+						{
+							for(int index : wrapperToRemove)
+							{
+								childNodeListener.listenerWrapperList.remove(index);
+							}
+							
+							wrapperToRemove.clear();
+						}
+						
+						if(childNodeListener.listenerWrapperList.isEmpty())
+						{
+							if(listenerToRemove == null)
+							{
+								listenerToRemove = new LinkedList<>();
+							}
+							listenerToRemove.addFirst(listenerIndex);
+						}
+					}
+					
+					listenerIndex++;
+				}
+				
+				if(listenerToRemove != null)
+				{
+					for(int index : listenerToRemove)
+					{
+						container.nodeListenerList.remove(index);
+					}
+					
+					listenerToRemove.clear();
+				}
+			}
+		}
+	}
+	
 	protected class ModifyListenerContainer implements IChildNodeListener<T>
 	{
 		private NodeSelector selector = null;
 		private boolean active = true;
 		private List<ModifyListenerWrapper> listenerWrapperList = new ArrayList<ModifyListenerWrapper>(); 
-		private boolean multipleListeners = false;
+		private Set<IModifyListener<?>> activeSet = null;
+		private NodeContainer container = null;
 		
 		@Override
 		public void accept(Node<T, ?> node, Object oldValue)
 		{
-			if(! this.active)
+			if(this.active)
 			{
-				return;
-			}
-			
-			Set<IModifyListener> doneSet = null;
-			if(multipleListeners)
-			{
-				doneSet = new HashSet<IModifyListener>();
-			}
-			
-			for(ModifyListenerWrapper listenerWrapper : listenerWrapperList)
-			{
-				if(! listenerWrapper.activeByParent)
+				Set<IModifyListener<?>> activeSet = this.activeSet;
+				
+				if((activeSet != null) &&  (!activeSet.isEmpty()))
 				{
-					continue;
-				}
-				if(listenerWrapper.selector.getModifyListenerList() != null)
-				{
-					for(IModifyListener modifyListener: (List<IModifyListener>)listenerWrapper.selector.getModifyListenerList())
+					for(IModifyListener modifyListener : activeSet)
 					{
-						if(doneSet != null)
+						if(! modifyListener.isEnabled())
 						{
-							if(doneSet.contains(modifyListener))
-							{
-								continue;
-							}
-							doneSet.add(modifyListener);
+							continue;
 						}
 						if(selector.getAxis() == Axis.VALUE)
 						{
@@ -1844,6 +1873,14 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 						}
 					}
 				}
+			}
+			
+			for(ModifyListenerWrapper listenerWrapper : listenerWrapperList)
+			{
+				if((listenerWrapper.selector == null) || listenerWrapper.selector.isDisposed())
+				{
+					continue;
+				}
 				
 				if((selector.getAxis() == Axis.CHILD) &&  (! (selector.getType() instanceof LeafNodeType)))
 				{
@@ -1857,41 +1894,11 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 						if(node instanceof BranchNode)
 						{
 							BranchNode<T,?> newBranchNode = (BranchNode<T,?>) node;
-							newBranchNode.registerIModifyListener(listenerWrapper.selector.getChildSelectorList(), null);							
+							newBranchNode.recursiveRegisterIModifyListener(listenerWrapper.selector.getChildSelectorList(), null);							
 						}
 					}
 				}
 			}
-			
-			if(doneSet != null)
-			{
-				doneSet.clear();
-				doneSet = null;
-			}
-		}
-		
-		protected void checkMultipleListeners()
-		{
-			Set<IModifyListener> listenerSet = new HashSet<IModifyListener>();
-			boolean multiple = false;
-			for(ModifyListenerWrapper listenerWrapper : listenerWrapperList)
-			{
-				if(listenerWrapper.selector.getModifyListenerList() != null)
-				{
-					for(IModifyListener modifyListener: (List<IModifyListener>)listenerWrapper.selector.getModifyListenerList())
-					{
-						if(listenerSet.contains(modifyListener))
-						{
-							multiple = true;
-							break;
-						}
-						listenerSet.add(modifyListener);
-					}
-				}
-			}
-			this.multipleListeners = multiple;
-			listenerSet.clear();
-			listenerSet = null;
 		}
 		
 		protected class ModifyListenerWrapper
@@ -1910,7 +1917,139 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			}
 		}
 		
-		
+		protected void mergeActiveModifyListener()
+		{
+			List<IModifyListener<?>> listenStart = null;
+			List<IModifyListener<?>> listenStop = null;
+			Set<IModifyListener<?>> newActiveSet = null;
+			Set<IModifyListener<?>> thisActiveSet = this.activeSet;
+			if(this.active)
+			{
+				newActiveSet = new HashSet<>();
+				
+				for(ModifyListenerWrapper listenerWrapper : this.listenerWrapperList)
+				{
+					if((listenerWrapper.selector == null) || listenerWrapper.selector.isDisposed())
+					{
+						continue;
+					}
+					if(! listenerWrapper.activeByParent)
+					{
+						continue;
+					}
+					if(listenerWrapper.selector.getModifyListenerList() != null)
+					{
+						for(IModifyListener modifyListener: (Set<IModifyListener>)listenerWrapper.selector.getModifyListenerList())
+						{
+							newActiveSet.add(modifyListener);
+						}
+					}
+				}
+			}
+			
+			if((thisActiveSet != null ) && (! thisActiveSet.isEmpty()))
+			{
+				for(IModifyListener<?> modifyLister : thisActiveSet)
+				{
+					if((newActiveSet == null) || (! newActiveSet.contains(modifyLister)))
+					{
+						if(listenStop == null)
+						{
+							listenStop = new ArrayList<>();
+						}
+						listenStop.add(modifyLister);
+					}
+				}
+			}
+			
+			if((newActiveSet != null)  && (! newActiveSet.isEmpty()))
+			{
+				for(IModifyListener<?> modifyLister : newActiveSet)
+				{
+					if((thisActiveSet == null) || (! thisActiveSet.contains(modifyLister)))
+					{
+						if(listenStart == null)
+						{
+							listenStart = new ArrayList<>();
+						}
+						listenStart.add(modifyLister);
+					}
+				}
+			}
+			
+			if((newActiveSet != null)  && (! newActiveSet.isEmpty()))
+			{
+				this.activeSet = newActiveSet;
+			}
+			else
+			{
+				this.activeSet = null;
+			}
+			
+			if(thisActiveSet != null)
+			{
+				thisActiveSet.clear();
+				thisActiveSet = null;
+			}
+			
+			if(listenStop != null)
+			{
+				if(selector.getAxis() == Axis.VALUE)
+				{
+					LeafNode node = (LeafNode)container.node;
+					for(IModifyListener modifyListener : listenStop)
+					{
+						modifyListener.onListenStop(node.getValue());
+					}
+				}
+				else if(selector.getAxis() == Axis.CHILD)
+				{
+					for(IModifyListener modifyListener : listenStart)
+					{
+						if(container.getNode() != null)
+						{
+							modifyListener.onListenStop(container.getNode());
+						}
+						if(container.getNodeList() != null)
+						{
+							for(BranchNode node : container.getNodeList())
+							{
+								modifyListener.onListenStop(node);
+							}
+						}
+					}
+				}
+			}
+			
+			if(listenStart != null)
+			{
+				if(selector.getAxis() == Axis.VALUE)
+				{
+					LeafNode node = (LeafNode)container.node;
+					for(IModifyListener modifyListener : listenStart)
+					{
+						modifyListener.onListenStart(node.getValue());
+					}
+				}
+				else if(selector.getAxis() == Axis.CHILD)
+				{
+					for(IModifyListener modifyListener : listenStart)
+					{
+						if(container.getNode() != null)
+						{
+							modifyListener.onListenStart(container.getNode());
+						}
+						if(container.getNodeList() != null)
+						{
+							for(BranchNode node : container.getNodeList())
+							{
+								modifyListener.onListenStart(node);
+							}
+						}
+					}
+				}
+			}
+		}
 		
 		protected void checkActive()
 		{
@@ -2040,19 +2179,5 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	public List<BranchNodeListType> getBranchNodeListTypeList()
 	{
 		return this.model.getBranchNodeListTypeList();
-	}
-	
-	// for tests only
-	
-	protected boolean isDisposed()
-	{
-		return 
-			model == null &&
-			nodeContainerList == null &&
-			modifyListenerRegistration == null &&
-			rootNode == null &&
-			parentNode == null &&
-			OID == -1L &&
-			positionInList == -1;
 	}
 }

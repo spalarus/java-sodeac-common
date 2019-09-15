@@ -361,12 +361,13 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 		
 		private NodeSelector<?,?> parentSelector = null;
 		private List<NodeSelector<?,?>> childSelectorList = null; // Set?
-		private List<IModifyListener<?>> modifyListenerList = null;
+		private Set<IModifyListener<?>> modifyListenerList = null;
 		private Map<Object,Set<IModifyListener<?>>> registrationObjects = null;
 		private PathPredicate predicate = null;
 		private INodeType<?, ?> type = null;
 		private BranchNodeMetaModel root = null;
 		private Axis axis = null;
+		private volatile boolean disposed = false;
 		
 		protected NodeSelector(BranchNodeMetaModel root)
 		{
@@ -467,12 +468,12 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			return axis;
 		}
 
-		protected List<IModifyListener<?>> getModifyListenerList()
+		protected Set<IModifyListener<?>> getModifyListenerList()
 		{
 			return modifyListenerList;
 		}
 
-		protected void setModifyListenerList(List<IModifyListener<?>> modifyListenerList)
+		protected void setModifyListenerList(Set<IModifyListener<?>> modifyListenerList)
 		{
 			this.modifyListenerList = modifyListenerList;
 		}
@@ -489,6 +490,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 
 		protected void dispose()
 		{
+			this.disposed = true;
 			if(childSelectorList != null)
 			{
 				for(NodeSelector<?, ?> child : this.childSelectorList)
@@ -517,7 +519,11 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			axis = null;
 		}
 		
-		
+		protected boolean isDisposed()
+		{
+			return disposed;
+		}
+
 		@Override
 		public int hashCode()
 		{

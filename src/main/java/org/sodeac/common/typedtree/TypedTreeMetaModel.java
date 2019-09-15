@@ -20,6 +20,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.sodeac.common.function.ConplierBean;
+import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
 
 /**
  * A typed tree meta model defines all root nodes (trees) of this model.
@@ -73,6 +74,7 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 		private WriteLock writeLock;
 		private ConplierBean<Boolean> sharedDoit;
 		private volatile long sequnceOID = 0L;
+		private volatile boolean disableAllListener = false;
 		
 		/**
 		 * Constructor of root node.
@@ -106,13 +108,27 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 		}
 
 		@Override
+		public boolean isDisableAllListener()
+		{
+			return disableAllListener;
+		}
+
+		@Override
+		public RootBranchNode<P,R> setDisableAllListener(boolean disableAllListener)
+		{
+			this.disableAllListener = disableAllListener;
+			return this;
+		}
+
+		@Override
 		public void dispose()
 		{
+			super.disposeNode();
+
 			if(this.modifyListeners != null)
 			{
 				this.modifyListeners.clear();
 			}
-			super.disposeNode();
 			this.readLock = null;
 			this.writeLock = null;
 			this.modifyListeners = null;
@@ -261,6 +277,10 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 		
 		protected <C extends INodeType<?,?>, T> boolean notifyBeforeModify(BranchNode<?, ?> parentNode, NodeContainer nodeContainer, T oldValue, T newValue)
 		{
+			if(this.disableAllListener)
+			{
+				return true;
+			}
 			ConplierBean<Boolean> doit = null;
 			
 			if((modifyListeners != null) && (! modifyListeners.isEmpty()))
@@ -289,6 +309,10 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 		
 		protected <C extends INodeType<?,?>, T> void notifyAfterModify(BranchNode<?, ?> parentNode, NodeContainer nodeContainer, T oldValue, T newValue)
 		{
+			if(this.disableAllListener)
+			{
+				return;
+			}
 			if((modifyListeners != null) && (! modifyListeners.isEmpty()))
 			{
 				for(ITreeModifyListener modifyListener : this.modifyListeners)

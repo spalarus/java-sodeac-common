@@ -112,4 +112,8 @@ public interface ITree<P extends TypedTreeMetaModel,R  extends BranchNodeMetaMod
 	 * @return root node
 	 */
 	public RootBranchNode<P,R> removeTreeModifyListener(ITreeModifyListener modifyListener);
+	
+	public boolean isDisableAllListener();
+	
+	public RootBranchNode<P,R> setDisableAllListener(boolean disableAllListener);
 }

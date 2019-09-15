@@ -21,6 +21,7 @@ package org.sodeac.common.typedtree;
 public abstract class Node<P extends BranchNodeMetaModel, T>
 {
 	protected boolean rootLinked = false;
+	protected volatile boolean disposed = false;
 
 	/**
 	 * 
@@ -40,6 +41,10 @@ public abstract class Node<P extends BranchNodeMetaModel, T>
 	 * Dispose this node. 
 	 */
 	protected abstract void disposeNode();
+	protected boolean isDisposed()
+	{
+		return this.disposed;
+	}
 	
 	public abstract INodeType<P,T> getNodeType();
 }

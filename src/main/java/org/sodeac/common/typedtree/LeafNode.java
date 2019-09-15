@@ -47,6 +47,7 @@ public class LeafNode<P extends BranchNodeMetaModel,T> extends Node<P,T>
 	 */
 	protected void disposeNode()
 	{
+		super.disposed = true;
 		this.value = null;
 		this.parentNode = null;
 		this.nodeContainer = null;

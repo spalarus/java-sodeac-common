@@ -26,6 +26,19 @@ public interface IModifyListener<T> extends BiConsumer<T, T>
 	@Override
 	public void accept(T newValue,T oldValue);
 	
+	public default boolean isEnabled()
+	{
+		return true;
+	}
+	
+	public default String getNotifyBufferId()
+	{
+		return null;
+	}
+	
+	public default void onListenStart(T value) {}
+	public default void onListenStop(T value) {}
+	
 	public static <T> IModifyListener<T> onRemove(Consumer<T> consumer)
 	{
 		return new RemoveListener<T>(consumer);
