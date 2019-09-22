@@ -16,10 +16,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
+import org.sodeac.common.typedtree.ModelPath.ModelPathBuilder;
+import org.sodeac.common.typedtree.ModelPath.ModelPathBuilder.RootModelPathBuilder;
 import org.sodeac.common.typedtree.ModelPath.NodeSelector.Axis;
-import org.sodeac.common.typedtree.ModelPath.NodeSelector.PathPredicate;
+import org.sodeac.common.typedtree.ModelPath.NodeSelector.NodeSelectorPredicate;
 
 /**
  * A model path selects nodes. It starts from source node and navigate to tree by path definition to select nodes or value of nodes.
@@ -231,7 +235,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 				throw new RuntimeException(getClass() + ": child already exists ");
 			}
 			ModelPathBuilder<R,N> builder = new ModelPathBuilder<R,N>(this.root,field,selector);
-			return new BranchNodePredicateBuilder(builder);
+			return new BranchNodePredicateBuilder(this.self,builder);
 		}
 		
 		public <T> ModelPath<R, T> buildForValue(LeafNodeType<S, T> field) 
@@ -292,51 +296,59 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			
 			public BranchNodePredicateBuilder<R,R> childWithPredicates()
 			{
-				return new BranchNodePredicateBuilder(this);
+				return new BranchNodePredicateBuilder(super.getSelf(),this);
 			}
 		}
 		
 		public static class BranchNodePredicateBuilder<R extends BranchNodeMetaModel,N extends BranchNodeMetaModel>
 		{
 			private ModelPathBuilder<R,N> builder = null;
-			private PathPredicate rootPedicate = null;
-			private PathPredicate currentPredicate = null;
+			private NodeSelectorPredicate<N> rootPedicate = null;
+			private NodeSelectorPredicate<N> currentPredicate = null;
+			private N defaultModelInstance = null;
 			
-			private BranchNodePredicateBuilder(ModelPathBuilder<R,N> builder)
+			private BranchNodePredicateBuilder(N defaultModelInstance, ModelPathBuilder<R,N> builder)
 			{
 				super();
 				this.builder = builder;
-				this.rootPedicate = new PathPredicate(null, PathPredicate.LogicalOperator.AND, false);
+				this.defaultModelInstance = defaultModelInstance;
+				this.rootPedicate = new NodeSelectorPredicate(defaultModelInstance,null, NodeSelectorPredicate.LogicalOperator.AND, false);
 				this.currentPredicate = this.rootPedicate;
 			}
 			
 			public <T> BranchNodePredicateBuilder<R,N> addLeafNodePredicate(LeafNodeType<N, T> field, Predicate<LeafNode<N,T>> predicate)
 			{
-				this.currentPredicate.addLeafNodePredicate((LeafNodeType<?, ?>)field, (Predicate)predicate );
+				this.currentPredicate.addLeafNodePredicate((LeafNodeType)field, (Predicate)predicate );
+				return this;
+			}
+			
+			public <T> BranchNodePredicateBuilder<R,N> addPathPredicate(Function<RootModelPathBuilder<N>,ModelPath<N, T>> pathBuilderFunction, Predicate<T> predicate)
+			{
+				this.currentPredicate.addPathPredicate((Function)pathBuilderFunction, (Predicate)predicate);
 				return this;
 			}
 			
 			public BranchNodePredicateBuilder<R,N> and()
 			{
-				this.currentPredicate = new PathPredicate(this.currentPredicate, PathPredicate.LogicalOperator.AND, false);
+				this.currentPredicate = new NodeSelectorPredicate(this.defaultModelInstance,this.currentPredicate, NodeSelectorPredicate.LogicalOperator.AND, false);
 				return this;
 			}
 			
 			public BranchNodePredicateBuilder<R,N> andNot()
 			{
-				this.currentPredicate = new PathPredicate(this.currentPredicate, PathPredicate.LogicalOperator.AND, true);
+				this.currentPredicate = new NodeSelectorPredicate(this.defaultModelInstance,this.currentPredicate, NodeSelectorPredicate.LogicalOperator.AND, true);
 				return this;
 			}
 			
 			public BranchNodePredicateBuilder<R,N> or()
 			{
-				this.currentPredicate = new PathPredicate(this.currentPredicate, PathPredicate.LogicalOperator.OR, false);
+				this.currentPredicate = new NodeSelectorPredicate(this.defaultModelInstance,this.currentPredicate, NodeSelectorPredicate.LogicalOperator.OR, false);
 				return this;
 			}
 			
 			public BranchNodePredicateBuilder<R,N> orNot()
 			{
-				this.currentPredicate = new PathPredicate(this.currentPredicate, PathPredicate.LogicalOperator.OR, true);
+				this.currentPredicate = new NodeSelectorPredicate(this.defaultModelInstance,this.currentPredicate, NodeSelectorPredicate.LogicalOperator.OR, true);
 				return this;
 			}
 			
@@ -363,7 +375,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 		private List<NodeSelector<?,?>> childSelectorList = null; // Set?
 		private Set<IModifyListener<?>> modifyListenerList = null;
 		private Map<Object,Set<IModifyListener<?>>> registrationObjects = null;
-		private PathPredicate predicate = null;
+		private NodeSelectorPredicate predicate = null;
 		private INodeType<?, ?> type = null;
 		private BranchNodeMetaModel root = null;
 		private Axis axis = null;
@@ -437,13 +449,13 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			this.childSelectorList = childSelectorList;
 		}
 
-		protected NodeSelector<?, ?> setPredicate(PathPredicate predicate)
+		protected NodeSelector<?, ?> setPredicate(NodeSelectorPredicate predicate)
 		{
 			this.predicate = predicate;
 			return this;
 		}
 
-		protected PathPredicate getPredicate()
+		protected NodeSelectorPredicate getPredicate()
 		{
 			return predicate;
 		}
@@ -564,23 +576,25 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 
 
 
-		protected static class PathPredicate
+		protected static class NodeSelectorPredicate<T extends BranchNodeMetaModel>
 		{
 			protected static enum LogicalOperator {AND,OR};
 			
-			protected PathPredicate(PathPredicate parent, LogicalOperator logicalOperator,boolean invert)
+			protected NodeSelectorPredicate(T defaultMetaInstance,NodeSelectorPredicate parent, LogicalOperator logicalOperator,boolean invert)
 			{
 				super();
 				this.parent = parent;
 				this.logicalOperator = logicalOperator;
 			}
 			
-			private PathPredicate parent = null;
+			private NodeSelectorPredicate parent = null;
 			private LogicalOperator logicalOperator = null;
 			private boolean invert = false;
 			
-			private List<LeafNodePredicate<?, ?>> leafNodePredicateList = null;
-			private List<PathPredicate> childPredicateList = null;
+			private List<LeafNodePredicate<T, ?>> leafNodePredicateList = null;
+			private List<PathPredicate<T, ?>> pathPredicateList = null;
+			private List<NodeSelectorPredicate> childPredicateList = null;
+			private T defaultMetaInstance = null;
 			
 			protected LogicalOperator getLogicalOperator()
 			{
@@ -600,26 +614,42 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 				this.invert = invert;
 			}
 
-			protected PathPredicate getParent()
+			protected NodeSelectorPredicate getParent()
 			{
 				return parent;
 			}
 
-			protected PathPredicate addLeafNodePredicate(LeafNodeType<?, ?> field, Predicate<LeafNode<?,?>> predicate)
+			protected NodeSelectorPredicate addLeafNodePredicate(LeafNodeType<T, ?> field, Predicate<LeafNode<T,?>> predicate)
 			{
 				if(this.leafNodePredicateList == null)
 				{
-					this.leafNodePredicateList = new ArrayList<NodeSelector.LeafNodePredicate<?,?>>();
+					this.leafNodePredicateList = new ArrayList<NodeSelector.LeafNodePredicate<T,?>>();
 				}
 				this.leafNodePredicateList.add(new LeafNodePredicate(field, predicate) );
 				return this;
 			}
 			
-			protected PathPredicate addChildPredicate(PathPredicate childPredicate)
+			protected NodeSelectorPredicate addPathPredicate(Function<RootModelPathBuilder<T>,ModelPath<T, ?>> pathBuilderFunction, Predicate<?> predicate)
+			{
+				Objects.requireNonNull(pathBuilderFunction, "path builder function is null");
+				if(this.pathPredicateList == null)
+				{
+					this.pathPredicateList = new ArrayList<NodeSelector.PathPredicate<T,?>>();
+				}
+				RootModelPathBuilder<T> builder = ModelPathBuilder.newBuilder(this.defaultMetaInstance);
+				ModelPath<T, ?> path = pathBuilderFunction.apply(builder);
+				if(path != null)
+				{
+					this.pathPredicateList.add(new PathPredicate(path, predicate));
+				}
+				return this;
+			}
+			
+			protected NodeSelectorPredicate addChildPredicate(NodeSelectorPredicate childPredicate)
 			{
 				if(this.childPredicateList == null)
 				{
-					this.childPredicateList = new ArrayList<PathPredicate>();
+					this.childPredicateList = new ArrayList<NodeSelectorPredicate>();
 				}
 				this.childPredicateList.add(childPredicate);
 				return this;
@@ -629,7 +659,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			{
 				if(this.childPredicateList != null)
 				{
-					for(PathPredicate childPredicate : this.childPredicateList)
+					for(NodeSelectorPredicate childPredicate : this.childPredicateList)
 					{
 						childPredicate.dispose();
 					}
@@ -643,11 +673,20 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 					}
 					this.leafNodePredicateList.clear();
 				}
+				if(this.pathPredicateList != null)
+				{
+					for(PathPredicate<?,?> pathPredicate : this.pathPredicateList)
+					{
+						pathPredicate.dispose();
+					}
+					this.pathPredicateList.clear();
+				}
 				
 				this.parent = null;
 				this.logicalOperator = null;
 				this.childPredicateList = null;
 				this.leafNodePredicateList = null;
+				this.pathPredicateList = null;
 			}
 			@Override
 			public int hashCode()
@@ -657,7 +696,9 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 				result = prime * result + ((childPredicateList == null) ? 0 : childPredicateList.hashCode());
 				result = prime * result + (invert ? 1231 : 1237);
 				result = prime * result + ((leafNodePredicateList == null) ? 0 : leafNodePredicateList.hashCode());
+				result = prime * result + ((pathPredicateList == null) ? 0 : pathPredicateList.hashCode());
 				result = prime * result + ((logicalOperator == null) ? 0 : logicalOperator.hashCode());
+				result = prime * result + ((defaultMetaInstance == null) ? 0 : defaultMetaInstance.hashCode());
 				return result;
 			}
 			
@@ -670,7 +711,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 					return false;
 				if (getClass() != obj.getClass())
 					return false;
-				PathPredicate other = (PathPredicate) obj;
+				NodeSelectorPredicate other = (NodeSelectorPredicate) obj;
 				if (childPredicateList == null)
 				{
 					if (other.childPredicateList != null)
@@ -685,36 +726,124 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 						return false;
 				} else if (!leafNodePredicateList.equals(other.leafNodePredicateList))
 					return false;
+				if (pathPredicateList == null)
+				{
+					if (other.pathPredicateList != null)
+						return false;
+				} else if (!pathPredicateList.equals(other.pathPredicateList))
+					return false;
 				if (logicalOperator != other.logicalOperator)
+					return false;
+				if (defaultMetaInstance != other.defaultMetaInstance)
 					return false;
 				return true;
 			}
 			
-			public PathPredicate clone(PathPredicate clonedParent)
+			public NodeSelectorPredicate clone(NodeSelectorPredicate clonedParent)
 			{
-				PathPredicate clonedPathPredicate = new PathPredicate(clonedParent, this.logicalOperator, this.invert);
+				NodeSelectorPredicate clonedPredicate = new NodeSelectorPredicate(this.defaultMetaInstance, clonedParent, this.logicalOperator, this.invert);
 				
 				if(this.leafNodePredicateList != null)
 				{
-					clonedPathPredicate.leafNodePredicateList = new ArrayList<LeafNodePredicate<?, ?>>();
+					clonedPredicate.leafNodePredicateList = new ArrayList<LeafNodePredicate<?, ?>>();
 					for(LeafNodePredicate<?, ?> leafNodePredicate : this.leafNodePredicateList)
 					{
-						clonedPathPredicate.leafNodePredicateList.add(leafNodePredicate.clone());
+						clonedPredicate.leafNodePredicateList.add(leafNodePredicate.clone());
+					}
+				}
+				
+				if(this.pathPredicateList != null)
+				{
+					clonedPredicate.pathPredicateList = new ArrayList<PathPredicate<?, ?>>();
+					for(PathPredicate<?, ?> pathPredicate : this.pathPredicateList)
+					{
+						clonedPredicate.pathPredicateList.add(pathPredicate.clone());
 					}
 				}
 				
 				if(this.childPredicateList != null)
 				{
-					clonedPathPredicate.childPredicateList = new ArrayList<PathPredicate>();
-					for(PathPredicate pathPredicate : this.childPredicateList)
+					clonedPredicate.childPredicateList = new ArrayList<NodeSelectorPredicate>();
+					for(NodeSelectorPredicate pathPredicate : this.childPredicateList)
 					{
-						clonedPathPredicate.childPredicateList.add(pathPredicate.clone(clonedPathPredicate));
+						clonedPredicate.childPredicateList.add(pathPredicate.clone(clonedPredicate));
 					}
 				}
 				
-				return clonedPathPredicate;
+				return clonedPredicate;
 			}
 			
+		}
+		
+		protected static class PathPredicate<N extends BranchNodeMetaModel,T>
+		{
+			protected PathPredicate(ModelPath<N,T> path,Predicate<T> predicate)
+			{
+				super();
+				this.path = path;
+				this.predicate = predicate;
+			}
+			
+			private ModelPath<N,T> path = null;
+			private Predicate<T> predicate = null;
+			
+			protected ModelPath<N, T> getPath()
+			{
+				return path;
+			}
+			protected Predicate<T> getPredicate()
+			{
+				return predicate;
+			}
+			
+			protected void dispose()
+			{
+				if(this.path != null)
+				{
+					this.path.dispose();
+				}
+				this.path = null;
+				this.predicate = null;
+			}
+			@Override
+			public int hashCode()
+			{
+				final int prime = 31;
+				int result = 1;
+				result = prime * result + ((path == null) ? 0 : path.hashCode());
+				result = prime * result + ((predicate == null) ? 0 : predicate.hashCode());
+				return result;
+			}
+			@Override
+			public boolean equals(Object obj)
+			{
+				if (this == obj)
+					return true;
+				if (obj == null)
+					return false;
+				if (getClass() != obj.getClass())
+					return false;
+				PathPredicate other = (PathPredicate) obj;
+				if (path == null)
+				{
+					if (other.path != null)
+						return false;
+				} else if (!path.equals(other.path))
+					return false;
+				if (predicate == null)
+				{
+					if (other.predicate != null)
+						return false;
+				} else if (!predicate.equals(other.predicate))
+					return false;
+				return true;
+			}
+			
+			@Override
+			protected PathPredicate<N,T> clone()
+			{
+				return new PathPredicate(this.path.clone(), this.predicate);
+			}
 		}
 		
 		protected static class LeafNodePredicate<N extends BranchNodeMetaModel,T>
@@ -725,6 +854,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 				this.field = field;
 				this.predicate = predicate;
 			}
+			
 			private LeafNodeType<N, T> field = null;
 			private Predicate<LeafNode<N,T>> predicate = null;
 			

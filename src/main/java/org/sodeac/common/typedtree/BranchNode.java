@@ -28,7 +28,7 @@ import org.sodeac.common.typedtree.BranchNode.ModifyListenerContainer.ModifyList
 import org.sodeac.common.typedtree.IChildNodeListener.ILeafNodeListener;
 import org.sodeac.common.typedtree.ModelPath.NodeSelector;
 import org.sodeac.common.typedtree.ModelPath.NodeSelector.Axis;
-import org.sodeac.common.typedtree.ModelPath.NodeSelector.PathPredicate;
+import org.sodeac.common.typedtree.ModelPath.NodeSelector.NodeSelectorPredicate;
 
 /**
  * A branch node is an instance of complex tree node.
@@ -1655,7 +1655,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		}
 	}
 	
-	private void recursiveRegisterIModifyListener(List<NodeSelector<?, ?>> selectorList, PathPredicate rootPredicate)
+	private void recursiveRegisterIModifyListener(List<NodeSelector<?, ?>> selectorList, NodeSelectorPredicate rootPredicate)
 	{
 		if(selectorList == null)
 		{
@@ -1903,11 +1903,11 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		
 		protected class ModifyListenerWrapper
 		{
-			private PathPredicate rootPathPredicate = null;
+			private NodeSelectorPredicate rootPathPredicate = null;
 			private NodeSelector selector = null;
 			private boolean activeByParent = true;
 			
-			private boolean equalsRootPredicate(PathPredicate rootPathPredicate)
+			private boolean equalsRootPredicate(NodeSelectorPredicate rootPathPredicate)
 			{
 				if(rootPathPredicate == null)
 				{
