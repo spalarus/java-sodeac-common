@@ -13,6 +13,7 @@ package org.sodeac.common.function;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
+import java.util.LinkedList;
 import java.util.Optional;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
@@ -53,6 +54,7 @@ public class ConplierBean<T> implements Supplier<T>,Consumer<T>
 	
 	private PropertyChangeSupport changes = new PropertyChangeSupport( this );
 	private volatile T value = null;
+	private volatile boolean equalsBySameValue = false;
 	
 	@Override
 	public void accept(T t)
@@ -85,7 +87,7 @@ public class ConplierBean<T> implements Supplier<T>,Consumer<T>
 	{
 		changes.removePropertyChangeListener( propertyChangeListener );
 	}
-	
+
 	/**
 	 * bean like getter
 	 * 
@@ -227,6 +229,89 @@ public class ConplierBean<T> implements Supplier<T>,Consumer<T>
 		{
 			ConplierBean.this.removePropertyChangeListener(this);
 		}
+	}
+	
+	/**
+	 * Helps GC and make this ConplierBean unusable.
+	 */
+	public void dispose()
+	{
+		if(changes != null)
+		{
+			LinkedList<PropertyChangeListener> toRemove = null;
+			for(PropertyChangeListener listener : changes.getPropertyChangeListeners())
+			{
+				if(toRemove == null)
+				{
+					toRemove = new LinkedList<PropertyChangeListener>();
+				}
+				toRemove.add(listener);
+			}
+			
+			if(toRemove != null)
+			{
+				for(PropertyChangeListener listener : toRemove)
+				{
+					this.changes.removePropertyChangeListener(listener);
+				}
+				toRemove.clear();
+				toRemove = null;
+			}
+		}
+		
+		this.value = null;
+		this.changes = null;
+	}
+
+	/**
+	 * Property for equals-behavior. If true, the equals method returns true, if other conplierBean wraps same object, otherwise false.
+	 * 
+	 * @param equalsBySameValue if true, the equals method returns true, if other conplierBean wraps same object, therwise false
+	 * @return this conplier bean
+	 */
+	public ConplierBean<T> setEqualsBySameValue(boolean equalsBySameValue)
+	{
+		this.equalsBySameValue = equalsBySameValue;
+		return this;
+	}
+
+	@Override
+	public int hashCode()
+	{
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((value == null) ? 0 : value.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ConplierBean other = (ConplierBean) obj;
+		
+		if(this.equalsBySameValue)
+		{
+			return this.value == other.value;
+		}
+		
+		if (value == null)
+		{
+			if (other.value != null)
+			{
+				return false;
+			}
+		} 
+		else if (!value.equals(other.value))
+		{
+			return false;
+		}
+		return true;
 	}
 	 
 }
