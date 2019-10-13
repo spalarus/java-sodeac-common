@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * Copyright (c) 2019 Sebastian Palarus
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v20.html
+ *
+ * Contributors:
+ *     Sebastian Palarus - initial API and implementation
+ *******************************************************************************/
 package org.sodeac.common.function;
 
 import static org.junit.Assert.assertEquals;
@@ -15,7 +25,7 @@ public class SmartSupplierTest
 	{
 		int i = 1;
 		int x = SmartSupplier.forSupplier(() -> i).get();
-		assertEquals("x should be corrext",i, x);
+		assertEquals("x should be correct",i, x);
 	}
 	
 	
@@ -24,7 +34,7 @@ public class SmartSupplierTest
 	{
 		ConplierBean<Integer> i = new ConplierBean<Integer>(null);
 		Integer x =  SmartSupplier.forSupplier(i).get();
-		assertEquals("x should be corrext",i.get(), x);
+		assertEquals("x should be correct",i.get(), x);
 	}
 	
 	@Test
@@ -36,7 +46,7 @@ public class SmartSupplierTest
 					.withWaitTimeForNextAttempt(1, TimeUnit.SECONDS)
 					.withDefaultValue(5)
 					.get();
-		assertEquals("x should be corrext",Integer.valueOf(5), x);
+		assertEquals("x should be correct",Integer.valueOf(5), x);
 	}
 	
 	@Test
@@ -55,7 +65,7 @@ public class SmartSupplierTest
 					.withWaitTimeForNextAttempt(1, TimeUnit.SECONDS)
 					.withDefaultValue(3)
 					.get();
-		assertEquals("x should be corrext",Integer.valueOf(5), x);
+		assertEquals("x should be correct",Integer.valueOf(5), x);
 	}
 	
 	@Test
@@ -74,7 +84,7 @@ public class SmartSupplierTest
 					.withWaitTimeForNextAttempt(1, TimeUnit.SECONDS)
 					.withDefaultValue(3)
 					.get();
-		assertEquals("x should be corrext",Integer.valueOf(3), x);
+		assertEquals("x should be correct",Integer.valueOf(3), x);
 	}
 	
 	@Test
@@ -89,18 +99,18 @@ public class SmartSupplierTest
 				.useCacheAfterFailedAttemptsCount(1)
 				.withCacheExpireTime(5, TimeUnit.SECONDS);
 		
-		assertEquals("supplier should supply corrext",Integer.valueOf(10), tolerantSupplier.get());
+		assertEquals("supplier should supply correct",Integer.valueOf(10), tolerantSupplier.get());
 		
 		i.setValue(null);
-		assertEquals("supplier should supply corrext",Integer.valueOf(10), tolerantSupplier.get());
+		assertEquals("supplier should supply correct",Integer.valueOf(10), tolerantSupplier.get());
 		
 		try{Thread.sleep(2000);}catch(Exception e){}
 		
-		assertEquals("supplier should supply corrext",Integer.valueOf(10), tolerantSupplier.get());
+		assertEquals("supplier should supply correct",Integer.valueOf(10), tolerantSupplier.get());
 		
 		try{Thread.sleep(5000);}catch(Exception e){}
 		
-		assertEquals("supplier should supply corrext",Integer.valueOf(3), tolerantSupplier.get());
+		assertEquals("supplier should supply correct",Integer.valueOf(3), tolerantSupplier.get());
 		
 	}
 	
