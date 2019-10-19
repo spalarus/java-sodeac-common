@@ -8,7 +8,7 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.eip;
+package org.sodeac.common.message;
 
 import java.io.Serializable;
 import java.util.Collections;
@@ -1391,5 +1391,41 @@ public class MessageHeader implements Serializable
 		if (workflowLocked != other.workflowLocked)
 			return false;
 		return true;
+	}
+	
+	public void dispose()
+	{
+		if(this.properties != null)
+		{
+			this.properties.clear();
+		}
+		
+		this.messageID = null;
+		this.correlationID = null;
+		this.priority = null;
+		this.guaranteedDelivery = null;
+		this.timestamp = null;
+		this.expiration = null;
+		this.connection = null;
+		this.session = null;
+		this.workflow = null;
+		this.topic = null;
+		this.queue = null;
+		this.messageType = null;
+		this.messageFormat = null;
+		this.service =  null;
+		this.domain =  null;
+		this.boundedContext = null;
+		this.destination = null;
+		this.user = null;
+		this.source = null;
+		this.replyTo = null;
+		this.deliveryTime = null;
+		this.redelivered = null;
+		this.sequence = null;
+		this.position = null;
+		this.size = null;
+		this.end = null;
+		this.properties = null;
 	}
 }

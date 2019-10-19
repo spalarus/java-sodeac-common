@@ -8,14 +8,14 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.eip;
+package org.sodeac.common.message.service.api;
 
 
 import java.util.function.Consumer;
 
-import org.sodeac.common.eip.IMessageDrivenConversation.IChannel;
-import org.sodeac.common.eip.IMessageDrivenConversation.IChannel.IChannelEvent;
-import org.sodeac.common.eip.IMessageDrivenConversation.IChannel.IChannelEventProcessor;
+import org.sodeac.common.message.service.api.IMessageDrivenService.IChannel;
+import org.sodeac.common.message.service.api.IMessageDrivenService.IChannel.IChannelEvent;
+import org.sodeac.common.message.service.api.IMessageDrivenService.IChannel.IChannelEventProcessor;
 
 public interface ICommonChannelEventProcessors
 {

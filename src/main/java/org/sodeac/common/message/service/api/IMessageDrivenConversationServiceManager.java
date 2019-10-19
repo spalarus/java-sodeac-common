@@ -8,9 +8,9 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.eip;
+package org.sodeac.common.message.service.api;
 
-public interface IMessageDrivenConversationFactory
+public interface IMessageDrivenConversationServiceManager
 {
-	// Create Conversations
+
 }

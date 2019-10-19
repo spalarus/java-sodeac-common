@@ -8,7 +8,7 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.eip;
+package org.sodeac.common.message.service.api;
 
 import java.util.Optional;
 import java.util.Set;
@@ -16,7 +16,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public interface IMessageDrivenConversation
+public interface IMessageDrivenService
 {
 	public Set<IChannel.IChannelDescription> getChannelCatalog();
 	
@@ -26,8 +26,8 @@ public interface IMessageDrivenConversation
 	}
 	public <T> IChannel<T> openChannel(Class<T> messageClass,IChannel.ChannelType channelType);
 	
-	public IMessageDrivenConversation open();
-	public IMessageDrivenConversation close();
+	public IMessageDrivenService open();
+	public IMessageDrivenService close();
 	public boolean isClosed();
 	
 	public <A> A getAdapter(Class<A> adapterClass);
@@ -63,7 +63,7 @@ public interface IMessageDrivenConversation
 		public IChannel<T> onMessageRequested(Function<IMessageRequest<T>,T> messageSupplier);
 		public IChannel<T> onMessageSupplied(Consumer<IMessageSupply<T>> messageConsumer);
 		
-		public IMessageDrivenConversation getConversation();
+		public IMessageDrivenService getConversation();
 		
 		public interface IChannelDescription
 		{
