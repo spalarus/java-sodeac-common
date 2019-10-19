@@ -1,2 +1,2 @@
 # java-sodeac-common
-Helper tools
+Helper tools and core framework - incubator

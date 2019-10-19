@@ -34,6 +34,11 @@
       <version>6.0.0</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+	    <groupId>org.slf4j</groupId>
+	    <artifactId>slf4j-api</artifactId>
+	    <version>1.7.26</version>
+	</dependency>
   </dependencies>
   
   <build>
@@ -54,15 +59,18 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>3.0.0</version>
+        <version>3.1.1</version>
+        <configuration>
+            <source>${jdk.version}</source>
+        </configuration>
         <executions>
-	        <execution>
-	          <id>attach-javadocs</id>
-	          <goals>
-	            <goal>jar</goal>
-	          </goals>
-	        </execution>
-	     </executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -100,11 +108,19 @@
             <Implementation-Build>${scmBranch}@r${buildNumber}</Implementation-Build>
             <Export-Package>
             	org.sodeac.common;version="${bundle.version}",
-            	org.sodeac.common.eip;version="${bundle.version}",
+            	org.sodeac.common.snapdeque;version="${bundle.version}",
             	org.sodeac.common.function;version="${bundle.version}",
             	org.sodeac.common.typedtree;version="${bundle.version}",
+            	org.sodeac.common.xuri;version="${bundle.version}",
+            	org.sodeac.common.xuri.ldapfilter;version="${bundle.version}",
+            	org.sodeac.common.message;version="${bundle.version}",
+            	org.sodeac.common.message.dispatcher.api;version="${bundle.version}",
+            	org.sodeac.common.message.service.api;version="${bundle.version}",
             	org.sodeac.common.misc;version="${bundle.version}"
             </Export-Package>
+            <Private-Package>
+            	org.sodeac.common.message.dispatcher.impl
+            </Private-Package>
           </instructions>
           <source>${jdk.version}</source>
           <target>${jdk.version}</target>
@@ -155,6 +171,15 @@
 			</plugins>
 		</build>
 	</profile>
+	<profile>
+        <id>disable-java8-doclint</id>
+        <activation>
+            <jdk>[1.8,)</jdk>
+        </activation>
+        <properties>
+            <doclint>none</doclint>
+        </properties>
+    </profile>
   </profiles>
   
   <licenses>
