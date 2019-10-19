@@ -11,6 +11,7 @@
 package org.sodeac.common.typedtree;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -24,6 +25,8 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
+import org.sodeac.common.expression.BooleanFunction;
+import org.sodeac.common.expression.Variable;
 import org.sodeac.common.typedtree.BranchNode.ModifyListenerContainer.ModifyListenerWrapper;
 import org.sodeac.common.typedtree.IChildNodeListener.ILeafNodeListener;
 import org.sodeac.common.typedtree.ModelPath.NodeSelector;
@@ -40,7 +43,7 @@ import org.sodeac.common.typedtree.ModelPath.NodeSelector.NodeSelectorPredicate;
  */
 public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaModel> extends Node<P,T>
 {
-	private INodeType<P,T> nodeType = null;
+	private INodeType<P,T> referenceNodeType = null;
 	private BranchNodeMetaModel model = null;
 	private List<NodeContainer> _nodeContainerList = null;
 	private List<NodeContainer> nodeContainerList = null;
@@ -60,7 +63,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	protected BranchNode(RootBranchNode<?,?> rootNode, BranchNode<?,P> parentNode, NodeContainer referencedNodeContainer)
 	{
 		INodeType<P,T> nodeType = referencedNodeContainer.getNodeType();
-		this.nodeType = nodeType;
+		this.referenceNodeType = nodeType;
 		Class<T> modelType = nodeType.getTypeClass();
 		try
 		{
@@ -202,7 +205,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 				this.parentNode = null;
 				this.OID = -1;
 				this.positionInList = -1;
-				this.nodeType = null;
+				this.referenceNodeType = null;
 				this.setRootLinked(false);
 			}
 		}
@@ -211,7 +214,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	@Override
 	public INodeType<P, T> getNodeType()
 	{
-		return this.nodeType;
+		return this.referenceNodeType;
 	}
 
 	@Override
@@ -260,6 +263,36 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	public BranchNode<?, P> getParentNode()
 	{
 		return parentNode;
+	}
+	
+	/**
+	 * returns all leaf node types of model
+	 * 
+	 * @return all leaf node types of model
+	 */
+	public List<LeafNodeType> getLeafNodeTypeList()
+	{
+		return this.model.getLeafNodeTypeList();
+	}
+	
+	/**
+	 * returns all branch node types of model
+	 * 
+	 * @return all branch node types of model
+	 */
+	public List<BranchNodeType> getBranchNodeTypeList()
+	{
+		return this.model.getBranchNodeTypeList();
+	}
+	
+	/**
+	 * returns all branch node list types of model
+	 * 
+	 * @return all branch node list types of model
+	 */
+	public List<BranchNodeListType> getBranchNodeListTypeList()
+	{
+		return this.model.getBranchNodeListTypeList();
 	}
 
 	/**
@@ -1655,7 +1688,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		}
 	}
 	
-	private void recursiveRegisterIModifyListener(List<NodeSelector<?, ?>> selectorList, NodeSelectorPredicate rootPredicate)
+	private void recursiveRegisterIModifyListener(Collection<NodeSelector<?, ?>> selectorList, NodeSelectorPredicate rootPredicate)
 	{
 		if(selectorList == null)
 		{
@@ -1664,90 +1697,81 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		
 		for(NodeSelector<?, ?> selector : selectorList)
 		{
-			for(NodeContainer container : this.nodeContainerList)
-			{
-				if(container.getNodeType() != selector.getType())
-				{
-					continue;
-				}
+			NodeContainer container = this.nodeContainerList.get(this.model.getNodeTypeIndexByClass().get(selector.getType()));
 				
-				// ensure  BranchNode.ModifyListenerContainer is registered as IChildNodeListener
+			// ensure  BranchNode.ModifyListenerContainer is registered as IChildNodeListener
 										
-				ModifyListenerContainer childNodeListener = null;
-				if(container.nodeListenerList == null)
+			ModifyListenerContainer childNodeListener = null;
+			if(container.nodeListenerList == null)
+			{
+				container.nodeListenerList = new ArrayList<IChildNodeListener>();
+			}
+			else
+			{
+				for(IChildNodeListener child : container.nodeListenerList)
 				{
-					container.nodeListenerList = new ArrayList<IChildNodeListener>();
-				}
-				else
-				{
-					for(IChildNodeListener child : container.nodeListenerList)
+					if
+					(
+						(child instanceof BranchNode.ModifyListenerContainer) && 
+						(((BranchNode.ModifyListenerContainer)child).selector.equals(selector)) // compare axis, predicate and type
+					)
 					{
-						if
-						(
-							(child instanceof BranchNode.ModifyListenerContainer) && 
-							(((BranchNode.ModifyListenerContainer)child).selector.equals(selector)) // compare axis, predicate and type
-						)
-						{
-							childNodeListener = (BranchNode.ModifyListenerContainer) child;
-							break;
-						}
-					}
-				}
-				
-				if(childNodeListener == null)
-				{
-					childNodeListener = new BranchNode.ModifyListenerContainer();
-					childNodeListener.selector = selector.copy(null, false); // copy for equals match
-					childNodeListener.selector.setRootType(null);
-					childNodeListener.container = container;
-					
-					container.nodeListenerList.add(childNodeListener);
-				}
-				
-				// ensure ModifyListenerWrapper is registered (same selector and equal rootPredicate)
-				
-				ModifyListenerWrapper listenerWrapper = null;
-				for(ModifyListenerWrapper child : childNodeListener.listenerWrapperList)
-				{
-					if((child.selector == selector) && (child.equalsRootPredicate(rootPredicate)))
-					{
-						listenerWrapper  = child;
+						childNodeListener = (BranchNode.ModifyListenerContainer) child;
 						break;
 					}
 				}
+			}
 				
-				if(listenerWrapper == null)
+			if(childNodeListener == null)
+			{
+				childNodeListener = new BranchNode.ModifyListenerContainer();
+				childNodeListener.selector = selector.clone(null, false); // copy for equals match
+				childNodeListener.selector.setRootType(null);
+				childNodeListener.container = container;
+				
+				container.nodeListenerList.add(childNodeListener);
+			}
+			
+			// ensure ModifyListenerWrapper is registered (same selector and equal rootPredicate)
+				
+			ModifyListenerWrapper listenerWrapper = null;
+			for(ModifyListenerWrapper child : childNodeListener.listenerWrapperList)
+			{
+				if((child.selector == selector) && (child.equalsRootPredicate(rootPredicate)))
 				{
-					listenerWrapper = childNodeListener.new ModifyListenerWrapper();
-					listenerWrapper.rootPathPredicate = rootPredicate;
-					listenerWrapper.selector = selector;
-					childNodeListener.listenerWrapperList.add(listenerWrapper);
+					listenerWrapper  = child;
+					break;
 				}
-				
-				childNodeListener.mergeActiveModifyListener();
-				
-				// for branch nodes and branch node lists : register recursive, if child and selector has child selectors
-				
-				if((selector.getAxis() == Axis.CHILD) &&  (! (selector.getType() instanceof LeafNodeType)))
+			}
+			
+			if(listenerWrapper == null)
+			{
+				listenerWrapper = childNodeListener.new ModifyListenerWrapper();
+				listenerWrapper.rootPathPredicate = rootPredicate;
+				listenerWrapper.selector = selector;
+				childNodeListener.listenerWrapperList.add(listenerWrapper);
+			}
+			
+			childNodeListener.mergeActiveModifyListener();
+			
+			// for branch nodes and branch node lists : register recursive, if child and selector has child selectors
+			
+			if((selector.getAxis() == Axis.CHILD) &&  (! (selector.getType() instanceof LeafNodeType)))
+			{
+				if((listenerWrapper.selector.getChildSelectorList() != null) && (!listenerWrapper.selector.getChildSelectorList().isEmpty()))
 				{
-					if((listenerWrapper.selector.getChildSelectorList() != null) && (!listenerWrapper.selector.getChildSelectorList().isEmpty()))
+					if(container.getNode() instanceof BranchNode) // branch node
 					{
-						if(container.getNode() instanceof BranchNode) // branch node
+						((BranchNode)container.getNode()).recursiveRegisterIModifyListener(listenerWrapper.selector.getChildSelectorList(), null);
+					}
+					if(container.getNodeList() != null)
+					{
+						for(BranchNode node : container.getNodeList()) // branch node list
 						{
-							((BranchNode)container.getNode()).recursiveRegisterIModifyListener(listenerWrapper.selector.getChildSelectorList(), null);
-						}
-						if(container.getNodeList() != null)
-						{
-							for(BranchNode node : container.getNodeList()) // branch node list
-							{
-								node.recursiveRegisterIModifyListener(listenerWrapper.selector.getChildSelectorList(), null);
-							}
+							node.recursiveRegisterIModifyListener(listenerWrapper.selector.getChildSelectorList(), null);
 						}
 					}
 				}
-				
-				break;
-				
 			}
 		}
 	}
@@ -1820,7 +1844,11 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 				{
 					for(int index : listenerToRemove)
 					{
-						container.nodeListenerList.remove(index);
+						BranchNode.ModifyListenerContainer childNodeListener = (BranchNode.ModifyListenerContainer)container.nodeListenerList.remove(index);
+						if(childNodeListener != null)
+						{
+							childNodeListener.dispose();
+						}
 					}
 					
 					listenerToRemove.clear();
@@ -1836,6 +1864,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		private List<ModifyListenerWrapper> listenerWrapperList = new ArrayList<ModifyListenerWrapper>(); 
 		private Set<IModifyListener<?>> activeSet = null;
 		private NodeContainer container = null;
+		private BooleanFunction predicateEvaluator = null;
 		
 		@Override
 		public void accept(Node<T, ?> node, Object oldValue)
@@ -1917,12 +1946,52 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			}
 		}
 		
+		protected class LeafNodePredicateListener extends Variable<Boolean> implements IModifyListener<LeafNode<T,?>> 
+		{
+
+			public LeafNodePredicateListener()
+			{
+				super(Boolean.FALSE);
+			}
+
+			@Override
+			public void accept(LeafNode<T, ?> newValue, LeafNode<T, ?> oldValue)
+			{
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void onListenStart(LeafNode<T, ?> value)
+			{
+				// TODO Auto-generated method stub
+				IModifyListener.super.onListenStart(value);
+			}
+
+			@Override
+			public void onListenStop(LeafNode<T, ?> value)
+			{
+				// TODO Auto-generated method stub
+				IModifyListener.super.onListenStop(value);
+			}
+
+			@Override
+			public void dispose()
+			{
+				// TODO Auto-generated method stub
+				super.dispose();
+			}
+			
+			
+		}
+		
 		protected void mergeActiveModifyListener()
 		{
 			List<IModifyListener<?>> listenStart = null;
 			List<IModifyListener<?>> listenStop = null;
 			Set<IModifyListener<?>> newActiveSet = null;
 			Set<IModifyListener<?>> thisActiveSet = this.activeSet;
+			
 			if(this.active)
 			{
 				newActiveSet = new HashSet<>();
@@ -2051,13 +2120,39 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			}
 		}
 		
-		protected void checkActive()
-		{
-			// TODO
-		}
-		
 		protected void dispose()
 		{
+			if(this.activeSet != null)
+			{
+				if(selector.getAxis() == Axis.VALUE)
+				{
+					LeafNode node = (LeafNode)container.node;
+					for(IModifyListener modifyLister : this.activeSet)
+					{
+						modifyLister.onListenStop(node.getValue());
+					}
+				}
+				else if(selector.getAxis() == Axis.CHILD)
+				{
+					for(IModifyListener modifyListener : this.activeSet)
+					{
+						if(container.getNode() != null)
+						{
+							modifyListener.onListenStop(container.getNode());
+						}
+						if(container.getNodeList() != null)
+						{
+							for(BranchNode node : container.getNodeList())
+							{
+								modifyListener.onListenStop(node);
+							}
+						}
+					}
+				}
+				this.activeSet.clear();
+				this.activeSet = null;
+			}
+			
 			if(this.listenerWrapperList == null)
 			{
 				for(ModifyListenerWrapper modifyListenerWrapper : this.listenerWrapperList)
@@ -2083,12 +2178,19 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			}
 			this.selector = null;
 			this.listenerWrapperList = null;
+			
+			
+			
+			if(this.predicateEvaluator != null)
+			{
+				this.predicateEvaluator.dispose();
+				this.predicateEvaluator = null;
+			}
+			
+			this.container = null;
 		}
 	}
 	
-	
-	
-	// Helper Node
 	
 	protected static class NodeContainer
 	{
@@ -2166,18 +2268,5 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			this.nodeListenerList = nodeListenerList;
 		}
 		
-	}
-	
-	public List<LeafNodeType> getLeafNodeTypeList()
-	{
-		return this.model.getLeafNodeTypeList();
-	}
-	public List<BranchNodeType> getBranchNodeTypeList()
-	{
-		return this.model.getBranchNodeTypeList();
-	}
-	public List<BranchNodeListType> getBranchNodeListTypeList()
-	{
-		return this.model.getBranchNodeListTypeList();
 	}
 }

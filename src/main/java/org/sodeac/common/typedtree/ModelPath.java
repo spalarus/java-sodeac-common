@@ -11,16 +11,17 @@
 package org.sodeac.common.typedtree;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.sodeac.common.typedtree.ModelPath.ModelPathBuilder;
+import org.sodeac.common.expression.BooleanFunction.LogicalOperator;
+import org.sodeac.common.function.ConplierBean;
 import org.sodeac.common.typedtree.ModelPath.ModelPathBuilder.RootModelPathBuilder;
 import org.sodeac.common.typedtree.ModelPath.NodeSelector.Axis;
 import org.sodeac.common.typedtree.ModelPath.NodeSelector.NodeSelectorPredicate;
@@ -37,6 +38,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 {
 	private LinkedList<NodeSelector<?,?>> selectorList = new LinkedList<>();
 	private Class<T> clazz = null;
+	private boolean indisposable = false;
 	
 	private ModelPath()
 	{
@@ -81,8 +83,24 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 		return selectorList;
 	}
 
+	
+	public boolean isIndisposable()
+	{
+		return indisposable;
+	}
+
+	public ModelPath<R,T> setIndisposable()
+	{
+		this.indisposable = true;
+		return this;
+	}
+
 	public void dispose()
 	{
+		if(indisposable)
+		{
+			return;
+		}
 		for(NodeSelector<?,?> selector : selectorList)
 		{
 			selector.dispose();
@@ -146,7 +164,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 				
 				if(nodeSelector.childSelectorList != null)
 				{
-					clonedNodeSelector.childSelectorList = new ArrayList<NodeSelector<?,?>>();
+					clonedNodeSelector.childSelectorList = new HashSet<NodeSelector<?,?>>();
 				}
 				
 				if((previewsNodeSelector != null) && (previewsNodeSelector.childSelectorList != null))
@@ -228,7 +246,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			return new ModelPathBuilder<R,N>(this.root,field,this.selector);
 		}
 		
-		public <N extends BranchNodeMetaModel> BranchNodePredicateBuilder<R,N> childWithPredicates(BranchNodeType<S, N> field)
+		public <N extends BranchNodeMetaModel> BranchNodePredicateBuilder<R,N> childWithPredicates(BranchNodeType<S, N> field) // TODO BranchNodeListType
 		{
 			if((this.selector.childSelectorList != null) && (!this.selector.childSelectorList.isEmpty()))
 			{
@@ -312,11 +330,11 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 				super();
 				this.builder = builder;
 				this.defaultModelInstance = defaultModelInstance;
-				this.rootPedicate = new NodeSelectorPredicate(defaultModelInstance,null, NodeSelectorPredicate.LogicalOperator.AND, false);
+				this.rootPedicate = new NodeSelectorPredicate(defaultModelInstance,null, LogicalOperator.AND, false);
 				this.currentPredicate = this.rootPedicate;
 			}
 			
-			public <T> BranchNodePredicateBuilder<R,N> addLeafNodePredicate(LeafNodeType<N, T> field, Predicate<LeafNode<N,T>> predicate)
+			public <T> BranchNodePredicateBuilder<R,N> addLeafNodePredicate(LeafNodeType<N, T> field, Predicate<T> predicate)
 			{
 				this.currentPredicate.addLeafNodePredicate((LeafNodeType)field, (Predicate)predicate );
 				return this;
@@ -330,25 +348,25 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			
 			public BranchNodePredicateBuilder<R,N> and()
 			{
-				this.currentPredicate = new NodeSelectorPredicate(this.defaultModelInstance,this.currentPredicate, NodeSelectorPredicate.LogicalOperator.AND, false);
+				this.currentPredicate = new NodeSelectorPredicate(this.defaultModelInstance,this.currentPredicate, LogicalOperator.AND, false);
 				return this;
 			}
 			
 			public BranchNodePredicateBuilder<R,N> andNot()
 			{
-				this.currentPredicate = new NodeSelectorPredicate(this.defaultModelInstance,this.currentPredicate, NodeSelectorPredicate.LogicalOperator.AND, true);
+				this.currentPredicate = new NodeSelectorPredicate(this.defaultModelInstance,this.currentPredicate, LogicalOperator.AND, true);
 				return this;
 			}
 			
 			public BranchNodePredicateBuilder<R,N> or()
 			{
-				this.currentPredicate = new NodeSelectorPredicate(this.defaultModelInstance,this.currentPredicate, NodeSelectorPredicate.LogicalOperator.OR, false);
+				this.currentPredicate = new NodeSelectorPredicate(this.defaultModelInstance,this.currentPredicate, LogicalOperator.OR, false);
 				return this;
 			}
 			
 			public BranchNodePredicateBuilder<R,N> orNot()
 			{
-				this.currentPredicate = new NodeSelectorPredicate(this.defaultModelInstance,this.currentPredicate, NodeSelectorPredicate.LogicalOperator.OR, true);
+				this.currentPredicate = new NodeSelectorPredicate(this.defaultModelInstance,this.currentPredicate, LogicalOperator.OR, true);
 				return this;
 			}
 			
@@ -372,9 +390,9 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 		protected static enum Axis {SELF,CHILD,VALUE}
 		
 		private NodeSelector<?,?> parentSelector = null;
-		private List<NodeSelector<?,?>> childSelectorList = null; // Set?
+		private Set<NodeSelector<?,?>> childSelectorList = null;
 		private Set<IModifyListener<?>> modifyListenerList = null;
-		private Map<Object,Set<IModifyListener<?>>> registrationObjects = null;
+		private Map<ConplierBean<Object>,Set<IModifyListener<?>>> registrationObjects = null;
 		private NodeSelectorPredicate predicate = null;
 		private INodeType<?, ?> type = null;
 		private BranchNodeMetaModel root = null;
@@ -388,7 +406,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			this.axis = Axis.SELF;
 		}
 		
-		protected NodeSelector<R,T> copy(NodeSelector<?,?> clonedParentSelector, boolean deep)
+		protected NodeSelector<R,T> clone(NodeSelector<?,?> clonedParentSelector, boolean deep)
 		{
 			NodeSelector<R,T> clonedNodeSelector = new NodeSelector<>();
 			clonedNodeSelector.root = this.root;
@@ -397,10 +415,10 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			clonedNodeSelector.axis = this.axis;
 			if((childSelectorList != null) && deep)
 			{
-				clonedNodeSelector.childSelectorList = new ArrayList<NodeSelector<?,?>>(); 
+				clonedNodeSelector.childSelectorList = new HashSet<NodeSelector<?,?>>(); 
 				for(NodeSelector<?, ?> child : this.childSelectorList)
 				{
-					clonedNodeSelector.childSelectorList.add(child.copy(clonedNodeSelector,true));
+					clonedNodeSelector.childSelectorList.add(child.clone(clonedNodeSelector,true));
 				}
 			}
 			clonedNodeSelector.predicate = this.predicate;
@@ -421,7 +439,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			this.type = type;
 			if(previousSelector.childSelectorList == null)
 			{
-				previousSelector.childSelectorList = new ArrayList<NodeSelector<?,?>>();
+				previousSelector.childSelectorList = new HashSet<NodeSelector<?,?>>();
 			}
 			previousSelector.childSelectorList.add(this);
 			if(axis == null)
@@ -440,11 +458,11 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			this.parentSelector = parentSelector;
 			return this;
 		}
-		protected List<NodeSelector<?, ?>> getChildSelectorList()
+		protected Set<NodeSelector<?, ?>> getChildSelectorList()
 		{
 			return this.childSelectorList;
 		}
-		protected void setChildSelectorList(List<NodeSelector<?, ?>> childSelectorList)
+		protected void setChildSelectorList(Set<NodeSelector<?, ?>> childSelectorList)
 		{
 			this.childSelectorList = childSelectorList;
 		}
@@ -490,12 +508,12 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			this.modifyListenerList = modifyListenerList;
 		}
 
-		protected Map<Object, Set<IModifyListener<?>>> getRegistrationObjects()
+		protected Map<ConplierBean<Object>, Set<IModifyListener<?>>> getRegistrationObjects()
 		{
 			return registrationObjects;
 		}
 
-		protected void setRegistrationObjects(Map<Object, Set<IModifyListener<?>>> registrationObjects)
+		protected void setRegistrationObjects(Map<ConplierBean<Object>, Set<IModifyListener<?>>> registrationObjects)
 		{
 			this.registrationObjects = registrationObjects;
 		}
@@ -514,14 +532,26 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			
 			if(registrationObjects != null)
 			{
+				for(Set<IModifyListener<?>> listener : registrationObjects.values())
+				{
+					if(listener == null)
+					{
+						continue;
+					}
+					listener.clear();
+				}
 				registrationObjects.clear();
+			}
+			
+			if(this.modifyListenerList != null)
+			{
+				this.modifyListenerList.clear();
 			}
 			
 			if(predicate != null)
 			{
 				predicate.dispose();
 			}
-			
 			parentSelector = null;
 			childSelectorList = null;
 			predicate = null;
@@ -578,8 +608,6 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 
 		protected static class NodeSelectorPredicate<T extends BranchNodeMetaModel>
 		{
-			protected static enum LogicalOperator {AND,OR};
-			
 			protected NodeSelectorPredicate(T defaultMetaInstance,NodeSelectorPredicate parent, LogicalOperator logicalOperator,boolean invert)
 			{
 				super();
@@ -619,11 +647,11 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 				return parent;
 			}
 
-			protected NodeSelectorPredicate addLeafNodePredicate(LeafNodeType<T, ?> field, Predicate<LeafNode<T,?>> predicate)
+			protected NodeSelectorPredicate addLeafNodePredicate(LeafNodeType<T, ?> field, Predicate<?> predicate)
 			{
 				if(this.leafNodePredicateList == null)
 				{
-					this.leafNodePredicateList = new ArrayList<NodeSelector.LeafNodePredicate<T,?>>();
+					this.leafNodePredicateList = new ArrayList<NodeSelector.LeafNodePredicate<T, ?>>();
 				}
 				this.leafNodePredicateList.add(new LeafNodePredicate(field, predicate) );
 				return this;
@@ -848,7 +876,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 		
 		protected static class LeafNodePredicate<N extends BranchNodeMetaModel,T>
 		{
-			protected LeafNodePredicate(LeafNodeType<N, T> field, Predicate<LeafNode<N,T>> predicate)
+			protected LeafNodePredicate(LeafNodeType<N, T> field, Predicate<T> predicate)
 			{
 				super();
 				this.field = field;
@@ -856,13 +884,13 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 			}
 			
 			private LeafNodeType<N, T> field = null;
-			private Predicate<LeafNode<N,T>> predicate = null;
+			private Predicate<T> predicate = null;
 			
 			protected LeafNodeType<N, T> getField()
 			{
 				return field;
 			}
-			protected Predicate<LeafNode<N, T>> getPredicate()
+			protected Predicate<T> getPredicate()
 			{
 				return predicate;
 			}

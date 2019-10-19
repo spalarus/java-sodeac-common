@@ -137,24 +137,26 @@ public class ModifyListenerTest
 		
 		IModifyListener<LeafNode<?, String>> listener1 = IModifyListener.onModify( n -> {});
 		IModifyListener<LeafNode<?, String>> listener2 = IModifyListener.onModify( n -> {});
-		registration.registerListener(ModelPathBuilder.newBuilder(UserType.class).buildForNode(UserType.name), listener1);
 		
-		List<NodeSelector<UserType, ?>> rootSelectorList = registration.getRootNodeSelectorList();
+		ModelPath<UserType, LeafNode<?, String>> path = ModelPathBuilder.newBuilder(UserType.class).buildForNode(UserType.name);
+		registration.registerListener(path, listener1);
+		
+		Set<NodeSelector<UserType, ?>> rootSelectorList = registration.getRootNodeSelectorList();
 		
 		assertNotNull("root listeners should not be null", rootSelectorList);
 		assertEquals("size of root listeners should be correct", 1, rootSelectorList.size());
 		
-		NodeSelector<UserType, ?> rootSelector = rootSelectorList.get(0);
+		NodeSelector<UserType, ?> rootSelector = rootSelectorList.iterator().next();
 		
 		assertSame("axis of selector should be correct", Axis.SELF, rootSelector.getAxis());
 		assertSame("root type of selector should be correct", ModelingProcessor.DEFAULT_INSTANCE.getModel(UserType.class), rootSelector.getRootType());
 		
-		List<NodeSelector<?, ?>> childSelectorList = rootSelector.getChildSelectorList();
+		Set<NodeSelector<?, ?>> childSelectorList = rootSelector.getChildSelectorList();
 		
 		assertNotNull("child selector list should not be null", childSelectorList);
 		assertEquals("size of child selector list should be correct", 1, childSelectorList.size());
 		
-		NodeSelector<?, ?> childSelector = childSelectorList.get(0);
+		NodeSelector<?, ?> childSelector = childSelectorList.iterator().next();
 		
 		assertSame("axis of selector should be correct", Axis.CHILD, childSelector.getAxis());
 		assertSame("root type of selector should be correct", ModelingProcessor.DEFAULT_INSTANCE.getModel(UserType.class), rootSelector.getRootType());
@@ -164,17 +166,17 @@ public class ModifyListenerTest
 		assertNotNull("child listener list should not be null", listenerList);
 		assertEquals("size of child listener list should be correct", 1, listenerList.size());
 		
-		Map<Object,Set<IModifyListener<?>>> registrations = childSelector.getRegistrationObjects();
+		Map<ConplierBean<Object>,Set<IModifyListener<?>>> registrations = childSelector.getRegistrationObjects();
 		assertEquals("registrations size should be correct", 1, registrations.size());
 		
-		registration.registerListener(ModelPathBuilder.newBuilder(UserType.class).buildForNode(UserType.name), listener2);
+		registration.registerListener(path, listener2);
 		
 		rootSelectorList = registration.getRootNodeSelectorList();
 		
 		assertNotNull("root listeners should not be null", rootSelectorList);
 		assertEquals("size of root listeners should be correct", 1, rootSelectorList.size());
 		
-		rootSelector = rootSelectorList.get(0);
+		rootSelector = rootSelectorList.iterator().next();
 		
 		assertSame("axis of selector should be correct", Axis.SELF, rootSelector.getAxis());
 		assertSame("root type of selector should be correct", ModelingProcessor.DEFAULT_INSTANCE.getModel(UserType.class), rootSelector.getRootType());
@@ -184,7 +186,7 @@ public class ModifyListenerTest
 		assertNotNull("child selector list should not be null", childSelectorList);
 		assertEquals("size of child selector list should be correct", 1, childSelectorList.size());
 		
-		childSelector = childSelectorList.get(0);
+		childSelector = childSelectorList.iterator().next();
 		
 		assertSame("axis of selector should be correct", Axis.CHILD, childSelector.getAxis());
 		assertSame("root type of selector should be correct", ModelingProcessor.DEFAULT_INSTANCE.getModel(UserType.class), rootSelector.getRootType());
@@ -249,5 +251,32 @@ public class ModifyListenerTest
 		cityPath.dispose();
 		namePath.dispose();
 		user.dispose();
+	}
+	
+	@Test
+	public void test1002CreateModifyListenerWithPredicate()
+	{
+		RootBranchNode<TestModel,UserType> user = TypedTreeMetaModel.getInstance(TestModel.class).createRootNode(TestModel.user);
+		
+		ModelPath<UserType, String> countryPath = ModelPathBuilder.newBuilder(UserType.class)
+				.childWithPredicates(UserType.address)
+					.addLeafNodePredicate(AddressType.city, v -> "Bln".equals(v))
+					// .addPathPredicate(b -> b.child(AddressType.country).buildForValue(CountryType.name), v -> "Ger".equals(v))
+					.build()
+				.child(AddressType.country)
+				.buildForValue(CountryType.name);
+		
+		ConplierBean<String> country = new ConplierBean<String>();
+		user.registerForModify(countryPath, IModifyListener.onModify(country));
+		
+		assertNull("country should be null",country.get());
+		
+		user.create(UserType.address).create(AddressType.country).setValue(CountryType.name, "Ger");
+		
+		// TODO assertNull("country should be null",country.get());
+		
+		countryPath.dispose();
+		user.dispose();
+		
 	}
 }
