@@ -28,7 +28,7 @@ public interface INodeEventHandler<E>
 	 * @param linkMode append or prepend
 	 * @param version deque version
 	 */
-	public void onLink(Node<E> node, SnapshotableDeque.LinkMode linkMode, long version );
+	public void onLink(DequeNode<E> node, SnapshotableDeque.LinkMode linkMode, long version );
 	
 	/**
 	 * Notify if node is unlinked from deque
@@ -36,7 +36,7 @@ public interface INodeEventHandler<E>
 	 * @param node node
 	 * @param version deque version
 	 */
-	public void onUnlink(Node<E> node, long version );
+	public void onUnlink(DequeNode<E> node, long version );
 	
 	/**
 	 * Notify if node is disposed

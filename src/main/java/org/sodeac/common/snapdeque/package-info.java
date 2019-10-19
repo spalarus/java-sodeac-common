@@ -10,7 +10,7 @@
  *******************************************************************************/
 
 /**
- * A {@link org.sodeac.common.snapdeque.SnapshotableDeque} provides an implementation of {@link java.util.Deque}. Iterating through deque requires creating a {@link Snapshot}. A snapshot is immutable regardless of possible changes in source deque.
+ * A {@link org.sodeac.common.snapdeque.SnapshotableDeque} provides an implementation of {@link java.util.Deque}. Iterating through deque requires creating a {@link DequeSnapshot}. A snapshot is immutable regardless of possible changes in source deque.
  * 
  * <p>
  * 

@@ -26,10 +26,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import java.util.function.Consumer;
 
-import org.sodeac.common.snapdeque.Node.Link;
+import org.sodeac.common.snapdeque.DequeNode.Link;
 
 /**
- * A threadsafe and snapshotable {@link Deque}. Iterating through deque requires creating a {@link Snapshot}.
+ * A threadsafe and snapshotable {@link Deque}. Iterating through deque requires creating a {@link DequeSnapshot}.
  * 
  * @author Sebastian Palarus
  * @since 1.0
@@ -87,8 +87,16 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	
 	protected UUID uuid = null;
 	
-	
-	
+	public long getCapacity()
+	{
+		return capacity;
+	}
+
+	public void setCapacity(long capacity)
+	{
+		this.capacity = capacity;
+	}
+
 	/**
 	 * Internal helper method returns current modification version. This method must invoke with SD.writeLock !
 	 * 
@@ -359,9 +367,9 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 		
 		private long sequence;
 		private SnapshotableDeque<E> deque;
-		private Set<Snapshot<E>> openSnapshots;
+		private Set<DequeSnapshot<E>> openSnapshots;
 		
-		protected void addSnapshot(Snapshot<E> snapshot)
+		protected void addSnapshot(DequeSnapshot<E> snapshot)
 		{
 			if(snapshot == null)
 			{
@@ -369,12 +377,12 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 			}
 			if(openSnapshots == null)
 			{
-				openSnapshots = new LinkedHashSet<Snapshot<E>>();
+				openSnapshots = new LinkedHashSet<DequeSnapshot<E>>();
 			}
 			openSnapshots.add(snapshot);
 		}
 		
-		protected void removeSnapshot(Snapshot<E> snapshot)
+		protected void removeSnapshot(DequeSnapshot<E> snapshot)
 		{
 			if(snapshot == null)
 			{
@@ -394,7 +402,7 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 			}
 		}
 		
-		protected Set<Snapshot<E>> getOpenSnapshots() 
+		protected Set<DequeSnapshot<E>> getOpenSnapshots() 
 		{
 			return openSnapshots;
 		}
@@ -483,18 +491,18 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 			
 			this.clear();
 			
-			Set<Snapshot<E>> openSnapshots = new HashSet<Snapshot<E>>();
+			Set<DequeSnapshot<E>> openSnapshots = new HashSet<DequeSnapshot<E>>();
 			
 			for(SnapshotVersion<E> snapshotVersion : this.openSnapshotVersionList )
 			{
-				Set<Snapshot<E>> snaps = snapshotVersion.getOpenSnapshots();
+				Set<DequeSnapshot<E>> snaps = snapshotVersion.getOpenSnapshots();
 				if(snaps != null)
 				{
 					openSnapshots.addAll(snaps);
 				}
 			}
 			
-			for(Snapshot<E> openSnapshot : openSnapshots)
+			for(DequeSnapshot<E> openSnapshot : openSnapshots)
 			{
 				try
 				{
@@ -561,15 +569,15 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	}
 	
 	/**
-	 * Internal method to link element
+	 * link (append or prepend) new element to deque. If capacity is reached a IllegalStateException is thrown.
 	 * 
 	 * @param linkMode append or prepend
 	 * @param element item to link
 	 * @return node
 	 */
-	private Node<E> link(SnapshotableDeque.LinkMode linkMode, E element)
+	public DequeNode<E> link(SnapshotableDeque.LinkMode linkMode, E element)
 	{
-		Node<E> node = null;
+		DequeNode<E> node = null;
 		
 		Lock lock = this.writeLock;
 		lock.lock();
@@ -577,7 +585,7 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 		{
 			this.getModificationVersion();
 			
-			node = new Node<E>(element,this);
+			node = new DequeNode<E>(element,this);
 			
 			if(linkMode == SnapshotableDeque.LinkMode.PREPEND)
 			{
@@ -604,7 +612,7 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	 * @return nodes
 	 */
 	@SuppressWarnings("unchecked")
-	private Node<E>[] linkAll(SnapshotableDeque.LinkMode linkMode, Collection<? extends E> elements)
+	private DequeNode<E>[] linkAll(SnapshotableDeque.LinkMode linkMode, Collection<? extends E> elements)
 	{
 		
 		if(elements == null)
@@ -612,7 +620,7 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 			return null;
 		}
 		
-		Node<E>[] nodes = new Node[elements.size()];
+		DequeNode<E>[] nodes = new DequeNode[elements.size()];
 		
 		Lock lock = this.writeLock;
 		lock.lock();
@@ -620,11 +628,11 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 		{
 			this.getModificationVersion();
 			
-			Node<E> node = null;
+			DequeNode<E> node = null;
 			int index = 0;
 			for(E element : elements)
 			{
-				node = new Node<E>(element,this);
+				node = new DequeNode<E>(element,this);
 				nodes[index++] = node;
 				
 				if(linkMode == SnapshotableDeque.LinkMode.PREPEND)
@@ -650,7 +658,7 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	 * @param node node to append
 	 * @param currentVersion current version of deque
 	 */
-	private void appendNode(Node<E> node, SnapshotVersion<E> currentVersion)
+	private void appendNode(DequeNode<E> node, SnapshotVersion<E> currentVersion)
 	{
 		Link<E> link = node.getLink();
 		if(link != null)
@@ -722,7 +730,7 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	 * @param node node to prepend
 	 * @param currentVersion current version of deque
 	 */
-	private void prependNode(Node<E> node, SnapshotVersion<E> currentVersion)
+	private void prependNode(DequeNode<E> node, SnapshotVersion<E> currentVersion)
 	{
 		Link<E> link = node.getLink();
 		if(link != null)
@@ -773,13 +781,13 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	 * 
 	 * @return snapshot for specified
 	 */
-	public Snapshot<E> createSnapshot()
+	public DequeSnapshot<E> createSnapshot()
 	{
 		Lock lock = this.writeLock;
 		lock.lock();
 		try
 		{
-			return new Snapshot<>(this,false, null);
+			return new DequeSnapshot<>(this,false, null);
 		}
 		finally 
 		{
@@ -792,13 +800,13 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	 * 
 	 * @return snapshot for specified
 	 */
-	public Snapshot<E> createSnapshotPoll()
+	public DequeSnapshot<E> createSnapshotPoll()
 	{
 		Lock lock = this.writeLock;
 		lock.lock();
 		try
 		{
-			return new Snapshot<>(this,true, null);
+			return new DequeSnapshot<>(this,true, null);
 		}
 		finally 
 		{
@@ -807,12 +815,12 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	}
 	
 	/**
-	 * Internal helper class to reference begin or end of branch. This is the non-payload variant of {@link Node}.
+	 * Internal helper class to reference begin or end of branch. This is the non-payload variant of {@link DequeNode}.
 	 * 
 	 * @author Sebastian Palarus
 	 *
 	 */
-	protected class Bollard extends Node<E>
+	protected class Bollard extends DequeNode<E>
 	{
 		protected Bollard()
 		{
@@ -848,7 +856,7 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	 */
 	protected static class Eyebolt<E> extends Link<E>
 	{
-		protected Eyebolt(Node<E> parent, SnapshotVersion<E> currentVersion)
+		protected Eyebolt(DequeNode<E> parent, SnapshotVersion<E> currentVersion)
 		{
 			super(parent, currentVersion);
 		}
@@ -912,13 +920,13 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	@Override
 	public boolean remove(Object o) 
 	{
-		Snapshot<E> snapshot = createSnapshot();
+		DequeSnapshot<E> snapshot = createSnapshot();
 		try
 		{
 			if(o == null)
 			{
-				Node<E> node;
-				Iterator<Node<E>> it = snapshot.nodeIterable().iterator();
+				DequeNode<E> node;
+				Iterator<DequeNode<E>> it = snapshot.nodeIterable().iterator();
 				try
 				{
 					while(it.hasNext())
@@ -952,8 +960,8 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 			}
 			else
 			{
-				Node<E> node;
-				Iterator<Node<E>> it = snapshot.nodeIterable().iterator();
+				DequeNode<E> node;
+				Iterator<DequeNode<E>> it = snapshot.nodeIterable().iterator();
 				try
 				{
 					while(it.hasNext())
@@ -997,7 +1005,7 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	public boolean containsAll(Collection<?> c) 
 	{
 		Objects.requireNonNull(c);
-		Snapshot<E> snapshot = createSnapshot();
+		DequeSnapshot<E> snapshot = createSnapshot();
 		try
 		{
 			return snapshot.containsAll(c);
@@ -1011,7 +1019,7 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	@Override
 	public boolean contains(Object o) 
 	{
-		Snapshot<E> snapshot = createSnapshot();
+		DequeSnapshot<E> snapshot = createSnapshot();
 		try
 		{
 			return snapshot.contains(o);
@@ -1039,7 +1047,7 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	{
 		Objects.requireNonNull(c);
 		
-		Snapshot<E> snapshot = createSnapshot();
+		DequeSnapshot<E> snapshot = createSnapshot();
 		try
 		{
 			return snapshot.removeAll(c);
@@ -1055,7 +1063,7 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	{
 		Objects.requireNonNull(c);
 		
-		Snapshot<E> snapshot = createSnapshot();
+		DequeSnapshot<E> snapshot = createSnapshot();
 		try
 		{
 			return snapshot.retainAll(c);
@@ -1069,7 +1077,7 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	@Override
 	public Object[] toArray() 
 	{
-		Snapshot<E> snapshot = createSnapshot();
+		DequeSnapshot<E> snapshot = createSnapshot();
 		try
 		{
 			return snapshot.toArray();
@@ -1083,7 +1091,7 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	@Override
 	public <T> T[] toArray(T[] a) 
 	{
-		Snapshot<E> snapshot = createSnapshot();
+		DequeSnapshot<E> snapshot = createSnapshot();
 		try
 		{
 			return snapshot.toArray(a);
@@ -1451,13 +1459,13 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 		lock.lock();
 		try
 		{
-			Snapshot<E> snapshot = createSnapshot();
+			DequeSnapshot<E> snapshot = createSnapshot();
 			try
 			{
-				Node<E> last = null;
+				DequeNode<E> last = null;
 				if(o == null)
 				{
-					for(Node<E> node : snapshot.nodeIterable())
+					for(DequeNode<E> node : snapshot.nodeIterable())
 					{
 						if (node.getElement() == null) 
 						{
@@ -1467,7 +1475,7 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 				}
 				else
 				{
-					for(Node<E> node : snapshot.nodeIterable())
+					for(DequeNode<E> node : snapshot.nodeIterable())
 					{
 						if (o.equals(node.getElement())) 
 						{
