@@ -28,7 +28,7 @@ import java.util.NoSuchElementException;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
-import org.sodeac.common.snapdeque.Node.Link;
+import org.sodeac.common.snapdeque.DequeNode.Link;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class BlackboxTest 
@@ -55,7 +55,7 @@ public class BlackboxTest
 		assertEquals("first element should be correct ", "1", deque.getFirst());
 		assertEquals("last element should be correct ", "3", deque.getLast());
 		
-		Snapshot<String> snapshot1 = deque.createSnapshot();
+		DequeSnapshot<String> snapshot1 = deque.createSnapshot();
 		assertNotNull("snapshot should not be null", snapshot1);
 		assertEquals("snapshot first element should be correct ", "1", snapshot1.getFirstElement());
 		assertEquals("snapshot first link should be correct ", "1", snapshot1.getFirstLink().getElement());
@@ -63,14 +63,14 @@ public class BlackboxTest
 		assertEquals("snapshot last link should be correct ", "3", snapshot1.getLastLink().getElement());
 		
 		assertEquals("snapshot.size() should be correct ", content.size(), snapshot1.size());
-		Iterator<Node<String>> nodeIterator = snapshot1.nodeIterable().iterator();
+		Iterator<DequeNode<String>> nodeIterator = snapshot1.nodeIterable().iterator();
 		Iterator<Link<String>> linkIterator = snapshot1.linkIterable().iterator();
 		int index = 0;
 		for(String str : snapshot1)
 		{
 			assertEquals("nextValue should be correct", content.get(index), str);
 			assertTrue("hasNext node should be true", nodeIterator.hasNext());
-			Node<String> item = nodeIterator.next();
+			DequeNode<String> item = nodeIterator.next();
 			assertNotNull("item should not be null", item);
 			
 			String valueByItem = item.getElement();
@@ -100,7 +100,7 @@ public class BlackboxTest
 		{
 			assertEquals("nextValue should be correct", content.get(index), str);
 			assertTrue("hasNext node should be true", nodeIterator.hasNext());
-			Node<String> item = nodeIterator.next();
+			DequeNode<String> item = nodeIterator.next();
 			assertNotNull("item should not be null", item);
 			
 			String valueByItem = item.getElement();
@@ -1137,7 +1137,7 @@ public class BlackboxTest
 	
 	private <T> void testEqualsCollection(Collection<T> collection, SnapshotableDeque<T> deque)
 	{
-		try(Snapshot<T> snapshot = deque.createSnapshot())
+		try(DequeSnapshot<T> snapshot = deque.createSnapshot())
 		{
 			assertEquals("collections size should equal", snapshot.size,deque.size());
 			Iterator<T> collectionIterator = collection.iterator();
@@ -1161,7 +1161,7 @@ public class BlackboxTest
 	
 	private <T> void testEqualsNotCollection(Collection<T> collection, SnapshotableDeque<T> deque)
 	{
-		try(Snapshot<T> snapshot = deque.createSnapshot())
+		try(DequeSnapshot<T> snapshot = deque.createSnapshot())
 		{
 			Iterator<T> collectionIterator = collection.iterator();
 			Iterator<T> snapshotIterator = snapshot.iterator();
