@@ -13,21 +13,23 @@ package org.sodeac.common.message.service.api;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
-public interface IMessageDrivenService
+public interface IServiceSession
 {
 	public Set<IChannel.IChannelDescription> getChannelCatalog();
 	
-	public default <T> IChannel<T> openChannel(Class<T> messageClass)
+	/*public default <T> IChannel<T> openChannel(Class<T> messageClass)
 	{
 		return openChannel(messageClass, IChannel.ChannelType.STREAM);
-	}
-	public <T> IChannel<T> openChannel(Class<T> messageClass,IChannel.ChannelType channelType);
+	}*/
+	public <T> IMessageProducerEndpoint<T> openMessageProducerEndpoint(Class<T> messageClass);
 	
-	public IMessageDrivenService open();
-	public IMessageDrivenService close();
+	public IServiceSession connect();
+	public IServiceSession disconnect();
+	public boolean isConnected();
+	public IServiceSession close();
 	public boolean isClosed();
 	
 	public <A> A getAdapter(Class<A> adapterClass);
@@ -43,27 +45,27 @@ public interface IMessageDrivenService
 			
 			/**
 			 * A Collection of tags. A tag (identified by equals) can only be one time in collection. 
-			 * If a tag is supplied several times, the latest published tag replaces the previous item equals new tag 
+			 * If a tag is supplied several times, the latest published tag replaces the previous item equals new tag.
+			 * If Consumed, the Message is removed
 			 */
 			TAG, 
 			
 			/**
 			 * A Single Object . 
+			 * If Consumed, the Message is removed.
 			 */
 			STATE
 		}
 		
 		public IChannel<T> close(String reason);
 		public boolean isClosed();
+		
 		public IChannelDescription getChannelDescription();
 		
 		public <P extends IChannelPolicy> Optional<P> getChannelPolicy(Class<P> type);
 		public <P extends IChannelEventProcessor> Optional<P> getChannelEventProcessor(Class<P> type);
 		
-		public IChannel<T> onMessageRequested(Function<IMessageRequest<T>,T> messageSupplier);
-		public IChannel<T> onMessageSupplied(Consumer<IMessageSupply<T>> messageConsumer);
-		
-		public IMessageDrivenService getConversation();
+		public IServiceSession getSession();
 		
 		public interface IChannelDescription
 		{
@@ -75,7 +77,7 @@ public interface IMessageDrivenService
 			public IChannel<T> getChannel();
 		}
 		
-		public interface IMessageSupply<T>
+		public interface IMessageReceive<T>
 		{
 			public T value();
 			
@@ -96,5 +98,17 @@ public interface IMessageDrivenService
 		public interface IChannelEventProcessor
 		{
 		}
+	}
+	
+	public interface IMessageConsumerEndpoint<T> extends IChannel<T>
+	{
+		public IMessageConsumerEndpoint<T> onMessageReceived(Consumer<IMessageReceive<T>> messageConsumer); 
+		public IMessageConsumerEndpoint<T> setupEndpoint(Consumer<IMessageConsumerEndpoint<T>> setup);
+	}
+	
+	public interface IMessageProducerEndpoint<T> extends IChannel<T>
+	{
+		public IMessageProducerEndpoint<T> onMessageRequested(BiConsumer<IMessageRequest<T>,Consumer<T>> messageProducer);
+		public IMessageProducerEndpoint<T> setupEndpoint(Consumer<IMessageProducerEndpoint<T>> setup);
 	}
 }

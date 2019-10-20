@@ -119,7 +119,8 @@
             	org.sodeac.common.misc;version="${bundle.version}"
             </Export-Package>
             <Private-Package>
-            	org.sodeac.common.message.dispatcher.impl
+            	org.sodeac.common.message.dispatcher.impl,
+            	org.sodeac.common.message.service.impl
             </Private-Package>
           </instructions>
           <source>${jdk.version}</source>

@@ -13,9 +13,9 @@ package org.sodeac.common.message.service.api;
 
 import java.util.function.Consumer;
 
-import org.sodeac.common.message.service.api.IMessageDrivenService.IChannel;
-import org.sodeac.common.message.service.api.IMessageDrivenService.IChannel.IChannelEvent;
-import org.sodeac.common.message.service.api.IMessageDrivenService.IChannel.IChannelEventProcessor;
+import org.sodeac.common.message.service.api.IServiceSession.IChannel;
+import org.sodeac.common.message.service.api.IServiceSession.IChannel.IChannelEvent;
+import org.sodeac.common.message.service.api.IServiceSession.IChannel.IChannelEventProcessor;
 
 public interface ICommonChannelEventProcessors
 {
@@ -41,7 +41,7 @@ public interface ICommonChannelEventProcessors
 	
 	public interface IChannelClose extends IChannelEvent
 	{
-		public enum ErrorType {SUPPLIER,CONSUMNER}
+		public enum Actor {SUPPLIER,CONSUMNER}
 		
 		public int getCountSupplier();
 		public int getCountConsumer();

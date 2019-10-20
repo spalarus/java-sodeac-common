@@ -8,9 +8,25 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.message.service.api;
+package org.sodeac.common.message.service.impl;
 
-public interface IMessageDrivenConversationServiceManager
+import static org.junit.Assert.assertNotNull;
+
+
+import org.junit.FixMethodOrder;
+import org.junit.Test;
+import org.junit.runners.MethodSorters;
+import org.sodeac.common.message.service.api.IServiceLocator;
+
+
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+public class ServiceLocatorTest
 {
-
+	@Test
+	public void test001EqualsString()
+	{
+		IServiceLocator serviceLocator = IServiceLocator.newInstance();
+		
+		assertNotNull("ServiceLocator should be not null", serviceLocator);
+	}
 }

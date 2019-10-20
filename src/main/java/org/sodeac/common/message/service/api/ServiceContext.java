@@ -10,7 +10,26 @@
  *******************************************************************************/
 package org.sodeac.common.message.service.api;
 
-public interface IMessageDrivenServiceFactory
+import java.util.Hashtable;
+
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+
+public class ServiceContext extends InitialContext
 {
-	// Create Conversations
+	public ServiceContext() throws NamingException
+	{
+		super();
+	}
+
+	public ServiceContext(Hashtable<?, ?> environment) throws NamingException
+	{
+		super(environment);
+	}
+
+	@Override
+	public Object lookup(String name) throws NamingException
+	{
+		return super.lookup(name);
+	}
 }
