@@ -20,11 +20,8 @@ public interface IServiceSession
 {
 	public Set<IChannel.IChannelDescription> getChannelCatalog();
 	
-	/*public default <T> IChannel<T> openChannel(Class<T> messageClass)
-	{
-		return openChannel(messageClass, IChannel.ChannelType.STREAM);
-	}*/
 	public <T> IMessageProducerEndpoint<T> openMessageProducerEndpoint(Class<T> messageClass);
+	public <T> IMessageConsumerEndpoint<T> openMessageConsumerEndpoint(Class<T> messageClass);
 	
 	public IServiceSession connect();
 	public IServiceSession disconnect();
