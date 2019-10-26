@@ -110,7 +110,7 @@
             	org.sodeac.common;version="${bundle.version}",
             	org.sodeac.common.snapdeque;version="${bundle.version}",
             	org.sodeac.common.function;version="${bundle.version}",
-            	org.sodeac.common.typedtree;version="${bundle.version}",
+            	org.sodeac.common.typedtree*;version="${bundle.version}",
             	org.sodeac.common.xuri;version="${bundle.version}",
             	org.sodeac.common.xuri.ldapfilter;version="${bundle.version}",
             	org.sodeac.common.message;version="${bundle.version}",
