@@ -497,7 +497,7 @@ public class XMLMarshaller
 	{
 		ParseXMLMarshallerHandler xmlMarsallerHandler = new ParseXMLMarshallerHandler(modelClass);
 		
-		ModelRegistry.parse(CoreTreeModel.class, xmlMarsallerHandler);
+		ModelRegistry.parse(modelClass, xmlMarsallerHandler);
 		
 		return xmlMarsallerHandler.getXMLMarshaller();
 	}
