@@ -8,9 +8,20 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.message.service.api;
+package org.sodeac.common.typedtree.annotation;
 
-public interface IServiceFactory
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
+
+@Documented
+@Retention(RUNTIME)
+@Target(FIELD)
+public @interface XMLNodeList 
 {
-	public void setupSession(IServiceSession session);
+	boolean listElement() default true;
+	String childElementName() default "";
 }

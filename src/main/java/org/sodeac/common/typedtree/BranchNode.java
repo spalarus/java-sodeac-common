@@ -72,7 +72,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 				super.rootLinked = true;	// self root
 			}
 			
-			this.model = ModelingProcessor.DEFAULT_INSTANCE.getModel(modelType);
+			this.model = ModelRegistry.DEFAULT_INSTANCE.getCachedBranchNodeMetaModel(modelType);
 			
 			this.nodeContainerList = new ArrayList<>();
 			for(int i = 0; i < this.model.getNodeTypeNames().length; i++)

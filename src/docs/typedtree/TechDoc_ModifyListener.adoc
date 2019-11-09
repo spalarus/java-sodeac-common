@@ -1,0 +1,146 @@
+= Technical documentation IModifyListener
+
+== Use Case
+
+Modify listener can be registered by ModelPath / ModifyListenerRegistration 
+to listen for modify changes for still non existing child nodes. 
+A path can define predicates related to nodes outside the path.
+
+== Challenge
+
+Creating complex infrastructure of helper listeners in tree instance.
+
+== Involved objects
+
+* ModelPath
+* ModifyListenerRegistration
+* BranchNode
+
+=== ModelPath - brief
+
+A ModelPath consists of a linked list of NodeSelectors. 
+Each node selector defines the next node by axis and predicate (optional).
+
+=== ModifyListenerRegistration - brief
+
+ModifyListenerRegistration consists of a tree of node selectors. 
+Each node selector can register multiple modify listener. 
+This object is a intern helper class of BranchNode to manage ModifyListeners. Moreover
+this class can be used to  define ModifyListeners for paths globally  
+and register/unregister to various trees.
+
+=== NodeSelector
+
+A NodeSelector describes criteria of node selection - axis, predicate. 
+A set of node selectors can structured in tree structure.
+
+[options="header",cols="1,1,1"]
+|===
+|Var                 |Type          |Description 
+//-------------
+|parentSelector      |NodeSelector  | parent NodeSelector in tree   
+|childSelectorList   |Set of NodeSelectors | child NodeSelectors in tree
+|modifyListenerList  |Set of  IModifyListener | ModifyListener registered for nodes matched by this NodeSelector
+|registrationObjects |Set of RegistrationObjects for each Key |  Registration describes, which ModifyListeners registered by which Key
+|predicate           |NodeSelectorPredicate |  Predicate (further Condition of matching)
+|type                |INodeType |  static model node type instance
+|root                |BranchNodeMetaModel |   static model instance
+|axis                |Axis |    SELF or CHILD  or VALUE
+|===
+
+In ModelPath a NodeSelector can contains one child only.
+
+equals: compares axis, type and predicate
+clone(clonedParentSelector,deep) : axis,root,type,predicate / deep-copy childselectors
+
+=== NodeSelectorPredicate
+
+TreeNode to define predicates. TreeNode (var: parent, childPredicateList), because of complex boolean functions. 
+A NodeSelectorPredicate connects atomic predicates or other NodeSelectorPredicats (var: leafNodePredicateList,pathPredicateList) by
+an operator (var: logicalOperatoer, invert). The defaultMetaInstance is required for builder.
+
+equals: childPredicateList,invert,logicatlOperator,defaultMetaInstance,leafNodePredicateList,pathPredicateList
+clone(clonedParent): defaultMetaInstance, clonedParent, logicalOperator, invert / copy of lists
+
+=== PathPredicat
+
+Combines model-path and predicate
+
+equals: path,predicate
+clone: path.clone,predicate
+
+=== LeafNodePredicate
+
+Combines field (LeafNodeType ) and predicate
+
+equals: field,predicate
+clone: field,predicate
+
+=== ModelPath - detail
+
+A ModelPath consists of a linked list of NodeSelectors and class-instance of last node.
+
+dispose: dispose all node selectors in list and set all null
+equals: node selectors and class
+clone: class and new selector list / per selector: root,cloned parent-selector, type, axis, predicate (!!! no copy of child selectors !!!)
+
+=== ModifyListenerRegistration - detail
+
+ModifyListenerRegistration consists of a tree of node selectors (var: rootNodeSelectorList).
+
+==== Register a path or another registration
+
+Add a copy of intern selectors by ModelPath or another ModifyListenerRegistration  to the intern tree of ModifyListenerRegistration. 
+If a selector already exists in intern tree (checked by selector.equals), it will be reused.
+
+The intern selectors of ModifyListenerRegistration register following objects.
+
+* the registration object himself (path or registration) in NodeSelector.registrationObjects (as key)
+* the modifyListener in NodeSelector.registrationObjects (as value) and NodeSelector.modifyListenerList
+
+==== Unregister a path or another registration
+
+Remove all NodeSelector.registrationObjects with given key in whole tree. 
+After this all NodeSelector.modifyListenerList-items without entry in NodeSelector.registrationObjects will be removed.
+Moreover all selectors without NodeSelector.registrationObjects will be removed.
+
+=== BranchNode
+
+BranchNodes register ModifyListeners in a ModifyListenerRegistration. 
+Moreover in NodeContainer an IChildNodeListener from type BranchNode.ModifyListenerContainer is registered.
+For each selector (equals - type,predicate,axis) one  ModifyListenerContainer manage all ModifyListeners in a list
+of ModifyListenerWrappers.
+
+ModifyListenerContainer:
+[options="header",cols="1,1,1"]
+|===
+|Var                 |Type          |Description 
+//-------------
+|selector            |NodeSelector  | deep copy of selector the container is in charge of
+|active			     |boolean | if selector use a predicate, the result of evaluation
+|listenerWrapperList |List of  ModifyListenerWrapper | a Wrapper contains the reference to origin selector of ModifyListenerRegistration
+|activeSet           |Set of IModifyListener |  All applicable modify listeners 
+|container           |NodeContainer |  reference to parent container
+|predicateEvaluator  |BooleanFunction |  Evaluator for predicate
+|===
+
+ModifyListenerWrapper:
+[options="header",cols="1,1,1"]
+|===
+|Var                 |Type          |Description 
+//-------------
+|rootPathPredicate   |NodeSelectorPredicate  | if path has root-predicate and selector is first node
+|selector		     |NodeSelector | origin selector of ModifyListenerRegistration
+|activeByParent		 |boolean | one of parent nodes is inactive by predicate
+|===
+
+ModifyListenerContainer.accept: 
+* fire accept for active ModifyListener
+* register recursive for child selectors
+
+ModifyListenerContainer.mergeActiveModifyListener:
+* create new valid activeSet
+* fire onListenStop for deactivated listener
+* fire onListenStart for activated listener
+
+

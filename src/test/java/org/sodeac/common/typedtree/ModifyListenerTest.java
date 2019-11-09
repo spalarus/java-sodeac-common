@@ -149,7 +149,7 @@ public class ModifyListenerTest
 		NodeSelector<UserType, ?> rootSelector = rootSelectorList.iterator().next();
 		
 		assertSame("axis of selector should be correct", Axis.SELF, rootSelector.getAxis());
-		assertSame("root type of selector should be correct", ModelingProcessor.DEFAULT_INSTANCE.getModel(UserType.class), rootSelector.getRootType());
+		assertSame("root type of selector should be correct", ModelRegistry.DEFAULT_INSTANCE.getCachedBranchNodeMetaModel(UserType.class), rootSelector.getRootType());
 		
 		Set<NodeSelector<?, ?>> childSelectorList = rootSelector.getChildSelectorList();
 		
@@ -159,7 +159,7 @@ public class ModifyListenerTest
 		NodeSelector<?, ?> childSelector = childSelectorList.iterator().next();
 		
 		assertSame("axis of selector should be correct", Axis.CHILD, childSelector.getAxis());
-		assertSame("root type of selector should be correct", ModelingProcessor.DEFAULT_INSTANCE.getModel(UserType.class), rootSelector.getRootType());
+		assertSame("root type of selector should be correct", ModelRegistry.DEFAULT_INSTANCE.getCachedBranchNodeMetaModel(UserType.class), rootSelector.getRootType());
 		assertSame("type of selector should be correct", UserType.name, childSelector.getType());
 		
 		Set<IModifyListener<?>> listenerList = childSelector.getModifyListenerList(); 
@@ -179,7 +179,7 @@ public class ModifyListenerTest
 		rootSelector = rootSelectorList.iterator().next();
 		
 		assertSame("axis of selector should be correct", Axis.SELF, rootSelector.getAxis());
-		assertSame("root type of selector should be correct", ModelingProcessor.DEFAULT_INSTANCE.getModel(UserType.class), rootSelector.getRootType());
+		assertSame("root type of selector should be correct", ModelRegistry.DEFAULT_INSTANCE.getCachedBranchNodeMetaModel(UserType.class), rootSelector.getRootType());
 		
 		childSelectorList = rootSelector.getChildSelectorList();
 		
@@ -189,7 +189,7 @@ public class ModifyListenerTest
 		childSelector = childSelectorList.iterator().next();
 		
 		assertSame("axis of selector should be correct", Axis.CHILD, childSelector.getAxis());
-		assertSame("root type of selector should be correct", ModelingProcessor.DEFAULT_INSTANCE.getModel(UserType.class), rootSelector.getRootType());
+		assertSame("root type of selector should be correct", ModelRegistry.DEFAULT_INSTANCE.getCachedBranchNodeMetaModel(UserType.class), rootSelector.getRootType());
 		assertSame("type of selector should be correct", UserType.name, childSelector.getType());
 		
 		listenerList = childSelector.getModifyListenerList(); 

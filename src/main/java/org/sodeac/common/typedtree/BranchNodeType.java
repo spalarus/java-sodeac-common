@@ -72,7 +72,7 @@ public class BranchNodeType<P extends BranchNodeMetaModel, T extends BranchNodeM
 	@Override
 	public T getValueDefaultInstance()
 	{
-		return ModelingProcessor.DEFAULT_INSTANCE.getCachedBranchNodeMetaModel(getTypeClass());
+		return ModelRegistry.DEFAULT_INSTANCE.getCachedBranchNodeMetaModel(getTypeClass());
 	}
 
 	@Override

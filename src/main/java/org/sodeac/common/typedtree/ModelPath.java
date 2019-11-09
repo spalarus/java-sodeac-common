@@ -196,7 +196,7 @@ public class ModelPath<R extends BranchNodeMetaModel,T>
 		{
 			try
 			{
-				return new RootModelPathBuilder<>(ModelingProcessor.DEFAULT_INSTANCE.getModel(rootClass));
+				return new RootModelPathBuilder<>(ModelRegistry.DEFAULT_INSTANCE.getCachedBranchNodeMetaModel(rootClass));
 			}
 			catch (Exception e) 
 			{

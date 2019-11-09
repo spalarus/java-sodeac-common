@@ -23,7 +23,6 @@ import java.util.Objects;
  */
 public class ResourceLoader 
 {
-	public static final LoaderConfiguration LOADER_CONFIGURATION = new LoaderConfiguration();
 	
 	/**
 	 * Load package resource as string in OSGi or Non-OSGi environment. 
@@ -35,10 +34,9 @@ public class ResourceLoader
 	 */
 	public static String loadPackageFileAsString(String fileName, Class<?> packageClass) throws IOException
 	{
-		ResourceLoader.init();
-		if(ResourceLoader.LOADER_CONFIGURATION.isOSGI.booleanValue())
+		if(OSGiUtils.isOSGi())
 		{
-			String stringResource = ResourceLoaderOSGi.loadPackageFileAsString(fileName,packageClass);
+			String stringResource = OSGiUtils.loadPackageFileAsString(fileName,packageClass);
 			if(stringResource != null)
 			{
 				return stringResource;
@@ -79,37 +77,5 @@ public class ResourceLoader
 		}
 		
 		return byos.toString();
-	}
-	
-	private static void init()
-	{
-		if(ResourceLoader.LOADER_CONFIGURATION.isOSGI != null)
-		{
-			return;
-		}
-		
-		ResourceLoader.LOADER_CONFIGURATION.isOSGI = false;
-		
-		try
-		{
-			Class<?> clazz = ResourceLoader.class.getClassLoader().loadClass("org.osgi.framework.FrameworkUtil");
-			Objects.requireNonNull(clazz);
-			ResourceLoaderOSGi.checkFramework();
-			ResourceLoader.LOADER_CONFIGURATION.isOSGI = true;
-		}
-		catch (ClassNotFoundException e) {}
-		catch (Error e)
-		{
-			e.printStackTrace();
-		}
-		catch (Exception e) 
-		{
-			e.printStackTrace();
-		}
-	}
-	
-	private static class LoaderConfiguration
-	{
-		private Boolean isOSGI = null;
 	}
 }

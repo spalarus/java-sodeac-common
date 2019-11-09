@@ -8,25 +8,15 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.message.service.api;
+package org.sodeac.common.typedtree;
 
-import java.util.Iterator;
-import java.util.ServiceLoader;
+import java.util.Set;
 
-
-public interface IServiceLocator
+@FunctionalInterface
+public interface ITypedTreeModelParserHandler 
 {
-	public static IServiceLocator newInstance()
-	{
-		ServiceLoader<IServiceLocator> serviceLoader = ServiceLoader.load(IServiceLocator.class);
-		Iterator<IServiceLocator> iterator = serviceLoader.iterator();
-		if(iterator.hasNext())
-		{
-			return iterator.next();
-		}
-		return null;
-	}
+	default public void startModel(BranchNodeMetaModel model, Set<INodeType<BranchNodeMetaModel, ?>> references) {};
+	default public void endModel(BranchNodeMetaModel model, Set<INodeType<BranchNodeMetaModel, ?>> references) {};
 	
-	// Domain
-	/*public IServiceSession createSession(String name, Entry<Object, Object> ... contextEntries );*/
+	public void onNodeType(BranchNodeMetaModel model, INodeType<BranchNodeMetaModel, ?> nodeType);
 }

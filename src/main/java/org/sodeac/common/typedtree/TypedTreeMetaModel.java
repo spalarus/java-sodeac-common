@@ -20,6 +20,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.sodeac.common.function.ConplierBean;
+import org.sodeac.common.model.CoreTreeModel;
 import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
 
 /**
@@ -39,7 +40,7 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 	 */
 	public static <M extends TypedTreeMetaModel> M getInstance(Class<M> modelClass)
 	{
-		return ModelingProcessor.DEFAULT_INSTANCE.getCachedTypedTreeMetaModel(modelClass);
+		return ModelRegistry.DEFAULT_INSTANCE.getCachedTypedTreeMetaModel(modelClass);
 	}
 	
 	/**
@@ -51,7 +52,7 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 	public <F extends BranchNodeMetaModel> RootBranchNode<T,F> createRootNode(BranchNodeType<T,F> type)
 	{
 		// TODO validate type
-		return new RootBranchNode(type);
+		return new RootBranchNode(type,getClass());
 	}
 	
 	/**
@@ -75,16 +76,18 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 		private ConplierBean<Boolean> sharedDoit;
 		private volatile long sequnceOID = 0L;
 		private volatile boolean disableAllListener = false;
+		private Class<? extends TypedTreeMetaModel<?>> modelClass = null;
 		
 		/**
 		 * Constructor of root node.
 		 * 
 		 * @param type static type instance defined in model
 		 */
-		protected RootBranchNode(BranchNodeType<P,R> type)
+		protected RootBranchNode(BranchNodeType<P,R> type, Class<? extends TypedTreeMetaModel<?>> modelClass)
 		{
 			super(null,null,new NodeContainer(type));
 			
+			this.modelClass = modelClass;
 			this.nodeSynchronized = false;
 			this.immutable = false;
 			this.branchNodeGetterAutoCreate = false;
@@ -133,6 +136,7 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 			this.writeLock = null;
 			this.modifyListeners = null;
 			this.sharedDoit = null;
+			this.modelClass = null;
 		}
 		
 		@Override
@@ -339,5 +343,17 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 				
 			}
 		}
+		
+		public XMLMarshaller getXMLMarshaller()
+		{
+			return ModelRegistry.getTypedTreeMetaModel(this.modelClass).getXMLMarshaller();
+		}
+	}
+	
+	public XMLMarshaller getXMLMarshaller()
+	{
+		// TODO Cache
+		
+		return XMLMarshaller.getForTreeModel((Class<? extends TypedTreeMetaModel<?>>)this.getClass());
 	}
 }

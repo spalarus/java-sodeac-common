@@ -13,9 +13,8 @@ package org.sodeac.common.message.service.api;
 
 import java.util.function.Consumer;
 
-import org.sodeac.common.message.service.api.IServiceSession.IChannel;
-import org.sodeac.common.message.service.api.IServiceSession.IChannel.IChannelEvent;
-import org.sodeac.common.message.service.api.IServiceSession.IChannel.IChannelEventProcessor;
+import org.sodeac.common.message.service.api.IChannel.IChannelEvent;
+import org.sodeac.common.message.service.api.IChannel.IChannelEventProcessor;
 
 public interface ICommonChannelEventProcessors
 {

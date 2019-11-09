@@ -10,23 +10,8 @@
  *******************************************************************************/
 package org.sodeac.common.message.service.api;
 
-import java.util.Iterator;
-import java.util.ServiceLoader;
-
-
-public interface IServiceLocator
+public interface IServiceConnector
 {
-	public static IServiceLocator newInstance()
-	{
-		ServiceLoader<IServiceLocator> serviceLoader = ServiceLoader.load(IServiceLocator.class);
-		Iterator<IServiceLocator> iterator = serviceLoader.iterator();
-		if(iterator.hasNext())
-		{
-			return iterator.next();
-		}
-		return null;
-	}
-	
-	// Domain
-	/*public IServiceSession createSession(String name, Entry<Object, Object> ... contextEntries );*/
+	// BoundenContext
+	// openConnection (BoundedContext / Board)
 }

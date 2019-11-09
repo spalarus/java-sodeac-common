@@ -4,7 +4,7 @@ import java.util.Hashtable;
 import java.util.Map.Entry;
 
 import org.sodeac.common.message.service.api.IServiceLocator;
-import org.sodeac.common.message.service.api.IServiceSession;
+import org.sodeac.common.message.service.api.IServiceConnection;
 import org.sodeac.common.message.service.api.ServiceContext;
 
 public class DefaultServiceLocatorImpl implements IServiceLocator
