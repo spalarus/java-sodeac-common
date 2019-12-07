@@ -14,5 +14,7 @@ import org.sodeac.common.typedtree.BranchNodeMetaModel;
 
 public class SortTestType extends BranchNodeMetaModel
 {
+	static{ModelRegistry.getBranchNodeMetaModel(SortTestType.class);}
+	
 	public static volatile BranchNodeListType<SortTestType,SortTestItemType> list;
 }

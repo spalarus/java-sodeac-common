@@ -15,12 +15,15 @@ import javax.xml.bind.annotation.XmlElement;
 
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.LeafNodeType;
+import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.IgnoreIfFalse;
 
 @Domain(name="org.sodeac.core.model")
 public class StacktraceElementNodeType extends BranchNodeMetaModel 
 {
+	static{ModelRegistry.getBranchNodeMetaModel(StacktraceElementNodeType.class);}
+	
 	@XmlAttribute(name="class")
 	public static volatile LeafNodeType<StacktraceElementNodeType,String> className;
 	

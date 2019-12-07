@@ -12,6 +12,8 @@ package org.sodeac.common.typedtree;
 
 public class LangType extends BranchNodeMetaModel
 {
+	static{ModelRegistry.getBranchNodeMetaModel(LangType.class);}
+	
 	public static volatile LeafNodeType<LangType,String> name;
 	public static volatile LeafNodeType<LangType,String> code;
 }

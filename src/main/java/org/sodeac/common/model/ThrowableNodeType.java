@@ -21,15 +21,21 @@ import org.sodeac.common.typedtree.BranchNode;
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.BranchNodeType;
 import org.sodeac.common.typedtree.LeafNodeType;
+import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.TypedTreeMetaModel;
 import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
 import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.IgnoreIfFalse;
 import org.sodeac.common.typedtree.annotation.IgnoreIfNull;
+import org.sodeac.common.typedtree.annotation.Transient;
 
 @Domain(name="org.sodeac.core.model")
 public class ThrowableNodeType extends BranchNodeMetaModel 
 {
+	static{ModelRegistry.getBranchNodeMetaModel(ThrowableNodeType.class);}
+	
+	@Transient
+	public static volatile LeafNodeType<ThrowableNodeType,Throwable> origin;
 	
 	@XmlAttribute(name="class")
 	public static volatile LeafNodeType<ThrowableNodeType,String> className;
@@ -73,6 +79,7 @@ public class ThrowableNodeType extends BranchNodeMetaModel
 		Set<Throwable> doneIndex = new HashSet<Throwable>();
 		
 		RootBranchNode<CoreTreeModel,ThrowableNodeType> throwableNode = TypedTreeMetaModel.getInstance(CoreTreeModel.class).createRootNode(CoreTreeModel.throwable);
+		throwableNode.setValue(ThrowableNodeType.origin, throwable);
 		doneIndex.add(throwable);
 		recursiveConvertThrowable(throwableNode, throwable, doneIndex);
 		return throwableNode;

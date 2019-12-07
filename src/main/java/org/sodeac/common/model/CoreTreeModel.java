@@ -13,12 +13,15 @@ package org.sodeac.common.model;
 import javax.xml.bind.annotation.XmlElement;
 
 import org.sodeac.common.typedtree.BranchNodeType;
+import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.TypedTreeMetaModel;
 import org.sodeac.common.typedtree.annotation.Domain;
 
 @Domain(name="org.sodeac.core.model")
 public class CoreTreeModel extends TypedTreeMetaModel<CoreTreeModel> 
 {
+	static{ModelRegistry.getBranchNodeMetaModel(CoreTreeModel.class);}
+	
 	@XmlElement(name="Throwable")
 	public static volatile BranchNodeType<CoreTreeModel,ThrowableNodeType> throwable;
 	

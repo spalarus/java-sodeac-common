@@ -16,6 +16,8 @@ import org.sodeac.common.typedtree.LeafNodeType;
 
 public class UserType extends BranchNodeMetaModel
 {
+	static{ModelRegistry.getBranchNodeMetaModel(UserType.class);}
+	
 	public static volatile LeafNodeType<UserType,String> name;
 	public static volatile BranchNodeType<UserType,AddressType> address;
 }

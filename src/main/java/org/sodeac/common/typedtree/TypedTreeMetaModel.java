@@ -32,6 +32,10 @@ import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
  */
 public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNodeMetaModel
 {
+	{
+		init();
+	}
+	
 	/**
 	 * get cached model instanced by <code>modelClass</code> 
 	 * 
@@ -41,6 +45,13 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 	public static <M extends TypedTreeMetaModel> M getInstance(Class<M> modelClass)
 	{
 		return ModelRegistry.DEFAULT_INSTANCE.getCachedTypedTreeMetaModel(modelClass);
+	}
+	
+	/**
+	 * initialize whole model
+	 */
+	public void init()
+	{
 	}
 	
 	/**

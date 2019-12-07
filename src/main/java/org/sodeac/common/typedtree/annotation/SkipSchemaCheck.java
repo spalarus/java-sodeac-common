@@ -8,16 +8,19 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.model.logging;
+package org.sodeac.common.typedtree.annotation;
 
-import org.sodeac.common.typedtree.BranchNodeType;
-import org.sodeac.common.typedtree.ModelRegistry;
-import org.sodeac.common.typedtree.TypedTreeMetaModel;
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.ElementType.TYPE;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
+import java.lang.annotation.Documented;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
 
-public class LoggingTreeModel extends TypedTreeMetaModel<LoggingTreeModel> 
+@Documented
+@Retention(RUNTIME)
+@Target({ TYPE, FIELD })
+public @interface SkipSchemaCheck 
 {
-	static{ModelRegistry.getBranchNodeMetaModel(LoggingTreeModel.class);}
-	
-	public static volatile BranchNodeType<LoggingTreeModel,LogEventNodeType> logEvent;
 }

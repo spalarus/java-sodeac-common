@@ -16,6 +16,7 @@ import java.util.UUID;
 import org.sodeac.common.typedtree.BranchNodeListType;
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.LeafNodeType;
+import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.annotation.Association;
 import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.SQLColumn;
@@ -30,6 +31,8 @@ import org.sodeac.common.typedtree.annotation.SQLColumn.SQLColumnType;
 @SQLTable(name="sdc_log_event",updatable= false)
 public class LogEventNodeType extends BranchNodeMetaModel 
 {
+	static{ModelRegistry.getBranchNodeMetaModel(LogEventNodeType.class);}
+	
 	@SQLPrimaryKey()
 	@SQLColumn(name="id",nullable=false)
 	public static volatile LeafNodeType<LogEventNodeType,UUID> id;

@@ -16,6 +16,8 @@ import org.sodeac.common.typedtree.LeafNodeType;
 
 public class AddressType extends BranchNodeMetaModel
 {
+	static{ModelRegistry.getBranchNodeMetaModel(AddressType.class);}
+	
 	public static volatile LeafNodeType<AddressType,String> street;
 	public static volatile LeafNodeType<AddressType,String> number;
 	public static volatile LeafNodeType<AddressType,String> city;

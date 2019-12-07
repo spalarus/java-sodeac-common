@@ -12,12 +12,15 @@ package org.sodeac.common.model;
 
 import org.sodeac.common.typedtree.BranchNodeListType;
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
+import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.XMLNodeList;
 
 @Domain(name="org.sodeac.core.model")
 public class StacktraceNodeType extends BranchNodeMetaModel
 {
+	static{ModelRegistry.getBranchNodeMetaModel(StacktraceNodeType.class);}
+	
 	@XMLNodeList(childElementName="StacktraceElement", listElement=false)
 	public static volatile BranchNodeListType<StacktraceNodeType,StacktraceElementNodeType> elements;
 }
