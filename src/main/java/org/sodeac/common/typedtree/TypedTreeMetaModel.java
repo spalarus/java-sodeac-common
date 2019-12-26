@@ -10,7 +10,6 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -20,9 +19,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.sodeac.common.function.ConplierBean;
-import org.sodeac.common.model.CoreTreeModel;
-import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
-
 /**
  * A typed tree meta model defines all root nodes (trees) of this model.
  * 
@@ -64,6 +60,13 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 	{
 		// TODO validate type
 		return new RootBranchNode(type,getClass());
+	}
+	
+
+	
+	public <F extends BranchNodeMetaModel> Class<RootBranchNode<T,F>> getRootBranchNodeClass(BranchNodeType<T,F> branchNodeType)
+	{
+		return (Class)RootBranchNode.class;
 	}
 	
 	/**

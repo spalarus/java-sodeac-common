@@ -92,4 +92,21 @@ public class BranchNodeListType<P extends BranchNodeMetaModel, T extends BranchN
 	{
 		return this == obj;
 	}
+	
+	/**
+	 * returns class of {@link BranchNode}
+	 * 
+	 * @return branch node class
+	 */
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public Class<BranchNode<P,T>> getBranchNodeClass()
+	{
+		return (Class)BranchNode.class;
+	}
+	
+	@Override
+	public String toString()
+	{
+		return getClass().getSimpleName() + " " + this.getNodeName();
+	}
 }

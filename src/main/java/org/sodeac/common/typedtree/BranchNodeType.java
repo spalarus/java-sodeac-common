@@ -12,6 +12,8 @@ package org.sodeac.common.typedtree;
 
 import java.lang.reflect.Field;
 
+import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
+
 /**
  * A branch node type defines a single complex node as child node of parent node. This node type can defines new child nodes again.
  * 
@@ -93,5 +95,21 @@ public class BranchNodeType<P extends BranchNodeMetaModel, T extends BranchNodeM
 		return this.field;
 	}
 	
+
+	/**
+	 * returns class of {@link BranchNode}
+	 * 
+	 * @return branch node class
+	 */
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public Class<BranchNode<P,T>> getBranchNodeClass()
+	{
+		return (Class)BranchNode.class;
+	}
 	
+	@Override
+	public String toString()
+	{
+		return getClass().getSimpleName() + " " + this.getNodeName();
+	}
 }

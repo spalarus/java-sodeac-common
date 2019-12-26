@@ -20,7 +20,7 @@ import org.sodeac.common.typedtree.annotation.Domain;
 @Domain(name="org.sodeac.core.model")
 public class CoreTreeModel extends TypedTreeMetaModel<CoreTreeModel> 
 {
-	static{ModelRegistry.getBranchNodeMetaModel(CoreTreeModel.class);}
+	static{ModelRegistry.getTypedTreeMetaModel(CoreTreeModel.class);}
 	
 	@XmlElement(name="Throwable")
 	public static volatile BranchNodeType<CoreTreeModel,ThrowableNodeType> throwable;

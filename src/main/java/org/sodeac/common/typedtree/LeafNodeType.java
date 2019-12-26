@@ -100,4 +100,10 @@ public class LeafNodeType<P extends BranchNodeMetaModel, T> implements INodeType
 	{
 		return this == obj;
 	}
+	
+	@Override
+	public String toString()
+	{
+		return getClass().getSimpleName() + " " + this.getNodeName();
+	}
 }
