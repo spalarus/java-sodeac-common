@@ -176,7 +176,7 @@ public interface ILogService
 			}
 		}
 		catch (Exception e) {}
-		String source = "sdc://00000000-0000-0000-0000-000000000000/?class=" + clazz.getCanonicalName();
+		String source = "sdc:///?class=" + clazz.getCanonicalName();
 		if((bundle != null) && (! bundle.isEmpty()))
 		{
 			source = source + "&bundlename=" + bundle;

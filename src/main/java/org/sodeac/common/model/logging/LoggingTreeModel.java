@@ -17,7 +17,7 @@ import org.sodeac.common.typedtree.TypedTreeMetaModel;
 
 public class LoggingTreeModel extends TypedTreeMetaModel<LoggingTreeModel> 
 {
-	static{ModelRegistry.getBranchNodeMetaModel(LoggingTreeModel.class);}
+	static{ModelRegistry.getTypedTreeMetaModel(LoggingTreeModel.class);}
 	
 	public static volatile BranchNodeType<LoggingTreeModel,LogEventNodeType> logEvent;
 }
