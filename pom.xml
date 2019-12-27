@@ -160,7 +160,8 @@
             	org.sodeac.common.message;version="${bundle.version}",
             	org.sodeac.common.message.dispatcher.api;version="${bundle.version}",
             	org.sodeac.common.message.service.api;version="${bundle.version}",
-            	org.sodeac.common.misc;version="${bundle.version}"
+            	org.sodeac.common.misc;version="${bundle.version}",
+            	org.sodeac.common.jdbc;version="${bundle.version}"
             </Export-Package>
             <Private-Package>
             	org.sodeac.common.message.dispatcher.impl,
