@@ -36,9 +36,9 @@ import org.sodeac.common.jdbc.ResultSetParseHelper.ResultSetParseHelperBuilder.P
  *  <br><br>
  *  The requirements:<br>
  *  1. The processed {@link ResultSet} must be scrollable<br>
- *  2. The data for a root object must be delivered in consecutively rows<br>
+ *  2. The data for a main object must be delivered in consecutively rows<br>
  *  3. Each object requires an unique-key-column<br>
- *  4. The root configurations of all project phases must specify the same key column<br>
+ *  4. The main configurations of all project phases must specify the same key column<br>
  *  <br>
  * 
  * @author Sebastian Palarus
@@ -61,12 +61,12 @@ public class ResultSetParseHelper implements AutoCloseable
 		this.closable = false;
 		return this;
 	}
-	
-	public void parse(PreparedStatement preparedStatement, Object superRoot, int rootPhaseSize) throws Exception
+	// TODO Controller: stopper, skipper, progress 
+	public void parse(PreparedStatement preparedStatement, Object root, int mainPhaseSize) throws Exception
 	{
-		if(rootPhaseSize < 1)
+		if(mainPhaseSize < 1)
 		{
-			throw new IllegalStateException("rootPhaseSize < 1");
+			throw new IllegalStateException("mainPhaseSize < 1");
 		}
 		
 		ResultSet resultSet = preparedStatement.executeQuery();
@@ -83,7 +83,7 @@ public class ResultSetParseHelper implements AutoCloseable
 			
 			List<ParsePhaseInstance> parsePhaseInstanceList = new ArrayList<ParsePhaseInstance>();
 			
-			NodeConfiguration rootConfiguration = null;
+			NodeConfiguration mainConfiguration = null;
 			
 			for(ParsePhase parsePhase : this.parsePhaseList)
 			{
@@ -93,14 +93,14 @@ public class ResultSetParseHelper implements AutoCloseable
 				}
 				ParsePhaseInstance parsePhaseInstance = new ParsePhaseInstance();
 				parsePhaseInstance.parsePhase = parsePhase;
-				parsePhaseInstance.rootNode = new Node();
-				parsePhaseInstance.rootNode.configuration = parsePhase.nodeConfiguration;
-				parsePhaseInstance.rootNode.objects = new HashMap<>();
-				parsePhaseInstance.rootNode.childNodes = new HashMap<>();
+				parsePhaseInstance.mainNode = new Node();
+				parsePhaseInstance.mainNode.configuration = parsePhase.nodeConfiguration;
+				parsePhaseInstance.mainNode.objects = new HashMap<>();
+				parsePhaseInstance.mainNode.childNodes = new HashMap<>();
 				parsePhaseInstanceList.add(parsePhaseInstance);
-				if(rootConfiguration == null)
+				if(mainConfiguration == null)
 				{
-					rootConfiguration = (NodeConfiguration)parsePhase.getNodeConfiguration();
+					mainConfiguration = (NodeConfiguration)parsePhase.getNodeConfiguration();
 				}
 			}
 			
@@ -133,8 +133,8 @@ public class ResultSetParseHelper implements AutoCloseable
 						firstInCluster = resultSet.getRow();
 					}
 					
-					ids.add(fetchId(rootConfiguration.idType, rootConfiguration.idColumnName, resultSet));
-					if(ids.size() > rootPhaseSize)
+					ids.add(fetchId(mainConfiguration.idType, mainConfiguration.idColumnName, resultSet));
+					if(ids.size() > mainPhaseSize)
 					{
 						break;
 					}
@@ -149,13 +149,13 @@ public class ResultSetParseHelper implements AutoCloseable
 					parse = false;
 				}
 				
-				List<Object> rootNodeList = new ArrayList<>();
-				Set<Object> rootNodeSet = new HashSet<>();
-				Object lastRootNode = null;
+				List<Object> mainNodeList = new ArrayList<>();
+				Set<Object> mainNodeSet = new HashSet<>();
+				Object lastMainNode = null;
 				
 				for(ParsePhaseInstance parsePhaseInstance : parsePhaseInstanceList)
 				{
-					lastRootNode = null;
+					lastMainNode = null;
 					
 					if(firstInCluster == 1)
 					{
@@ -168,27 +168,27 @@ public class ResultSetParseHelper implements AutoCloseable
 					
 					while(resultSet.next())
 					{
-						cursor.setRootObject(null);
-						cursor.setParentObject(superRoot);
+						cursor.setMainObject(null);
+						cursor.setParentObject(root);
 						
-						Object rootNode = parsePhaseInstance.rootNode.fetch(resultSet, cursor, true);
-						Objects.requireNonNull(rootNode);
+						Object mainNode = parsePhaseInstance.mainNode.fetch(resultSet, cursor, true);
+						Objects.requireNonNull(mainNode);
 						
-						if(! rootNode.equals(rootNode))
+						if(! mainNode.equals(mainNode))
 						{
-							throw new IllegalStateException("root nodes must equals to self");
+							throw new IllegalStateException("main nodes must equals to self");
 						}
 						
-						if(! rootNodeSet.contains(rootNode))
+						if(! mainNodeSet.contains(mainNode))
 						{
-							rootNodeSet.add(rootNode);
-							rootNodeList.add(rootNode);
+							mainNodeSet.add(mainNode);
+							mainNodeList.add(mainNode);
 							
-							if((lastRootNode != null) && (parsePhaseInstance.parsePhase.consumerRootNodeComplete != null))
+							if((lastMainNode != null) && (parsePhaseInstance.parsePhase.consumerMainNodeComplete != null))
 							{
-								parsePhaseInstance.parsePhase.consumerRootNodeComplete.accept(lastRootNode);
+								parsePhaseInstance.parsePhase.consumerMainNodeComplete.accept(lastMainNode);
 							}
-							lastRootNode = rootNode;
+							lastMainNode = mainNode;
 						}
 						
 						if(lastInCluster == resultSet.getRow())
@@ -197,25 +197,25 @@ public class ResultSetParseHelper implements AutoCloseable
 						}
 					}
 					
-					if((lastRootNode != null) && (parsePhaseInstance.parsePhase.consumerRootNodeComplete != null))
+					if((lastMainNode != null) && (parsePhaseInstance.parsePhase.consumerMainNodeComplete != null))
 					{
-						parsePhaseInstance.parsePhase.consumerRootNodeComplete.accept(lastRootNode);
+						parsePhaseInstance.parsePhase.consumerMainNodeComplete.accept(lastMainNode);
 					}
 					
-					if((! rootNodeList.isEmpty()) && (parsePhaseInstance.parsePhase.consumerClusterComplete != null))
+					if((! mainNodeList.isEmpty()) && (parsePhaseInstance.parsePhase.consumerClusterComplete != null))
 					{
-						parsePhaseInstance.parsePhase.consumerClusterComplete.accept(rootNodeList);
+						parsePhaseInstance.parsePhase.consumerClusterComplete.accept(mainNodeList);
 					}
 					
-					parsePhaseInstance.rootNode.reset();
-					rootNodeList.clear();
-					rootNodeSet.clear();
-					lastRootNode = null;
+					parsePhaseInstance.mainNode.reset();
+					mainNodeList.clear();
+					mainNodeSet.clear();
+					lastMainNode = null;
 				}
 				
-				rootNodeList = null;
-				rootNodeSet = null;
-				lastRootNode = null;
+				mainNodeList = null;
+				mainNodeSet = null;
+				lastMainNode = null;
 				
 				if(resultSet.getRow() == lastRow)
 				{
@@ -241,15 +241,15 @@ public class ResultSetParseHelper implements AutoCloseable
 	private class ParsePhaseInstance
 	{
 		ParsePhase parsePhase;
-		Node rootNode;
+		Node mainNode;
 		
 		private void clear()
 		{
 			this.parsePhase = null;
-			if(this.rootNode != null)
+			if(this.mainNode != null)
 			{
-				this.rootNode.clear();
-				this.rootNode = null;
+				this.mainNode.clear();
+				this.mainNode = null;
 			}
 		}
 	}
@@ -300,7 +300,7 @@ public class ResultSetParseHelper implements AutoCloseable
 			this.lastObject = null;
 		}
 		
-		protected Object fetch(ResultSet resultSet, Cursor cursor, boolean isRoot) throws Exception
+		protected Object fetch(ResultSet resultSet, Cursor cursor, boolean isMain) throws Exception
 		{
 			Object currentId = fetchId(configuration.idType, configuration.idColumnName, resultSet);
 			cursor.setId(currentId);
@@ -320,14 +320,14 @@ public class ResultSetParseHelper implements AutoCloseable
 				}
 				else
 				{
-					if(isRoot)
+					if(isMain)
 					{
 						this.reset();
 					}
 					Object object = null;
-					if(isRoot)
+					if(isMain)
 					{
-						cursor.rootObject = null;
+						cursor.mainObject = null;
 					}
 					if((currentId == null) && (configuration.recordParserIfNull != null))
 					{
@@ -360,9 +360,9 @@ public class ResultSetParseHelper implements AutoCloseable
 				}
 			}
 			
-			if(isRoot)
+			if(isMain)
 			{
-				cursor.rootObject = this.lastObject;
+				cursor.mainObject = this.lastObject;
 			}
 			
 			cursor.setParentObject(this.lastObject);
@@ -439,10 +439,10 @@ public class ResultSetParseHelper implements AutoCloseable
 	 *
 	 * @param <B> data type of current configuration
 	 * @param <I> key / id type of current configuration
-	 * @param <R> data type of root object
+	 * @param <M> data type of main object
 	 * @param <P> data type of parent object
 	 */
-	public static class ResultSetParseHelperBuilder<B,I,R,P>
+	public static class ResultSetParseHelperBuilder<B,I,M,P>
 	{
 		private List<ParsePhase> parsePhaseList = null;
 		private ParsePhase currentParsePhase = null;
@@ -450,53 +450,53 @@ public class ResultSetParseHelper implements AutoCloseable
 		/**
 		 * Creates a new builder to build a {@link ResultSetParseHelper}. A default parser phase is automatically created.
 		 * 
-		 * @param rootIdColumnName column name for key / id of root node object
-		 * @param rootIdType type of root node objects key / id
-		 * @param rootNodeOjectType type root node object
-		 * @param superRootType type of super root object
+		 * @param mainIdColumnName column name for key / id of main node object
+		 * @param mainIdType type of main node objects key / id
+		 * @param mainNodeOjectType type main node object
+		 * @param rootType type of super main object
 		 * @param recordParser parser logic
 		 * 
 		 * @return builder new builder to build a {@link ResultSetParseHelper}
 		 */
 		public static <B,I,S>  ResultSetParseHelperBuilder<B,I,B,S> newBuilder
 		(
-			String rootIdColumnName, 
-			Class<I> rootIdType,
-			Class<B> rootNodeOjectType, 
-			Class<S> superRootType, 
+			String mainIdColumnName, 
+			Class<I> mainIdType,
+			Class<B> mainNodeOjectType, 
+			Class<S> rootType, 
 			IRecordParser<I, B, S, B> recordParser
 		)
 		{
-			return newBuilder(rootIdColumnName, rootIdType, rootNodeOjectType, superRootType, recordParser, null, null);
+			return newBuilder(mainIdColumnName, mainIdType, mainNodeOjectType, rootType, recordParser, null, null);
 		}
 		
 		/**
 		 * Creates a new builder to build a {@link ResultSetParseHelper}. A default parser phase is automatically created.
 		 * 
-		 * @param rootIdColumnName column name for key / id of root node object
-		 * @param rootIdType type of root node objects key / id
-		 * @param rootNodeOjectType type root node object
-		 * @param superRootType type of super root object
+		 * @param mainIdColumnName column name for key / id of main node object
+		 * @param mainIdType type of main node objects key / id
+		 * @param mainNodeOjectType type main node object
+		 * @param rootType type of super main object
 		 * @param recordParser parser logic
-		 * @param consumerOnRootNodeComplete listener to notify if root node is completely parsed with all sub parsers
+		 * @param consumerOnMainNodeComplete listener to notify if main node is completely parsed with all sub parsers
 		 * @param consumerClusterComplete listener to notify if a cluster is completely parsed by parser phase
 		 * 
 		 * @return new builder to build a {@link ResultSetParseHelper}
 		 */
 		public static <B,I,S>  ResultSetParseHelperBuilder<B,I,B,S> newBuilder
 		(
-			String rootIdColumnName, 
-			Class<I> rootIdType,
-			Class<B> rootNodeOjectType, 
-			Class<S> superRootType, 
+			String mainIdColumnName, 
+			Class<I> mainIdType,
+			Class<B> mainNodeOjectType, 
+			Class<S> rootType, 
 			IRecordParser<I, B, S, B> recordParser,
-			Consumer<B> consumerOnRootNodeComplete,
+			Consumer<B> consumerOnMainNodeComplete,
 			Consumer<List<B>> consumerClusterComplete
 		)
 		{
 			ResultSetParseHelperBuilder<B,I,B,S> builder = new ResultSetParseHelperBuilder<B,I,B,S>();
 			builder.parsePhaseList = new ArrayList<>();
-			builder.newParsePhase(DEFAULT_PHASE, rootIdColumnName, rootIdType, rootNodeOjectType, superRootType, recordParser, consumerOnRootNodeComplete, consumerClusterComplete);
+			builder.newParsePhase(DEFAULT_PHASE, mainIdColumnName, mainIdType, mainNodeOjectType, rootType, recordParser, consumerOnMainNodeComplete, consumerClusterComplete);
 			
 			return builder;
 		}
@@ -510,7 +510,7 @@ public class ResultSetParseHelper implements AutoCloseable
 		 * @param recordParser parser logic
 		 * @return builder
 		 */
-		public <C,J> ResultSetParseHelperBuilder<C,J,R,B> subParser(String idColumnName, Class<J> idType,Class<C> nodeOjectType, IRecordParser<J, R, B, C> recordParser)
+		public <C,J> ResultSetParseHelperBuilder<C,J,M,B> subParser(String idColumnName, Class<J> idType,Class<C> nodeOjectType, IRecordParser<J, M, B, C> recordParser)
 		{
 			NodeConfiguration parentConfiguration = currentParsePhase.currentNodeConfiguration;
 			currentParsePhase.currentNodeConfiguration = new NodeConfiguration(UUID.randomUUID().toString(),new ConplierBean(),idColumnName,(Class)idType,parentConfiguration);
@@ -527,7 +527,7 @@ public class ResultSetParseHelper implements AutoCloseable
 		 * @param recordParser parser logic
 		 * @return builder
 		 */
-		public ResultSetParseHelperBuilder<B,I,R,P> onNullRecord(IRecordParser<I, R, P, B> recordParser)
+		public ResultSetParseHelperBuilder<B,I,M,P> onNullRecord(IRecordParser<I, M, P, B> recordParser)
 		{
 			currentParsePhase.currentNodeConfiguration.recordParserIfNull = recordParser;
 			return this;
@@ -538,7 +538,7 @@ public class ResultSetParseHelper implements AutoCloseable
 		 * 
 		 * @return builder
 		 */
-		public ResultSetParseHelperBuilder<P,?,R,?> build()
+		public ResultSetParseHelperBuilder<P,?,M,?> build()
 		{
 			if(currentParsePhase.currentNodeConfiguration.parent != null)
 			{
@@ -551,10 +551,10 @@ public class ResultSetParseHelper implements AutoCloseable
 		 * Opens a new parser phase 
 		 * 
 		 * @param name name of parser phase
-		 * @param rootIdColumnName column name for key / id of root node object
-		 * @param rootIdType type of root node objects key / id
-		 * @param rootNodeOjectType type root node object
-		 * @param superRootType type of super root object
+		 * @param mainIdColumnName column name for key / id of main node object
+		 * @param mainIdType type of main node objects key / id
+		 * @param mainNodeOjectType type main node object
+		 * @param rootType type of super main object
 		 * @param recordParser parser logic
 		 * 
 		 * @return builder
@@ -562,26 +562,26 @@ public class ResultSetParseHelper implements AutoCloseable
 		public <B,I,S>  ResultSetParseHelperBuilder<B,I,B,S> newParsePhase
 		(
 			String name, 
-			String rootIdColumnName, 
-			Class<I> rootIdType,
-			Class<B> rootNodeOjectType, 
-			Class<S> superRootType, 
+			String mainIdColumnName, 
+			Class<I> mainIdType,
+			Class<B> mainNodeOjectType, 
+			Class<S> rootType, 
 			IRecordParser<I, B, S, B> recordParser
 		)
 		{
-			return newParsePhase(name, rootIdColumnName, rootIdType, rootNodeOjectType, superRootType, recordParser, null, null);
+			return newParsePhase(name, mainIdColumnName, mainIdType, mainNodeOjectType, rootType, recordParser, null, null);
 		}
 		
 		/**
 		 * Opens a new parser phase 
 		 * 
 		 * @param name name of parser phase
-		 * @param rootIdColumnName column name for key / id of root node object
-		 * @param rootIdType type of root node objects key / id
-		 * @param rootNodeOjectType type root node object
-		 * @param superRootType type of super root object
+		 * @param mainIdColumnName column name for key / id of main node object
+		 * @param mainIdType type of main node objects key / id
+		 * @param mainNodeOjectType type main node object
+		 * @param rootType type of super main object
 		 * @param recordParser parser logic
-		 * @param consumerOnRootNodeComplete listener to notify if root node is completely parsed with all sub parsers
+		 * @param consumerOnMainNodeComplete listener to notify if main node is completely parsed with all sub parsers
 		 * @param consumerClusterComplete listener to notify if a cluster is completely parsed by parser phase
 		 * 
 		 * @return builder
@@ -589,24 +589,24 @@ public class ResultSetParseHelper implements AutoCloseable
 		public <B,I,S>  ResultSetParseHelperBuilder<B,I,B,S> newParsePhase
 		(
 			String name, 
-			String rootIdColumnName, 
-			Class<I> rootIdType,
-			Class<B> rootNodeOjectType, 
-			Class<S> superRootType, 
+			String mainIdColumnName, 
+			Class<I> mainIdType,
+			Class<B> mainNodeOjectType, 
+			Class<S> rootType, 
 			IRecordParser<I, B, S, B> recordParser,
-			Consumer<B> consumerOnRootNodeComplete,
+			Consumer<B> consumerOnMainNodeComplete,
 			Consumer<List<B>> consumerClusterComplete
 		)
 		{
 			this.currentParsePhase = this.new ParsePhase(name);
 			this.parsePhaseList.add(this.currentParsePhase);
 			
-			this.currentParsePhase.currentNodeConfiguration = this.new NodeConfiguration(UUID.randomUUID().toString(),new ConplierBean(),rootIdColumnName,(Class)rootIdType,null);
+			this.currentParsePhase.currentNodeConfiguration = this.new NodeConfiguration(UUID.randomUUID().toString(),new ConplierBean(),mainIdColumnName,(Class)mainIdType,null);
 			this.currentParsePhase.nodeConfiguration = this.currentParsePhase.currentNodeConfiguration;
 			
 			this.currentParsePhase.currentNodeConfiguration.recordParser = (IRecordParser)recordParser;
 			this.currentParsePhase.consumerClusterComplete = (Consumer)consumerClusterComplete;
-			this.currentParsePhase.consumerRootNodeComplete = (Consumer)consumerOnRootNodeComplete;
+			this.currentParsePhase.consumerMainNodeComplete = (Consumer)consumerOnMainNodeComplete;
 			
 			return (ResultSetParseHelperBuilder)this;
 		}
@@ -650,7 +650,7 @@ public class ResultSetParseHelper implements AutoCloseable
 			private String name = null;
 			private NodeConfiguration nodeConfiguration = null;
 			private NodeConfiguration currentNodeConfiguration = null;
-			private Consumer<Object> consumerRootNodeComplete =  null;
+			private Consumer<Object> consumerMainNodeComplete =  null;
 			private Consumer<Object> consumerClusterComplete =  null;
 			
 			protected ParsePhase(String name)
@@ -664,7 +664,7 @@ public class ResultSetParseHelper implements AutoCloseable
 				ParsePhase copy = new ParsePhase(name);
 				copy.nodeConfiguration = this.nodeConfiguration.copy();
 				copy.consumerClusterComplete = this.consumerClusterComplete;
-				copy.consumerRootNodeComplete = this.consumerRootNodeComplete;
+				copy.consumerMainNodeComplete = this.consumerMainNodeComplete;
 				return copy;
 			}
 
@@ -691,7 +691,7 @@ public class ResultSetParseHelper implements AutoCloseable
 					this.currentNodeConfiguration.clear();
 					this.currentNodeConfiguration = null;
 				}
-				this.consumerRootNodeComplete = null;
+				this.consumerMainNodeComplete = null;
 				this.consumerClusterComplete = null;
 			}
 		}
@@ -703,8 +703,8 @@ public class ResultSetParseHelper implements AutoCloseable
 			private ConplierBean<B> objectReference = null;
 			private Class<I> idType = null;
 			private String idColumnName = null;
-			private IRecordParser<I, R, P, B> recordParser = null;
-			private IRecordParser<I, R, P, B> recordParserIfNull = null;
+			private IRecordParser<I, M, P, B> recordParser = null;
+			private IRecordParser<I, M, P, B> recordParserIfNull = null;
 			private List<NodeConfiguration> childList = null;
 			
 			protected NodeConfiguration(String nodeName, ConplierBean<B> objectReference, String idColumnName, Class<I> idType, NodeConfiguration parent)
@@ -756,12 +756,12 @@ public class ResultSetParseHelper implements AutoCloseable
 				return idColumnName;
 			}
 
-			protected IRecordParser<I, R, P, B> getRecordParser()
+			protected IRecordParser<I, M, P, B> getRecordParser()
 			{
 				return recordParser;
 			}
 
-			protected IRecordParser<I, R, P, B> getRecordParserIfNull()
+			protected IRecordParser<I, M, P, B> getRecordParserIfNull()
 			{
 				return recordParserIfNull;
 			}
@@ -815,14 +815,14 @@ public class ResultSetParseHelper implements AutoCloseable
 	 * @author Sebastian Palarus
 	 *
 	 * @param <I> type of key
-	 * @param <R> type of root object
+	 * @param <M> type of main object
 	 * @param <P> type of parent object
 	 */
-	public static class Cursor<I,R,P>
+	public static class Cursor<I,M,P>
 	{
 		private ResultSet resultSet;
 		private I id;
-		private R rootObject;
+		private M mainObject;
 		private P parentObject;
 
 		/**
@@ -856,18 +856,18 @@ public class ResultSetParseHelper implements AutoCloseable
 		}
 
 		/**
-		 * Getter for current root object
+		 * Getter for current main object
 		 * 
-		 * @return current root object
+		 * @return current main object
 		 */
-		public R getRootObject() 
+		public M getMainObject() 
 		{
-			return rootObject;
+			return mainObject;
 		}
 
-		public void setRootObject(R rootObject) 
+		public void setMainObject(M mainObject) 
 		{
-			this.rootObject = rootObject;
+			this.mainObject = mainObject;
 		}
 
 		/**
@@ -889,7 +889,7 @@ public class ResultSetParseHelper implements AutoCloseable
 		{
 			this.resultSet = null;
 			this.id = null;
-			this.rootObject = null;
+			this.mainObject = null;
 			this.parentObject = null;
 		}
 	}
@@ -900,16 +900,16 @@ public class ResultSetParseHelper implements AutoCloseable
 	 * @author Sebastian Palarus
 	 *
 	 * @param <I> type of key / id
-	 * @param <R> type of root object
+	 * @param <M> type of main object
 	 * @param <P> type of parent object
 	 * @param <B> type of object to provide
 	 */
 	@FunctionalInterface
-	public static interface IRecordParser<I, R, P, B> extends Function<Cursor<I, R, P>, B>
+	public static interface IRecordParser<I, M, P, B> extends Function<Cursor<I, M, P>, B>
 	{
 
 		@Override
-		default B apply(Cursor<I, R, P> cursor) 
+		default B apply(Cursor<I, M, P> cursor) 
 		{
 			try
 			{
@@ -936,7 +936,7 @@ public class ResultSetParseHelper implements AutoCloseable
 		 * 
 		 * @throws Exception
 		 */
-		public B parse(Cursor<I, R, P> cursor) throws Exception;
+		public B parse(Cursor<I, M, P> cursor) throws Exception;
 		
 	}
 }
