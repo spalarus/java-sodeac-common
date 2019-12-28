@@ -18,8 +18,11 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A branch node meta model defines type and cardinality of child nodes.
@@ -33,14 +36,51 @@ public class BranchNodeMetaModel
 	{
 		super();
 		
-		Class<?> modelClass = getClass();
-		
 		// create static instances of types
 		
 		List<INodeType> list = new ArrayList<INodeType>();
 		
-		for(Field field : modelClass.getDeclaredFields())
+		LinkedList<Class> classList = new LinkedList<>();
+		classList.add(getClass());
+		
+		Class<?> currentSuperClass = getClass().getSuperclass();
+		
+		while((currentSuperClass != null) && (currentSuperClass != Object.class))
 		{
+			classList.addFirst(currentSuperClass);
+			currentSuperClass = currentSuperClass.getSuperclass();
+		}
+		
+		List<Field> fieldList = new ArrayList<>();
+		
+		for(Class modelClass : classList)
+		{
+			for(Field field : modelClass.getDeclaredFields())
+			{
+				int pos = -1;
+				int idx = 0;
+				for(Field existingField : fieldList)
+				{
+					if(existingField.getName().equals(field.getName()))
+					{
+						pos = idx;
+						break;
+					}
+					idx++;
+				}
+				if(pos > -1)
+				{
+					fieldList.set(pos,field);
+				}
+				else
+				{
+					fieldList.add(field);
+				}
+			}
+		}
+		for(Field field : fieldList)
+		{
+			Class<?> modelClass = field.getDeclaringClass();
 			boolean isField = false;
 			for(Class<?> clazz : field.getType().getInterfaces())
 			{
@@ -89,6 +129,8 @@ public class BranchNodeMetaModel
 				}
 			}
 		}
+		
+		fieldList.clear();
 		
 		// create helper stuff
 		

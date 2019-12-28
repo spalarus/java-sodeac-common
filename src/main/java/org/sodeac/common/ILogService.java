@@ -26,6 +26,7 @@ public interface ILogService
 	public ILogService setDefaultDomain(String domain);
 	public ILogService setDefaultSource(String source);
 	public ILogService setDefaultLogEventType(LogEventType logEventType);
+	public ILogService setAutoDispose(boolean autoDispose);
 	
 	public ILogService addLoggerBackend(Consumer<BranchNode<?,LogEventNodeType>> logger);
 	public ILogService removeLoggerBackend(Consumer<BranchNode<?,LogEventNodeType>> logger);

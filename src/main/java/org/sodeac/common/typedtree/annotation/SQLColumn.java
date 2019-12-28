@@ -28,7 +28,7 @@ import org.sodeac.common.typedtree.Node;
 @Target(FIELD)
 public @interface SQLColumn 
 {
-	public enum SQLColumnType {AUTO,CHAR,VARCHAR,CLOB,BOOELAN,SMALLINT,INTEGER,BIGINT,REAL,DOUBLE,TIMESTAMP,DATE,TIME,BINARY,BLOB}
+	public enum SQLColumnType {AUTO,CHAR,VARCHAR,CLOB,BOOLEAN,SMALLINT,INTEGER,BIGINT,REAL,DOUBLE,TIMESTAMP,DATE,TIME,BINARY,BLOB}
 	
 	String name();
 	boolean nullable() default true;

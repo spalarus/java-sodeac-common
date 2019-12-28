@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import org.sodeac.common.ILogService;
+import org.sodeac.common.model.CommonBaseBranchNodeType;
 import org.sodeac.common.model.CoreTreeModel;
 import org.sodeac.common.model.ThrowableNodeType;
 import org.sodeac.common.model.logging.LogEventNodeType;
@@ -31,6 +32,7 @@ public class LogServiceImpl implements ILogService
 	private volatile String defaultSource = null;
 	private volatile LogEventType defaultLogEventType = LogEventType.SYSTEM_LOG;
 	private volatile List<Consumer<BranchNode<?,LogEventNodeType>>> backendList = new CopyOnWriteArrayList<Consumer<BranchNode<?,LogEventNodeType>>>();
+	private volatile boolean autoDispose = true;
 	
 	private XMLMarshaller xmlMarshaller = null;
 	
@@ -103,6 +105,13 @@ public class LogServiceImpl implements ILogService
 		return this;
 	}
 
+	@Override
+	public ILogService setAutoDispose(boolean autoDispose)
+	{
+		this.autoDispose  = autoDispose;
+		return this;
+	}
+	
 	@Override
 	public ILogEventBuilder newEvent() 
 	{
@@ -323,7 +332,7 @@ public class LogServiceImpl implements ILogService
 				.setValue(LogEventNodeType.logLevelName, logLevel.name())
 				.setValue(LogEventNodeType.logLevelValue, logLevel.getIntValue())
 				.setValue(LogEventNodeType.domain, domain)
-				.setValue(LogEventNodeType.source, source)
+				.setValue(LogEventNodeType.createClientURI, source)
 				.setValue(LogEventNodeType.format, format)
 				.setValue(LogEventNodeType.sequence, LogServiceImpl.this.sequencer.getAndIncrement())
 				.setValue(LogEventNodeType.timestamp, new Date());
@@ -376,7 +385,10 @@ public class LogServiceImpl implements ILogService
 				backend.accept(logEvent);
 			}
 			
-			logEvent.dispose(); 
+			if(autoDispose)
+			{
+				logEvent.dispose(); 
+			}
 			return LogServiceImpl.this;
 		}
 		

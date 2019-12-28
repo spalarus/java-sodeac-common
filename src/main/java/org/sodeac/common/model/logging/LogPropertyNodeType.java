@@ -12,24 +12,19 @@ package org.sodeac.common.model.logging;
 
 import java.util.UUID;
 
-import org.sodeac.common.typedtree.BranchNodeMetaModel;
+import org.sodeac.common.model.CommonBaseBranchNodeType;
 import org.sodeac.common.typedtree.LeafNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.SQLColumn;
-import org.sodeac.common.typedtree.annotation.SQLPrimaryKey;
 import org.sodeac.common.typedtree.annotation.SQLTable;
 import org.sodeac.common.typedtree.annotation.SQLColumn.SQLColumnType;
 
 @Domain(name="org.sodeac.system.logging")
 @SQLTable(name="sdc_log_property",updatable= false)
-public class LogPropertyNodeType extends BranchNodeMetaModel 
+public class LogPropertyNodeType extends CommonBaseBranchNodeType
 {
 	static{ModelRegistry.getBranchNodeMetaModel(LogPropertyNodeType.class);}
-	
-	@SQLPrimaryKey()
-	@SQLColumn(name="id",nullable=false)
-	public static volatile LeafNodeType<LogPropertyNodeType,UUID> id;
 	
 	@SQLColumn(name="log_property_type",type=SQLColumnType.VARCHAR, nullable=false, length=128)
 	public static volatile LeafNodeType<LogPropertyNodeType,String> type;

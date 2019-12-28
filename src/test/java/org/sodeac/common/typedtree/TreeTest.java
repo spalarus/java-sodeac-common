@@ -16,11 +16,18 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+import org.sodeac.common.ILogService;
+import org.sodeac.common.function.ConplierBean;
+import org.sodeac.common.model.logging.LogEventNodeType;
+import org.sodeac.common.model.logging.LogEventType;
+import org.sodeac.common.model.logging.LogLevel;
+import org.sodeac.common.model.logging.LogPropertyNodeType;
 import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -244,5 +251,18 @@ public class TreeTest
 		assertEquals("code should be correct", "Deutsch", languageList.get(0).getValue(LangType.name));
 		country.dispose();
 		assertEquals("size of language list should be correct", 0, languageList.size());
+	}
+	
+	@Test
+	public void test0100Logging()
+	{
+		ConplierBean<BranchNode<?,LogEventNodeType>> logItem = new ConplierBean<>();
+		ILogService.newLogService(TreeTest.class).addLoggerBackend(logItem).setAutoDispose(false).error("testlog", new RuntimeException());
+		assertEquals("value should be correct", LogLevel.ERROR.name(), logItem.get().getValue(LogEventNodeType.logLevelName));
+		assertEquals("value should be correct", "testlog", logItem.get().getValue(LogEventNodeType.message));
+		assertEquals("list size should be correct", 1, logItem.get().getUnmodifiableNodeList(LogEventNodeType.propertyList).size());
+		BranchNode<LogEventNodeType,LogPropertyNodeType> property = logItem.get().getUnmodifiableNodeList(LogEventNodeType.propertyList).get(0);
+		assertEquals("value should be correct", "THROWABLE",property.getValue(LogPropertyNodeType.type));
+		assertTrue("value should be correct",property.getValue(LogPropertyNodeType.value).startsWith("<?xml version=\"1.0\" ?><Throwable "));
 	}
 }

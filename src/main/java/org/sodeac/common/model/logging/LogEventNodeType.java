@@ -11,16 +11,14 @@
 package org.sodeac.common.model.logging;
 
 import java.util.Date;
-import java.util.UUID;
 
+import org.sodeac.common.model.CommonBaseBranchNodeType;
 import org.sodeac.common.typedtree.BranchNodeListType;
-import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.LeafNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.annotation.Association;
 import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.SQLColumn;
-import org.sodeac.common.typedtree.annotation.SQLPrimaryKey;
 import org.sodeac.common.typedtree.annotation.SQLReferencedByColumn;
 import org.sodeac.common.typedtree.annotation.SQLTable;
 import org.sodeac.common.typedtree.annotation.Association.AssociationType;
@@ -29,13 +27,9 @@ import org.sodeac.common.typedtree.annotation.SQLColumn.SQLColumnType;
 
 @Domain(name="org.sodeac.system.logging")
 @SQLTable(name="sdc_log_event",updatable= false)
-public class LogEventNodeType extends BranchNodeMetaModel 
+public class LogEventNodeType extends CommonBaseBranchNodeType
 {
 	static{ModelRegistry.getBranchNodeMetaModel(LogEventNodeType.class);}
-	
-	@SQLPrimaryKey()
-	@SQLColumn(name="id",nullable=false)
-	public static volatile LeafNodeType<LogEventNodeType,UUID> id;
 	
 	@SQLColumn(name="log_timestamp",type=SQLColumnType.TIMESTAMP, nullable=false)
 	public static volatile LeafNodeType<LogEventNodeType,Date> timestamp;
@@ -61,16 +55,13 @@ public class LogEventNodeType extends BranchNodeMetaModel
 	@SQLColumn(name="log_domain",type=SQLColumnType.VARCHAR, nullable=true, length=512)
 	public static volatile LeafNodeType<LogEventNodeType,String> domain;
 	
-	@SQLColumn(name="log_source",type=SQLColumnType.VARCHAR, nullable=true, length=512)
-	public static volatile LeafNodeType<LogEventNodeType,String> source;
-	
 	@SQLColumn(name="log_task",type=SQLColumnType.VARCHAR, nullable=true, length=512)
 	public static volatile LeafNodeType<LogEventNodeType,String> task;
 	
 	@SQLColumn(name="log_msg_format",type=SQLColumnType.VARCHAR, nullable=true, length=4000)
 	public static volatile LeafNodeType<LogEventNodeType,String> format;
 	
-	@SQLColumn(name="log_msg_value",type=SQLColumnType.VARCHAR, nullable=true, length=-1)
+	@SQLColumn(name="log_msg_value",type=SQLColumnType.CLOB, nullable=true)
 	public static volatile LeafNodeType<LogEventNodeType,String> message;
 	
 	@SQLReferencedByColumn(name="sdc_log_event_id", nullable=false)
