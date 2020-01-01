@@ -114,6 +114,11 @@ public class BranchNodeMetaModel
 							{
 								if(field.get(null) == null)
 								{
+									if(type2 instanceof ParameterizedType)
+									{
+										ParameterizedType pType2 = (ParameterizedType)type2;
+										type2 = pType2.getRawType();
+									}
 									Object nodeType = fieldClass.getConstructor(Class.class,Class.class, Field.class).newInstance(modelClass,type2,field);
 									field.set(null, nodeType);
 								}
