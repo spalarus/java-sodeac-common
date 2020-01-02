@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * Copyright (c) 2019, 2020 Sebastian Palarus
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v20.html
+ *
+ * Contributors:
+ *     Sebastian Palarus - initial API and implementation
+ *******************************************************************************/
 package org.sodeac.common.misc;
 
 import java.io.ByteArrayOutputStream;
@@ -9,8 +19,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sodeac.common.ILogService;
-import org.sodeac.common.model.CommonBaseBranchNodeType;
 import org.sodeac.common.model.CoreTreeModel;
 import org.sodeac.common.model.ThrowableNodeType;
 import org.sodeac.common.model.logging.LogEventNodeType;
@@ -364,6 +375,8 @@ public class LogServiceImpl implements ILogService
 						{
 							throw new RuntimeException(e);
 						}
+						
+						property.setValue(LogPropertyNodeType.originValue, propertyBuilder.throwable);
 					}
 					// TODO stacktrace
 					
@@ -412,6 +425,64 @@ public class LogServiceImpl implements ILogService
 				this.throwable = null;
 				this.stacktrace = null;
 			}
+		}
+		
+	}
+	
+	public static class SystemLogger implements Consumer<BranchNode<?,LogEventNodeType>>
+	{
+		private Logger logger = null;
+		
+		public SystemLogger(Class<?> clazz)
+		{
+			super();
+			logger = LoggerFactory.getLogger(clazz);
+		}
+
+		@Override
+		public void accept(BranchNode<?, LogEventNodeType> logEvent)
+		{
+			if(! LogEventType.SYSTEM_LOG.name().equals(logEvent.getValue(LogEventNodeType.type)))
+			{
+				return;
+			}
+			
+			Throwable throwable = null;
+			
+			for(BranchNode<LogEventNodeType, LogPropertyNodeType> property : logEvent.getUnmodifiableNodeList(LogEventNodeType.propertyList))
+			{
+				if(! LogPropertyType.THROWABLE.name().equals(property.getValue(LogPropertyNodeType.type)))
+				{
+					continue;
+				}
+				
+				if(property.getValue(LogPropertyNodeType.originValue) instanceof Throwable)
+				{
+					throwable = (Throwable)property.getValue(LogPropertyNodeType.originValue);
+				}
+			}
+			
+			if( LogLevel.DEBUG.getIntValue() ==  logEvent.getValue(LogEventNodeType.logLevelValue))
+			{
+				logger.debug(logEvent.getValue(LogEventNodeType.message),throwable);
+			}
+			else if( LogLevel.FATAL.getIntValue() ==  logEvent.getValue(LogEventNodeType.logLevelValue))
+			{
+				logger.error(logEvent.getValue(LogEventNodeType.message),throwable);
+			}
+			else if( LogLevel.ERROR.getIntValue() ==  logEvent.getValue(LogEventNodeType.logLevelValue))
+			{
+				logger.error(logEvent.getValue(LogEventNodeType.message),throwable);
+			}
+			else if( LogLevel.WARN.getIntValue() ==  logEvent.getValue(LogEventNodeType.logLevelValue))
+			{
+				logger.warn(logEvent.getValue(LogEventNodeType.message),throwable);
+			}
+			else
+			{
+				logger.info(logEvent.getValue(LogEventNodeType.message),throwable);
+			}
+			
 		}
 		
 	}

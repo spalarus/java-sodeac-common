@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -10,14 +10,13 @@
  *******************************************************************************/
 package org.sodeac.common.model.logging;
 
-import java.util.UUID;
-
 import org.sodeac.common.model.CommonBaseBranchNodeType;
 import org.sodeac.common.typedtree.LeafNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.SQLColumn;
 import org.sodeac.common.typedtree.annotation.SQLTable;
+import org.sodeac.common.typedtree.annotation.Transient;
 import org.sodeac.common.typedtree.annotation.SQLColumn.SQLColumnType;
 
 @Domain(name="org.sodeac.system.logging")
@@ -40,4 +39,7 @@ public class LogPropertyNodeType extends CommonBaseBranchNodeType
 	
 	@SQLColumn(name="log_property_value",type=SQLColumnType.VARCHAR, nullable=true, length=-1)
 	public static volatile LeafNodeType<LogPropertyNodeType,String> value;
+	
+	@Transient
+	public static volatile LeafNodeType<LogPropertyNodeType,Object> originValue;
 }
