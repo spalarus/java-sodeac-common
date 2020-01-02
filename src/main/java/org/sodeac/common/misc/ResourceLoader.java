@@ -13,7 +13,6 @@ package org.sodeac.common.misc;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Objects;
 
 /**
  * Helper class around package resources
