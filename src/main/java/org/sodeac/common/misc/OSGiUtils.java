@@ -4,10 +4,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Map;
 import java.util.Objects;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
+import org.sodeac.common.misc.Driver.IDriver;
 
 public class OSGiUtils 
 {
@@ -164,6 +166,11 @@ public class OSGiUtils
 			}
 			return baos.toString();
 		}
+	}
+	
+	public static <T extends IDriver> T getSingleDriver(Class<T> driverClass, Map<String,Object> properties)
+	{
+		return OSGiDriverRegistry.INSTANCE.getSingleDriver(driverClass, properties);
 	}
 	
 	private static class TesterConfiguration
