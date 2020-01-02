@@ -49,8 +49,24 @@
 	    <groupId>com.h2database</groupId>
 	    <artifactId>h2</artifactId>
 	    <version>1.4.200</version>
-	    <scope>test</scope>
 	</dependency>
+	<dependency>
+	    <groupId>org.postgresql</groupId>
+	    <artifactId>postgresql</artifactId>
+	    <version>42.2.9</version>
+	</dependency>
+	<dependency>
+      <groupId>org.easymock</groupId>
+      <artifactId>easymock</artifactId>
+      <version>3.6</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>1.7.30</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   
   <build>
@@ -165,11 +181,13 @@
             </Export-Package>
             <Private-Package>
             	org.sodeac.common.message.dispatcher.impl,
-            	org.sodeac.common.message.service.impl
+            	org.sodeac.common.message.service.impl,
+            	org.sodeac.common.jdbc.impl
             </Private-Package>
             <Import-Package>
             	org.slf4j;version="[1.7,2)";resolution:=optional,
             	javax.xml.bind.annotation;version="[2,3)";resolution:=optional,
+            	org.postgresql.*;resolution:=optional;version=!,
                 *
             </Import-Package>
           </instructions>
