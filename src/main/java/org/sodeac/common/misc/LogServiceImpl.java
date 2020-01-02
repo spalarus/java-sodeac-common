@@ -11,19 +11,33 @@
 package org.sodeac.common.misc;
 
 import java.io.ByteArrayOutputStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import javax.sql.DataSource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sodeac.common.ILogService;
+import org.sodeac.common.function.CatchedExceptionConsumer;
+import org.sodeac.common.jdbc.DBSchemaUtils;
+import org.sodeac.common.jdbc.ParseDBSchemaHandler;
+import org.sodeac.common.jdbc.TypedTreeJDBCCruder;
+import org.sodeac.common.jdbc.TypedTreeJDBCCruder.Session;
 import org.sodeac.common.model.CoreTreeModel;
 import org.sodeac.common.model.ThrowableNodeType;
+import org.sodeac.common.model.dbschema.DBSchemaNodeType;
 import org.sodeac.common.model.logging.LogEventNodeType;
 import org.sodeac.common.model.logging.LogEventType;
 import org.sodeac.common.model.logging.LogLevel;
@@ -338,6 +352,15 @@ public class LogServiceImpl implements ILogService
 			
 			RootBranchNode<LoggingTreeModel,LogEventNodeType> logEvent = TypedTreeMetaModel.getInstance(LoggingTreeModel.class).createRootNode(LoggingTreeModel.logEvent);
 			
+			Date now = new Date();
+			
+			Calendar cal = Calendar.getInstance();
+			cal.setTime(now);
+			cal.set(Calendar.HOUR_OF_DAY, 0);
+			cal.set(Calendar.MINUTE, 0);
+			cal.set(Calendar.SECOND, 0);
+			cal.set(Calendar.MILLISECOND, 0);
+			
 			logEvent
 				.setValue(LogEventNodeType.type, logEventType.name())
 				.setValue(LogEventNodeType.logLevelName, logLevel.name())
@@ -346,7 +369,9 @@ public class LogServiceImpl implements ILogService
 				.setValue(LogEventNodeType.createClientURI, source)
 				.setValue(LogEventNodeType.format, format)
 				.setValue(LogEventNodeType.sequence, LogServiceImpl.this.sequencer.getAndIncrement())
-				.setValue(LogEventNodeType.timestamp, new Date());
+				.setValue(LogEventNodeType.timestamp, now)
+				.setValue(LogEventNodeType.date, cal.getTime())
+				.setValue(LogEventNodeType.time, now);
 			
 			logEvent.setValue(LogEventNodeType.message, this.messageString);
 			if(properties != null)
@@ -429,7 +454,7 @@ public class LogServiceImpl implements ILogService
 		
 	}
 	
-	public static class SystemLogger implements Consumer<BranchNode<?,LogEventNodeType>>
+	public static class SystemLogger implements Consumer<BranchNode<?,LogEventNodeType>>, AutoCloseable
 	{
 		private Logger logger = null;
 		
@@ -443,6 +468,13 @@ public class LogServiceImpl implements ILogService
 		public void accept(BranchNode<?, LogEventNodeType> logEvent)
 		{
 			if(! LogEventType.SYSTEM_LOG.name().equals(logEvent.getValue(LogEventNodeType.type)))
+			{
+				return;
+			}
+			
+			Logger logger = this.logger;
+			
+			if(logger == null)
 			{
 				return;
 			}
@@ -484,7 +516,118 @@ public class LogServiceImpl implements ILogService
 			}
 			
 		}
+
+		@Override
+		public void close() throws Exception
+		{
+			this.logger = null;
+		}
 		
 	}
+	
+	public static class LogServiceDatasourceBackend implements Consumer<BranchNode<?,LogEventNodeType>>, AutoCloseable
+	{
+		private Supplier<DataSource> dataSourceProvider = null;
+		
+		public LogServiceDatasourceBackend setDataSource(Supplier<DataSource> dataSourceProvider, String schema) throws SQLException
+		{
+			this.dataSourceProvider = dataSourceProvider;
+			
+			Connection connection = dataSourceProvider.get().getConnection();
+			try
+			{
+				ParseDBSchemaHandler parseDBSchemaHandler = new ParseDBSchemaHandler("Logging");
+				ModelRegistry.parse(LogEventNodeType.class, parseDBSchemaHandler);
+				RootBranchNode<?, DBSchemaNodeType> schemaSpec = parseDBSchemaHandler.fillSchemaSpec(); 
+				schemaSpec.setValue(DBSchemaNodeType.logUpdates, false);
+				
+				if((schema != null) && (! schema.isEmpty()))
+				{
+					schemaSpec.setValue(DBSchemaNodeType.dbmsSchemaName,schema);
+				}
+				else
+				{
+					schemaSpec.setValue(DBSchemaNodeType.dbmsSchemaName,connection.getSchema());
+				}
+				
+				connection.setAutoCommit(false);
+				DBSchemaUtils schemaUtils = DBSchemaUtils.get(connection);
+				schemaUtils.adaptSchema(schemaSpec);
+				connection.commit();
+				schemaSpec.dispose();
+			}
+			finally 
+			{
+				connection.close();
+			}
+			return this;
+		}
+		public void accept(BranchNode<?,LogEventNodeType> logEvent) 
+		{
+			this.heartBeatLogger();
+			
+			if(logEvent == null)
+			{
+				return;
+			}
+			
+			try
+			{
+				TypedTreeJDBCCruder cruder = TypedTreeJDBCCruder.get();
+				
+				Session session = cruder.openSession(dataSourceProvider.get());
+				session.persist(logEvent);
+				logEvent.getUnmodifiableNodeList(LogEventNodeType.propertyList).forEach(CatchedExceptionConsumer.wrap(p -> session.persist(p)));
+				
+				session.flush();
+				session.commit();
+				
+				cruder.close();
+			}
+			catch (Exception e) {e.printStackTrace();}
+			catch (Error e) {e.printStackTrace();}
+		}
+		
+		private void flush()
+		{
+			
+		}
+		
+		public void heartBeatLogger()
+		{
+			
+		}
+		
+		@Override
+		public void close() throws Exception
+		{
+			// TODO Auto-generated method stub
+			
+		}
+	}
+
+	@Override
+	public void close() throws Exception
+	{
+		if(this.backendList != null)
+		{
+			for(Consumer<BranchNode<?,LogEventNodeType>> backend : this.backendList)
+			{
+				if(backend instanceof AutoCloseable)
+				{
+					((AutoCloseable) backend).close();
+				}
+			}
+			this.backendList.clear();
+			this.backendList = null;
+			this.defaultDomain = null;
+			this.defaultLogEventType = null;
+			this.defaultSource = null;
+			this.writeLogLevel = null;
+			this.xmlMarshaller = null;
+		}
+		
+	}
+
 
 }

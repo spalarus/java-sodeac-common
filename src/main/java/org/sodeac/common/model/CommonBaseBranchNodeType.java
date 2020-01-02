@@ -58,7 +58,7 @@ public class CommonBaseBranchNodeType extends BranchNodeMetaModel
 	@SQLColumn(name="record_valid_through",type=SQLColumnType.TIMESTAMP)
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,Date> validThrough;
 	
-	public class GenerateUUIDIfNull implements BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>
+	public static class GenerateUUIDIfNull implements BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>
 	{
 		@Override
 		public void accept(Node<? extends BranchNodeMetaModel,?> t, Map<String,?> u)
@@ -84,7 +84,7 @@ public class CommonBaseBranchNodeType extends BranchNodeMetaModel
 		}
 	}
 	
-	public class GenerateUUID implements BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>
+	public static class GenerateUUID implements BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>
 	{
 		@Override
 		public void accept(Node<? extends BranchNodeMetaModel,?> t, Map<String,?> u)
@@ -104,7 +104,7 @@ public class CommonBaseBranchNodeType extends BranchNodeMetaModel
 		}
 	}
 	
-	public class CurrentTimestamp implements BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>
+	public static class CurrentTimestamp implements BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>
 	{
 		@Override
 		public void accept(Node<? extends BranchNodeMetaModel,?> t, Map<String,?> u)
@@ -113,7 +113,7 @@ public class CommonBaseBranchNodeType extends BranchNodeMetaModel
 		}
 	}
 	
-	public class TrueIfNull implements BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>
+	public static class TrueIfNull implements BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>
 	{
 		@Override
 		public void accept(Node<? extends BranchNodeMetaModel,?> t, Map<String,?> u)
@@ -125,7 +125,7 @@ public class CommonBaseBranchNodeType extends BranchNodeMetaModel
 		}
 	}
 	
-	public class FalseIfNull implements BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>
+	public static class FalseIfNull implements BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>
 	{
 		@Override
 		public void accept(Node<? extends BranchNodeMetaModel,?> t, Map<String,?> u)

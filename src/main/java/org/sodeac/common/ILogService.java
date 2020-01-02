@@ -10,7 +10,11 @@
  *******************************************************************************/
 package org.sodeac.common;
 
+import java.sql.SQLException;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import javax.sql.DataSource;
 
 import org.sodeac.common.misc.LogServiceImpl;
 import org.sodeac.common.misc.OSGiUtils;
@@ -19,7 +23,7 @@ import org.sodeac.common.model.logging.LogEventType;
 import org.sodeac.common.model.logging.LogLevel;
 import org.sodeac.common.typedtree.BranchNode;
 
-public interface ILogService 
+public interface ILogService extends AutoCloseable
 {
 	public LogLevel getWriteLogLevel();
 	public ILogService setWriteLogLevel(LogLevel logLevel);
@@ -187,5 +191,13 @@ public interface ILogService
 			source = source + "&bundleversion=" + bundleVersion;
 		}
 		return new LogServiceImpl().setDefaultSource(source);
+	}
+	
+	public static ILogService newLogService(Class<?> clazz, Supplier<DataSource> dataSourceProvider, String schema) throws SQLException
+	{
+		return ILogService.newLogService(clazz).addLoggerBackend
+		(
+			new LogServiceImpl.LogServiceDatasourceBackend().setDataSource(dataSourceProvider, schema)
+		);
 	}
 }

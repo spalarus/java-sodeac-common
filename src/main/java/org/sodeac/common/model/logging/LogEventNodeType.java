@@ -12,6 +12,7 @@ package org.sodeac.common.model.logging;
 
 import java.util.Date;
 
+import org.sodeac.common.jdbc.IColumnType;
 import org.sodeac.common.model.CommonBaseBranchNodeType;
 import org.sodeac.common.typedtree.BranchNodeListType;
 import org.sodeac.common.typedtree.LeafNodeType;

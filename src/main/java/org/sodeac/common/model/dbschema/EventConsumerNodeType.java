@@ -10,8 +10,8 @@
  *******************************************************************************/
 package org.sodeac.common.model.dbschema;
 
+import org.sodeac.common.function.CatchedExceptionConsumer;
 import org.sodeac.common.jdbc.DBSchemaUtils;
-import org.sodeac.common.jdbc.SQLConsumer;
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.LeafNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
@@ -20,5 +20,5 @@ public class EventConsumerNodeType extends BranchNodeMetaModel
 {
 	static{ModelRegistry.getBranchNodeMetaModel(EventConsumerNodeType.class);}
 	
-	public static volatile LeafNodeType<EventConsumerNodeType,SQLConsumer<DBSchemaUtils.DBSchemaEvent>> eventConsumer;
+	public static volatile LeafNodeType<EventConsumerNodeType,CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent>> eventConsumer;
 }

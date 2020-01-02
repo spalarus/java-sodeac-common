@@ -37,6 +37,8 @@ public @interface SQLColumn
 	boolean readable() default true;
 	boolean insertable() default true;
 	boolean updatable() default true;
+	String staticDefaultValue() default "";
+	String functionalDefaultValue() default "";
 	Class<? extends BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>> onInsert() default NoConsumer.class;
 	Class<? extends BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>> onUpdate() default NoConsumer.class;
 	Class<? extends BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>> onUpsert() default NoConsumer.class;

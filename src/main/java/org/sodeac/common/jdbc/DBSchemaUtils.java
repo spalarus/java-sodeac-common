@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.Map.Entry;
 
 import org.sodeac.common.ILogService;
+import org.sodeac.common.function.CatchedExceptionConsumer;
 import org.sodeac.common.misc.Driver;
 import org.sodeac.common.misc.LogServiceImpl;
 import org.sodeac.common.model.dbschema.ColumnNodeType;
@@ -94,14 +95,14 @@ public class DBSchemaUtils
 			
 			for(BranchNode<DBSchemaNodeType, EventConsumerNodeType> consumerNode : schema.getUnmodifiableNodeList(DBSchemaNodeType.consumers))
 			{
-				SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+				CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 				if(consumer == null)
 				{
 					continue;
 				}
 				try
 				{
-					consumer.acceptWithSQLException(event);
+					consumer.acceptWithException(event);
 				}
 				catch (Exception e) 
 				{
@@ -174,14 +175,14 @@ public class DBSchemaUtils
 				
 				for(BranchNode<DBSchemaNodeType, EventConsumerNodeType> consumerNode : schema.getUnmodifiableNodeList(DBSchemaNodeType.consumers))
 				{
-					SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+					CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 					if(consumer == null)
 					{
 						continue;
 					}
 					try
 					{
-						consumer.acceptWithSQLException(event);
+						consumer.acceptWithException(event);
 					}
 					catch(SQLException e)
 					{
@@ -208,14 +209,14 @@ public class DBSchemaUtils
 					event.setPhaseType(PhaseType.PRE);
 					event.setException(null);
 					
-					SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+					CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 					if(consumer == null)
 					{
 						continue;
 					}
 					try
 					{
-						consumer.acceptWithSQLException(event);
+						consumer.acceptWithException(event);
 					}
 					catch(SQLException e)
 					{
@@ -234,7 +235,7 @@ public class DBSchemaUtils
 					
 					try
 					{
-						consumer.acceptWithSQLException(event);
+						consumer.acceptWithException(event);
 					}
 					catch(SQLException e)
 					{
@@ -259,14 +260,14 @@ public class DBSchemaUtils
 				
 				for(BranchNode<DBSchemaNodeType, EventConsumerNodeType> consumerNode : schema.getUnmodifiableNodeList(DBSchemaNodeType.consumers))
 				{
-					SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+					CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 					if(consumer == null)
 					{
 						continue;
 					}
 					try
 					{
-						consumer.acceptWithSQLException(event);
+						consumer.acceptWithException(event);
 					}
 					catch(SQLException e)
 					{
@@ -437,14 +438,14 @@ public class DBSchemaUtils
 			
 			for(BranchNode<DBSchemaNodeType, EventConsumerNodeType> consumerNode : schema.getUnmodifiableNodeList(DBSchemaNodeType.consumers))
 			{
-				SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+				CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 				if(consumer == null)
 				{
 					continue;
 				}
 				try
 				{
-					consumer.acceptWithSQLException(event);
+					consumer.acceptWithException(event);
 				}
 				catch(SQLException e)
 				{
@@ -475,8 +476,12 @@ public class DBSchemaUtils
 		return checkProperties.getUnusableExceptionList().isEmpty();
 	}
 	
-	protected void logUpdate(String message)
+	protected void logUpdate(String message, BranchNode<?, DBSchemaNodeType> schema)
 	{
+		if((schema.getValue(DBSchemaNodeType.logUpdates) != null) && (!schema.getValue(DBSchemaNodeType.logUpdates).booleanValue()))
+		{
+			return;
+		}
 		this.logService.info(message);
 	}
 	
@@ -1180,14 +1185,14 @@ public class DBSchemaUtils
 					
 					for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 					{
-						SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+						CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 						if(consumer == null)
 						{
 							continue;
 						}
 						try
 						{
-							consumer.acceptWithSQLException(event);
+							consumer.acceptWithException(event);
 						}
 						catch(SQLException e)
 						{
@@ -1216,7 +1221,7 @@ public class DBSchemaUtils
 				tableTracker.setExits(driver.tableExists(connection, schema, table, tableProperties));
 				if(! tableTracker.isExits())
 				{
-					dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=createtable)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + ")} create table " + table.getValue(TableNodeType.name));
+					dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=createtable)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + ")} create table " + table.getValue(TableNodeType.name),schema);
 						
 					if(! table.getUnmodifiableNodeList(TableNodeType.consumers).isEmpty())
 					{
@@ -1232,14 +1237,14 @@ public class DBSchemaUtils
 						
 						for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 						{
-							SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+							CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 							if(consumer == null)
 							{
 								continue;
 							}
 							try
 							{
-								consumer.acceptWithSQLException(event);
+								consumer.acceptWithException(event);
 							}
 							catch(SQLException e)
 							{
@@ -1302,14 +1307,14 @@ public class DBSchemaUtils
 						
 						for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 						{
-							SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+							CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 							if(consumer == null)
 							{
 								continue;
 							}
 							try
 							{
-								consumer.acceptWithSQLException(event);
+								consumer.acceptWithException(event);
 							}
 							catch(SQLException e)
 							{
@@ -1362,14 +1367,14 @@ public class DBSchemaUtils
 				
 				for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 				{
-					SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+					CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 					if(consumer == null)
 					{
 						continue;
 					}
 					try
 					{
-						consumer.acceptWithSQLException(event);
+						consumer.acceptWithException(event);
 					}
 					catch(SQLException e)
 					{
@@ -1447,7 +1452,7 @@ public class DBSchemaUtils
 				boolean pkExists = driver.primaryKeyExists(connection, schema, table, tableTracker.getTableProperties());
 				if(! pkExists)
 				{
-					dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=createprimarykey)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + ")} create primarykey " + table.getValue(TableNodeType.name));
+					dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=createprimarykey)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + ")} create primarykey " + table.getValue(TableNodeType.name),schema);
 						
 					if(! table.getUnmodifiableNodeList(TableNodeType.consumers).isEmpty())
 					{
@@ -1463,14 +1468,14 @@ public class DBSchemaUtils
 						
 						for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 						{
-							SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+							CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 							if(consumer == null)
 							{
 								continue;
 							}
 							try
 							{
-								consumer.acceptWithSQLException(event);
+								consumer.acceptWithException(event);
 							}
 							catch(SQLException e)
 							{
@@ -1530,14 +1535,14 @@ public class DBSchemaUtils
 						
 						for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 						{
-							SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+							CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 							if(consumer == null)
 							{
 								continue;
 							}
 							try
 							{
-								consumer.acceptWithSQLException(event);
+								consumer.acceptWithException(event);
 							}
 							catch(SQLException e)
 							{
@@ -1635,7 +1640,7 @@ public class DBSchemaUtils
 						if(! indexExists)
 						{
 							
-							dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=createindex)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + ")} create index " + index.getValue(IndexNodeType.name));
+							dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=createindex)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + ")} create index " + index.getValue(IndexNodeType.name),schema);
 							
 							if(! table.getUnmodifiableNodeList(TableNodeType.consumers).isEmpty())
 							{
@@ -1652,14 +1657,14 @@ public class DBSchemaUtils
 								
 								for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 								{
-									SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+									CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 									if(consumer == null)
 									{
 										continue;
 									}
 									try
 									{
-										consumer.acceptWithSQLException(event);
+										consumer.acceptWithException(event);
 									}
 									catch(SQLException e)
 									{
@@ -1719,14 +1724,14 @@ public class DBSchemaUtils
 								
 								for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 								{
-									SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+									CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 									if(consumer == null)
 									{
 										continue;
 									}
 									try
 									{
-										consumer.acceptWithSQLException(event);
+										consumer.acceptWithException(event);
 									}
 									catch(SQLException e)
 									{
@@ -1836,14 +1841,14 @@ public class DBSchemaUtils
 					
 					for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 					{
-						SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+						CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 						if(consumer == null)
 						{
 							continue;
 						}
 						try
 						{
-							consumer.acceptWithSQLException(event);
+							consumer.acceptWithException(event);
 						}
 						catch(SQLException e)
 						{
@@ -1880,7 +1885,7 @@ public class DBSchemaUtils
 					
 				if(! columnTracker.isExits())
 				{
-					dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=createcolumn)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + ")} create column " + table.getValue(TableNodeType.name).toUpperCase() + "." + column.getValue(ColumnNodeType.name));
+					dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=createcolumn)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + ")} create column " + table.getValue(TableNodeType.name).toUpperCase() + "." + column.getValue(ColumnNodeType.name),schema);
 						
 					if(! table.getUnmodifiableNodeList(TableNodeType.consumers).isEmpty())
 					{
@@ -1897,14 +1902,14 @@ public class DBSchemaUtils
 						
 						for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 						{
-							SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+							CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 							if(consumer == null)
 							{
 								continue;
 							}
 							try
 							{
-								consumer.acceptWithSQLException(event);
+								consumer.acceptWithException(event);
 							}
 							catch(SQLException e)
 							{
@@ -1968,14 +1973,14 @@ public class DBSchemaUtils
 						
 						for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 						{
-							SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+							CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 							if(consumer == null)
 							{
 								continue;
 							}
 							try
 							{
-								consumer.acceptWithSQLException(event);
+								consumer.acceptWithException(event);
 							}
 							catch(SQLException e)
 							{
@@ -2029,14 +2034,14 @@ public class DBSchemaUtils
 				
 				for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 				{
-					SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+					CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 					if(consumer == null)
 					{
 						continue;
 					}
 					try
 					{
-						consumer.acceptWithSQLException(event);
+						consumer.acceptWithException(event);
 					}
 					catch(SQLException e)
 					{
@@ -2117,7 +2122,7 @@ public class DBSchemaUtils
 				{
 					if(columnProperties.get("INVALID_NULLABLE") != null)
 					{
-						dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=setnullable)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + ")} set nullable " + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + " " + column.getValue(ColumnNodeType.nullable));
+						dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=setnullable)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + ")} set nullable " + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + " " + column.getValue(ColumnNodeType.nullable),schema);
 						
 						if(! table.getUnmodifiableNodeList(TableNodeType.consumers).isEmpty())
 						{
@@ -2134,14 +2139,14 @@ public class DBSchemaUtils
 							
 							for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 							{
-								SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+								CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 								if(consumer == null)
 								{
 									continue;
 								}
 								try
 								{
-									consumer.acceptWithSQLException(event);
+									consumer.acceptWithException(event);
 								}
 								catch (Exception e) 
 								{
@@ -2164,7 +2169,7 @@ public class DBSchemaUtils
 					
 					if(columnProperties.get("INVALID_SIZE") != null)
 					{
-						dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=setcolsize)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + ")} set colsize " + table.getValue(TableNodeType.name)+ "." + column.getValue(ColumnNodeType.name) + " " + column.getValue(ColumnNodeType.size));
+						dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=setcolsize)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + ")} set colsize " + table.getValue(TableNodeType.name)+ "." + column.getValue(ColumnNodeType.name) + " " + column.getValue(ColumnNodeType.size),schema);
 						
 						if(! table.getUnmodifiableNodeList(TableNodeType.consumers).isEmpty())
 						{
@@ -2181,14 +2186,14 @@ public class DBSchemaUtils
 							
 							for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 							{
-								SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+								CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 								if(consumer == null)
 								{
 									continue;
 								}
 								try
 								{
-									consumer.acceptWithSQLException(event);
+									consumer.acceptWithException(event);
 								}
 								catch(SQLException e)
 								{
@@ -2216,7 +2221,7 @@ public class DBSchemaUtils
 						
 					if(columnProperties.get("INVALID_TYPE") != null)
 					{
-						dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=setcoltype)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + ")} set type " + table.getValue(TableNodeType.name)+ "." + column.getValue(ColumnNodeType.name) + " " + column.getValue(ColumnNodeType.columntype));
+						dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=setcoltype)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + ")} set type " + table.getValue(TableNodeType.name)+ "." + column.getValue(ColumnNodeType.name) + " " + column.getValue(ColumnNodeType.columntype),schema);
 						
 						if(! table.getUnmodifiableNodeList(TableNodeType.consumers).isEmpty())
 						{
@@ -2233,14 +2238,14 @@ public class DBSchemaUtils
 							
 							for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 							{
-								SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+								CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 								if(consumer == null)
 								{
 									continue;
 								}
 								try
 								{
-									consumer.acceptWithSQLException(event);
+									consumer.acceptWithException(event);
 								}
 								catch(SQLException e)
 								{
@@ -2267,7 +2272,7 @@ public class DBSchemaUtils
 						
 					if(columnProperties.get("INVALID_DEFAULT") != null)
 					{
-						dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=setcoldefaultvalue)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + ")} set nullable " + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + " " + column.getValue(ColumnNodeType.defaultValue));
+						dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=setcoldefaultvalue)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + ")} set nullable " + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + " " + column.getValue(ColumnNodeType.defaultValue),schema);
 						
 						if(! table.getUnmodifiableNodeList(TableNodeType.consumers).isEmpty())
 						{
@@ -2284,14 +2289,14 @@ public class DBSchemaUtils
 							
 							for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 							{
-								SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+								CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 								if(consumer == null)
 								{
 									continue;
 								}
 								try
 								{
-									consumer.acceptWithSQLException(event);
+									consumer.acceptWithException(event);
 								}
 								catch(SQLException e)
 								{
@@ -2356,14 +2361,14 @@ public class DBSchemaUtils
 							
 							for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 							{
-								SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+								CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 								if(consumer == null)
 								{
 									continue;
 								}
 								try
 								{
-									consumer.acceptWithSQLException(event);
+									consumer.acceptWithException(event);
 								}
 								catch (Exception e) 
 								{
@@ -2398,14 +2403,14 @@ public class DBSchemaUtils
 							
 							for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 							{
-								SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+								CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 								if(consumer == null)
 								{
 									continue;
 								}
 								try
 								{
-									consumer.acceptWithSQLException(event);
+									consumer.acceptWithException(event);
 								}
 								catch(SQLException e)
 								{
@@ -2445,14 +2450,14 @@ public class DBSchemaUtils
 							
 							for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 							{
-								SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+								CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 								if(consumer == null)
 								{
 									continue;
 								}
 								try
 								{
-									consumer.acceptWithSQLException(event);
+									consumer.acceptWithException(event);
 								}
 								catch(SQLException e)
 								{
@@ -2491,14 +2496,14 @@ public class DBSchemaUtils
 							
 							for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 							{
-								SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+								CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 								if(consumer == null)
 								{
 									continue;
 								}
 								try
 								{
-									consumer.acceptWithSQLException(event);
+									consumer.acceptWithException(event);
 								}
 								catch(SQLException e)
 								{
@@ -2583,7 +2588,7 @@ public class DBSchemaUtils
 				boolean foreinKeyValid = driver.isValidForeignKey(connection, schema, table, column, columnTracker.getColumnProperties());
 				if(! foreinKeyValid)
 				{
-					dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=createforeignkey)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + ")} create foreignkey " + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name));
+					dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=createforeignkey)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + ")} create foreignkey " + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name),schema);
 					
 					if(! table.getUnmodifiableNodeList(TableNodeType.consumers).isEmpty())
 					{
@@ -2600,14 +2605,14 @@ public class DBSchemaUtils
 						
 						for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 						{
-							SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+							CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 							if(consumer == null)
 							{
 								continue;
 							}
 							try
 							{
-								consumer.acceptWithSQLException(event);
+								consumer.acceptWithException(event);
 							}
 							catch(SQLException e)
 							{
@@ -2668,14 +2673,14 @@ public class DBSchemaUtils
 						
 						for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 						{
-							SQLConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+							CatchedExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 							if(consumer == null)
 							{
 								continue;
 							}
 							try
 							{
-								consumer.acceptWithSQLException(event);
+								consumer.acceptWithException(event);
 							}
 							catch(SQLException e)
 							{

@@ -10,7 +10,6 @@
  *******************************************************************************/
 package org.sodeac.common.model.dbschema;
 
-import org.sodeac.common.typedtree.BranchNode;
 import org.sodeac.common.typedtree.BranchNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.TypedTreeMetaModel;
@@ -22,7 +21,7 @@ public class DBSchemaTreeModel extends TypedTreeMetaModel<DBSchemaTreeModel>
 	
 	public static volatile BranchNodeType<DBSchemaTreeModel,DBSchemaNodeType> schema;
 	
-	public static BranchNode<DBSchemaTreeModel, DBSchemaNodeType> newSchema(String name)
+	public static RootBranchNode<DBSchemaTreeModel, DBSchemaNodeType> newSchema(String name)
 	{
 		RootBranchNode<DBSchemaTreeModel, DBSchemaNodeType> schema = ModelRegistry.getTypedTreeMetaModel(DBSchemaTreeModel.class).createRootNode(DBSchemaTreeModel.schema);
 		schema.setValue(DBSchemaNodeType.name, name);
