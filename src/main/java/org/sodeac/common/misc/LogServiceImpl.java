@@ -12,9 +12,7 @@ package org.sodeac.common.misc;
 
 import java.io.ByteArrayOutputStream;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;

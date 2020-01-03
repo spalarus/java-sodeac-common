@@ -45,6 +45,7 @@ import org.sodeac.common.typedtree.LeafNode;
 import org.sodeac.common.typedtree.LeafNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.Node;
+import org.sodeac.common.typedtree.NodeHelper;
 import org.sodeac.common.typedtree.TypedTreeHelper;
 import org.sodeac.common.typedtree.TypedTreeMetaModel;
 import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
@@ -559,7 +560,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				runtimeParameter.connection = mainConnection;
 				runtimeParameter.session = this;
 				
-				// TODO
+				preparedDefinitionContainer.preparedDeleteStatementDefinition.deleteNode(runtimeParameter);
 				
 				runtimeParameter.close();
 				valid = true;
@@ -709,16 +710,20 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 	private class PreparedDeleteDefinitionContainer
 	{
 		private INodeType nodeType = null;
+		private PreparedDeleteStatementDefinition preparedDeleteStatementDefinition = null;
 		
 		private PreparedDeleteDefinitionContainer(INodeType nodeType)
 		{
 			super();
-			this.nodeType = this.nodeType;
+			this.nodeType = nodeType;
+			this.preparedDeleteStatementDefinition = new PreparedDeleteStatementDefinition(nodeType);
 		}
 		
 		private void close()
 		{
-			
+			this.nodeType = null;
+			this.preparedDeleteStatementDefinition.close();
+			this.preparedDeleteStatementDefinition = null;
 		}
 	}
 	private class PreparedPersistDefinitionContainer
@@ -1600,6 +1605,64 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				this.columns.clear();
 			}
 			this.columns = null;
+		}
+	}
+	
+	private class PreparedDeleteStatementDefinition
+	{
+		
+		public PreparedDeleteStatementDefinition(INodeType nodeType) 
+		{
+			super();
+			this.nodeType = nodeType;
+			this.create();
+		}
+		
+		private void create()
+		{
+			this.tableNode = NodeHelper.parseTableNode(this.nodeType);
+			this.sql = "DELETE FROM " + tableNode.getTableName() + " WHERE " + tableNode.getPrimaryKeyName() + " = ? ";
+			
+		}
+		
+		private INodeType nodeType = null;
+		private NodeHelper.TableNode tableNode = null;
+		private BranchNodeMetaModel type = null;
+		private String sql = null;
+		
+		@SuppressWarnings({ "unchecked", "rawtypes" })
+		public void deleteNode(RuntimeParameter runtimeParameter) throws SQLException
+		{
+			runtimeParameter.preparedStatement = runtimeParameter.getPreparedStatement(this.sql);
+			
+			Object value = runtimeParameter.branchNode.getValue(tableNode.getPrimaryKeyLeafNode());
+			
+			if(tableNode.getPrimaryKeyLeafNode().getTypeClass() == String.class)
+			{
+				runtimeParameter.preparedStatement.setString(1, (String)value);
+			}
+			if(tableNode.getPrimaryKeyLeafNode().getTypeClass() == UUID.class)
+			{
+				runtimeParameter.preparedStatement.setString(1, ((UUID)value).toString());
+			}
+			if(tableNode.getPrimaryKeyLeafNode().getTypeClass() == Long.class)
+			{
+				runtimeParameter.preparedStatement.setLong(1, (Long)value);
+			}
+			else
+			{
+				runtimeParameter.preparedStatement.setString(1, value.toString());
+			}
+			
+			runtimeParameter.preparedStatement.executeUpdate();
+		}
+		
+		private void close()
+		{
+			this.nodeType = null;
+			this.type = null;
+			this.sql = null;
+			this.tableNode = null;
 		}
 	}
 	
