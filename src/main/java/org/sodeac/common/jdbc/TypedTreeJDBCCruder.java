@@ -34,7 +34,7 @@ import java.util.function.Function;
 import javax.sql.DataSource;
 
 import org.sodeac.common.function.ConplierBean;
-import org.sodeac.common.function.CatchedExceptionConsumer;
+import org.sodeac.common.function.ExceptionConsumer;
 import org.sodeac.common.jdbc.TypedTreeJDBCCruder.Session.RuntimeParameter;
 import org.sodeac.common.typedtree.BranchNode;
 import org.sodeac.common.typedtree.BranchNodeListType;
@@ -2030,12 +2030,12 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		{
 			super();
 			this.nodeType = nodeType;
-			this.checks = new ArrayList<CatchedExceptionConsumer<RuntimeParameter>>();
+			this.checks = new ArrayList<ExceptionConsumer<RuntimeParameter>>();
 			this.create();
 		}
 		
 		private INodeType nodeType = null;
-		private List<CatchedExceptionConsumer<RuntimeParameter>> checks = null;
+		private List<ExceptionConsumer<RuntimeParameter>> checks = null;
 		 
 		private void create()
 		{
@@ -2132,7 +2132,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			nodeType = null;
 		}
 		
-		private class CheckPKLeafNode implements CatchedExceptionConsumer<RuntimeParameter>, AutoCloseable
+		private class CheckPKLeafNode implements ExceptionConsumer<RuntimeParameter>, AutoCloseable
 		{
 			private JDBCSetterDefinition columnDefinition = null;
 			private LeafNodeType leafNodeType = null;
@@ -2342,7 +2342,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		private boolean parentType = false;
 		private int cursorPosition;
 		private Function<Object, Object> converter = null;
-		private CatchedExceptionConsumer<RuntimeParameter> setter = null;
+		private ExceptionConsumer<RuntimeParameter> setter = null;
 		private AssociationType associationType = null;
 		private BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>> onUpsert = null;
 		private BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>> onInsert = null;
@@ -2365,7 +2365,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			return associationType;
 		}
 		
-		private abstract class LeafNodeJDBCSetter implements CatchedExceptionConsumer<RuntimeParameter>
+		private abstract class LeafNodeJDBCSetter implements ExceptionConsumer<RuntimeParameter>
 		{
 			@Override
 			public void acceptWithException(RuntimeParameter runtimeParameter) throws SQLException
@@ -2671,7 +2671,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		private boolean parentType = false;
 		private int cursorPosition;
 		private Function<Object, Object> converter = null;
-		private CatchedExceptionConsumer<RuntimeParameter> getter = null;
+		private ExceptionConsumer<RuntimeParameter> getter = null;
 		private AssociationType associationType = null;
 		private BiConsumer<RuntimeParameter, PreparedLoadResultSetDefinition> nodeSetter = null;
 		
@@ -2702,7 +2702,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			return associationType;
 		}
 		
-		private abstract class LeafNodeJDBCGetter implements CatchedExceptionConsumer<RuntimeParameter>
+		private abstract class LeafNodeJDBCGetter implements ExceptionConsumer<RuntimeParameter>
 		{
 			@Override
 			public void acceptWithException(RuntimeParameter runtimeParameter) throws Exception

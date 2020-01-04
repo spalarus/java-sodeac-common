@@ -11,7 +11,7 @@
 package org.sodeac.common.model.dbschema;
 
 import org.sodeac.common.jdbc.DBSchemaUtils.DBSchemaEvent;
-import org.sodeac.common.function.CatchedExceptionConsumer;
+import org.sodeac.common.function.ExceptionConsumer;
 import org.sodeac.common.jdbc.IColumnType;
 import org.sodeac.common.typedtree.BranchNode;
 import org.sodeac.common.typedtree.BranchNodeListType;
@@ -250,7 +250,7 @@ public class TableNodeType extends BranchNodeMetaModel
 		return index;
 	}
 	
-	public static void addConsumer(BranchNode<?, TableNodeType> table, CatchedExceptionConsumer<DBSchemaEvent> consumer)
+	public static void addConsumer(BranchNode<?, TableNodeType> table, ExceptionConsumer<DBSchemaEvent> consumer)
 	{
 		table.create(TableNodeType.consumers).setValue(EventConsumerNodeType.eventConsumer, consumer);
 	}

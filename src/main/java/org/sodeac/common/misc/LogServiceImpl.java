@@ -28,7 +28,7 @@ import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sodeac.common.ILogService;
-import org.sodeac.common.function.CatchedExceptionConsumer;
+import org.sodeac.common.function.ExceptionConsumer;
 import org.sodeac.common.jdbc.DBSchemaUtils;
 import org.sodeac.common.jdbc.ParseDBSchemaHandler;
 import org.sodeac.common.jdbc.TypedTreeJDBCCruder;
@@ -575,7 +575,7 @@ public class LogServiceImpl implements ILogService
 				
 				Session session = cruder.openSession(dataSourceProvider.get());
 				session.persist(logEvent);
-				logEvent.getUnmodifiableNodeList(LogEventNodeType.propertyList).forEach(CatchedExceptionConsumer.wrap(p -> session.persist(p)));
+				logEvent.getUnmodifiableNodeList(LogEventNodeType.propertyList).forEach(ExceptionConsumer.wrap(p -> session.persist(p)));
 				
 				session.flush();
 				session.commit();
