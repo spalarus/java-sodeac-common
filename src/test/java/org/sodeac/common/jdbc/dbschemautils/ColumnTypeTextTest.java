@@ -378,7 +378,7 @@ public class ColumnTypeTextTest
 		table1Dictionary.put(ObjectType.TABLE, table1);
 		TableNodeType.addConsumer(table1, new DatabaseSchemaUpdateListener(updateListenerMock));
 		
-		BranchNode<TableNodeType, ColumnNodeType> column1 = TableNodeType.createCharColumn(table1, columnVarcharName , true, 100);
+		BranchNode<TableNodeType, ColumnNodeType> column1 = TableNodeType.createVarcharColumn(table1, columnVarcharName , true, 100);
 		
 		// prepare column for simulation
 		
@@ -482,7 +482,7 @@ public class ColumnTypeTextTest
 		table1Dictionary.put(ObjectType.TABLE, table1);
 		TableNodeType.addConsumer(table1, new DatabaseSchemaUpdateListener(updateListenerMock));
 		
-		BranchNode<TableNodeType, ColumnNodeType> column1 = TableNodeType.createCharColumn(table1, columnVarcharName , true, 100);
+		BranchNode<TableNodeType, ColumnNodeType> column1 = TableNodeType.createVarcharColumn(table1, columnVarcharName , true, 100);
 		
 		// prepare column for simulation
 		

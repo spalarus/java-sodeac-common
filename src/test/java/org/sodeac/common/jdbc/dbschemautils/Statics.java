@@ -100,7 +100,7 @@ public class Statics
 							Class.forName("org.postgresql.Driver").newInstance();
 						}
 						catch (Exception e) {}
-						testConnection.connection = DriverManager.getConnection("jdbc:postgresql://192.168.178.45:5432/sodeac", "sodeac", "sodeac");
+						testConnection.connection = DriverManager.getConnection("jdbc:postgresql://192.168.178.19:5432/sodeac", "sodeac", "sodeac");
 						
 						if(createdSchema.get("POSTGRES_" + schemaName) == null)
 						{
