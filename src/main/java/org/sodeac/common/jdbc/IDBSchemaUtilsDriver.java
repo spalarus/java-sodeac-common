@@ -1170,7 +1170,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 			
 			if(columnType == null)
 			{
-				throw new SQLException("No ColumnType Provider found for \"" + column.getValue(ColumnNodeType.columntype) + "\"");
+				throw new SQLException("No ColumnType Provider found for \"" + column.getValue(ColumnNodeType.columnType) + "\"");
 			}
 			
 			sqlBuilder.append(" " + columnType.getTypeExpression(connection, schema, table, column, "TODO", this));
@@ -1310,7 +1310,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 			String type = determineColumnType(connection, schema, table, column, columnProperties);
 			if(type != null)
 			{
-				if(! type.equalsIgnoreCase(column.getValue(ColumnNodeType.columntype)))
+				if(! type.equalsIgnoreCase(column.getValue(ColumnNodeType.columnType)))
 				{
 					valid = false;
 					columnProperties.put("INVALID_TYPE", true);
@@ -1360,9 +1360,9 @@ public interface IDBSchemaUtilsDriver extends IDriver
 			if
 			(
 				(
-					IColumnType.ColumnType.CHAR.toString().equals(column.getValue(ColumnNodeType.columntype))
+					IColumnType.ColumnType.CHAR.toString().equals(column.getValue(ColumnNodeType.columnType))
 					||
-					IColumnType.ColumnType.VARCHAR.toString().equals(column.getValue(ColumnNodeType.columntype))
+					IColumnType.ColumnType.VARCHAR.toString().equals(column.getValue(ColumnNodeType.columnType))
 				)
 				&&
 				size > 0
@@ -1473,7 +1473,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 				
 				if(columnType == null)
 				{
-					throw new SQLException("No ColumnType Provider found for \"" + column.getValue(ColumnNodeType.columntype) + "\"");
+					throw new SQLException("No ColumnType Provider found for \"" + column.getValue(ColumnNodeType.columnType) + "\"");
 				}
 				
 				sqlBuilder.append(" " + columnType.getTypeExpression(connection, schema, table, column, "TODO", this));

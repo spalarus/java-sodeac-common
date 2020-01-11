@@ -2221,7 +2221,7 @@ public class DBSchemaUtils
 						
 					if(columnProperties.get("INVALID_TYPE") != null)
 					{
-						dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=setcoltype)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + ")} set type " + table.getValue(TableNodeType.name)+ "." + column.getValue(ColumnNodeType.name) + " " + column.getValue(ColumnNodeType.columntype),schema);
+						dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=setcoltype)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + ")} set type " + table.getValue(TableNodeType.name)+ "." + column.getValue(ColumnNodeType.name) + " " + column.getValue(ColumnNodeType.columnType),schema);
 						
 						if(! table.getUnmodifiableNodeList(TableNodeType.consumers).isEmpty())
 						{

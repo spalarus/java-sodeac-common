@@ -70,7 +70,7 @@ public class DefaultColumnTypeImpl implements IColumnType
 		IDBSchemaUtilsDriver schemaDriver
 	) throws SQLException
 	{
-		String columnType = column.getValue(ColumnNodeType.columntype);
+		String columnType = column.getValue(ColumnNodeType.columnType);
 		if((columnType == null) || ColumnType.VARCHAR.toString().equalsIgnoreCase(columnType) || ColumnType.CHAR.toString().equalsIgnoreCase(columnType) )
 		{
 			String type = (columnType == null) || ColumnType.VARCHAR.toString().equalsIgnoreCase(columnType) ? "VARCHAR" : "CHAR";
@@ -192,7 +192,7 @@ public class DefaultColumnTypeImpl implements IColumnType
 		IDBSchemaUtilsDriver schemaDriver
 	) throws SQLException
 	{
-		String columnType = column.getValue(ColumnNodeType.columntype);
+		String columnType = column.getValue(ColumnNodeType.columnType);
 		String defaultValue = column.getValue(ColumnNodeType.defaultValue);
 		boolean defaultValueByFunction = column.getValue(ColumnNodeType.defaultValueByFunction) == null ? false : column.getValue(ColumnNodeType.defaultValueByFunction).booleanValue();
 		

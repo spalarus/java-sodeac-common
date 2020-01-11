@@ -395,7 +395,7 @@ public class ParseDBSchemaHandler implements ITypedTreeModelParserHandler
 							
 							table.tableSpec.create(TableNodeType.columns)
 								.setValue(ColumnNodeType.name, refName)
-								.setValue(ColumnNodeType.columntype, referenceTable.idColumnType.name())
+								.setValue(ColumnNodeType.columnType, referenceTable.idColumnType.name())
 								.setValue(ColumnNodeType.nullable, referencedByColumn.nullable())
 								.setValue(ColumnNodeType.size, referenceTable.idColumnLength)
 								.create(ColumnNodeType.foreignKey)
@@ -453,7 +453,7 @@ public class ParseDBSchemaHandler implements ITypedTreeModelParserHandler
 							
 						BranchNode<TableNodeType, ColumnNodeType>  column = table.tableSpec.create(TableNodeType.columns)
 							.setValue(ColumnNodeType.name, columnName)
-							.setValue(ColumnNodeType.columntype, columnType.name())
+							.setValue(ColumnNodeType.columnType, columnType.name())
 							.setValue(ColumnNodeType.nullable, sqlColumn.nullable());
 						
 						if((columnType == columnType.VARCHAR) || (columnType == columnType.CHAR))
@@ -591,7 +591,7 @@ public class ParseDBSchemaHandler implements ITypedTreeModelParserHandler
 			System.out.println(tableSpec.getValue(TableNodeType.name));
 			for(BranchNode<TableNodeType, ColumnNodeType> columnSpec : tableSpec.getUnmodifiableNodeList(TableNodeType.columns))
 			{
-				System.out.println("\t: " + columnSpec.getValue(ColumnNodeType.name) + " " + columnSpec.getValue(ColumnNodeType.columntype) + " " + columnSpec.getValue(ColumnNodeType.nullable) + " " + columnSpec.getValue(ColumnNodeType.size));
+				System.out.println("\t: " + columnSpec.getValue(ColumnNodeType.name) + " " + columnSpec.getValue(ColumnNodeType.columnType) + " " + columnSpec.getValue(ColumnNodeType.nullable) + " " + columnSpec.getValue(ColumnNodeType.size));
 				if(columnSpec.get(ColumnNodeType.primaryKey) != null)
 				{
 					System.out.println("\t\t: PK : " +  columnSpec.get(ColumnNodeType.primaryKey).getValue(PrimaryKeyNodeType.constraintName) + " / " + columnSpec.get(ColumnNodeType.primaryKey).getValue(PrimaryKeyNodeType.indexName));
