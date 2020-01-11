@@ -28,8 +28,10 @@ import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.IgnoreIfFalse;
 import org.sodeac.common.typedtree.annotation.IgnoreIfNull;
 import org.sodeac.common.typedtree.annotation.Transient;
+import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 
 @Domain(name="org.sodeac.core.model")
+@TypedTreeModel(modelClass=CoreTreeModel.class)
 public class ThrowableNodeType extends BranchNodeMetaModel 
 {
 	static{ModelRegistry.getBranchNodeMetaModel(ThrowableNodeType.class);}

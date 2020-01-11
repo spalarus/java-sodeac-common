@@ -14,9 +14,11 @@ import org.sodeac.common.typedtree.BranchNodeListType;
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.annotation.Domain;
+import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 import org.sodeac.common.typedtree.annotation.XMLNodeList;
 
 @Domain(name="org.sodeac.core.model")
+@TypedTreeModel(modelClass=CoreTreeModel.class)
 public class StacktraceNodeType extends BranchNodeMetaModel
 {
 	static{ModelRegistry.getBranchNodeMetaModel(StacktraceNodeType.class);}
