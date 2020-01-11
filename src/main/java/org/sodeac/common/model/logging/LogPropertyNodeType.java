@@ -24,7 +24,6 @@ import org.sodeac.common.typedtree.annotation.Transient;
 import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 import org.sodeac.common.typedtree.annotation.SQLColumn.SQLColumnType;
 
-@Domain(name="org.sodeac.system.logging")
 @SQLTable(name="sdc_log_property",updatable= false)
 @TypedTreeModel(modelClass=LoggingTreeModel.class)
 public class LogPropertyNodeType extends CommonBaseBranchNodeType

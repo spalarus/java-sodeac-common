@@ -20,6 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,12 +47,13 @@ import org.sodeac.common.typedtree.annotation.IgnoreIfFalse;
 import org.sodeac.common.typedtree.annotation.IgnoreIfNull;
 import org.sodeac.common.typedtree.annotation.IgnoreIfTrue;
 import org.sodeac.common.typedtree.annotation.Transient;
+import org.sodeac.common.typedtree.annotation.Version;
 import org.sodeac.common.typedtree.annotation.XMLNodeList;
 
 // quick and dirty - poc
 public class XMLMarshaller 
 {
-	private String namespace;
+	private String mainNamespace;
 	
 	private Map<Class<? extends BranchNodeMetaModel>,XMLNodeMarshaller> nodeMarshallerIndex;
 	private Map<String,Function<Object, String>> toStringIndex = new HashMap<String,Function<Object, String>>();
@@ -61,7 +63,7 @@ public class XMLMarshaller
 	protected XMLMarshaller(String namespace)
 	{
 		super();
-		this.namespace = namespace;
+		this.mainNamespace = namespace;
 		this.nodeMarshallerIndex = new HashMap<Class<? extends BranchNodeMetaModel>, XMLMarshaller.XMLNodeMarshaller>();
 		
 		toStringIndex.put(String.class.getCanonicalName(), p -> (String)p);
@@ -140,8 +142,6 @@ public class XMLMarshaller
 	protected void build()
 	{
 
-		// TODO create signatures to detect other version
-		
 		for(Entry<Class<? extends BranchNodeMetaModel>,XMLNodeMarshaller> entry : this.nodeMarshallerIndex.entrySet())
 		{
 			BranchNodeMetaModel metaModel = ModelRegistry.getBranchNodeMetaModel(entry.getValue().nodeModelClass);
@@ -346,7 +346,7 @@ public class XMLMarshaller
 			{
 				throw new IllegalStateException("Marshaller not found for " + node.getNodeType().getTypeClass());
 			}
-			XMLStreamWriter out = XMLOutputFactory.newInstance().createXMLStreamWriter( new OutputStreamWriter(os, "utf-8"));
+			XMLStreamWriter out = XMLOutputFactory.newInstance().createXMLStreamWriter( new OutputStreamWriter(os, "UTF-8"));
 			try
 			{
 				String rootName = node.getNodeType().getNodeName();
@@ -355,8 +355,11 @@ public class XMLMarshaller
 				{
 					rootName = xmlElement.name();
 				}
-				out.writeStartDocument();
+				out.setDefaultNamespace(this.mainNamespace);
+				out.writeStartDocument("UTF-8", "1.0");
 				out.writeStartElement(rootName);
+				out.writeDefaultNamespace(this.mainNamespace);
+				
 				rootMarshaller.marshal(out, node);
 				out.writeEndElement();
 				out.writeEndDocument();
@@ -846,11 +849,30 @@ public class XMLMarshaller
 		public ParseXMLMarshallerHandler(Class<? extends TypedTreeMetaModel<?>> modelClass)
 		{
 			super();
+			
+			Version version = modelClass.getDeclaredAnnotation(Version.class);
+			String versionString = version == null ? "1.0.0" : version.major() + "." + version.minor() + "." + version.service();
 			Domain domain = modelClass.getDeclaredAnnotation(Domain.class);
 			if(domain != null)
 			{
-				namespace = "http://" + domain.name() + "/" + modelClass.getCanonicalName();
+				namespace = "http://" + domain.name() + "/xmlns/" + domain.module() + "/v" + versionString;
 			}
+			else
+			{
+				String packageName = modelClass.getPackage().getName();
+				String[] packageSplit = packageName.split("\\.");
+				String domainName = "";
+				for(int i = packageSplit.length; i > 0; i--)
+				{
+					if(! domainName.isEmpty())
+					{
+						domainName = domainName + ".";
+					}
+					domainName = domainName + packageSplit[i-1];
+				}
+				namespace = "http://" + domainName + "/xmlns/" + modelClass.getSimpleName().toLowerCase() + "/v" + versionString;
+			}
+			
 			this.marshaller = new XMLMarshaller(namespace);
 		}
 		

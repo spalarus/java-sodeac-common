@@ -29,8 +29,6 @@ import org.sodeac.common.typedtree.annotation.XMLNodeList;
 import org.sodeac.common.typedtree.annotation.Association.AssociationType;
 import org.sodeac.common.typedtree.annotation.SQLColumn.SQLColumnType;
 
-
-@Domain(name="org.sodeac.system.logging")
 @SQLTable(name="sdc_log_event",updatable= false)
 @TypedTreeModel(modelClass=LoggingTreeModel.class)
 public class LogEventNodeType extends CommonBaseBranchNodeType

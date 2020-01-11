@@ -15,8 +15,10 @@ import javax.xml.bind.annotation.XmlElement;
 import org.sodeac.common.typedtree.BranchNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.TypedTreeMetaModel;
+import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.Version;
 
+@Domain(name="sodeac.org",module="logging")
 @Version(major=0,minor=5)
 public class LoggingTreeModel extends TypedTreeMetaModel<LoggingTreeModel> 
 {

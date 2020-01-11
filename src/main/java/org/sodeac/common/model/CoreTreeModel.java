@@ -18,7 +18,7 @@ import org.sodeac.common.typedtree.TypedTreeMetaModel;
 import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.Version;
 
-@Domain(name="org.sodeac.core.model")
+@Domain(name="sodeac.org",module="core")
 @Version(major=0,minor=5)
 public class CoreTreeModel extends TypedTreeMetaModel<CoreTreeModel> 
 {

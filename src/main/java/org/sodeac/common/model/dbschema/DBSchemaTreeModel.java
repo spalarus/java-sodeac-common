@@ -13,8 +13,10 @@ package org.sodeac.common.model.dbschema;
 import org.sodeac.common.typedtree.BranchNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.TypedTreeMetaModel;
+import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.Version;
 
+@Domain(name="sodeac.org",module="dbschema")
 @Version(major=0,minor=5)
 public class DBSchemaTreeModel extends TypedTreeMetaModel<DBSchemaTreeModel> 
 {
