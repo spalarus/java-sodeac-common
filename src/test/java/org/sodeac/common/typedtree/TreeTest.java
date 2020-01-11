@@ -263,6 +263,9 @@ public class TreeTest
 		assertEquals("list size should be correct", 1, logItem.get().getUnmodifiableNodeList(LogEventNodeType.propertyList).size());
 		BranchNode<LogEventNodeType,LogPropertyNodeType> property = logItem.get().getUnmodifiableNodeList(LogEventNodeType.propertyList).get(0);
 		assertEquals("value should be correct", "THROWABLE",property.getValue(LogPropertyNodeType.type));
-		assertTrue("value should be correct",property.getValue(LogPropertyNodeType.value).startsWith("<?xml version=\"1.0\" ?><Throwable "));
+		assertTrue("value should be correct",property.getValue(LogPropertyNodeType.value).startsWith("<?xml "));
+		assertTrue("value should be correct",property.getValue(LogPropertyNodeType.value).substring(0, 54).contains("version=\"1.0\""));
+		assertTrue("value should be correct",property.getValue(LogPropertyNodeType.value).substring(0, 54).contains("encoding=\"UTF-8\""));
+		assertTrue("value should be correct",property.getValue(LogPropertyNodeType.value).substring(0, 54).contains("<Throwable "));
 	}
 }
