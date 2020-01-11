@@ -12,9 +12,12 @@ package org.sodeac.common.model.logging;
 
 import javax.xml.bind.annotation.XmlElement;
 
+import org.sodeac.common.model.dbschema.DBSchemaNodeType;
+import org.sodeac.common.model.dbschema.DBSchemaTreeModel;
 import org.sodeac.common.typedtree.BranchNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.TypedTreeMetaModel;
+import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
 import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.Version;
 
@@ -24,6 +27,24 @@ public class LoggingTreeModel extends TypedTreeMetaModel<LoggingTreeModel>
 {
 	static{ModelRegistry.getTypedTreeMetaModel(LoggingTreeModel.class);}
 	
-	@XmlElement(name="logevent")
+	@XmlElement(name="LogEvent")
 	public static volatile BranchNodeType<LoggingTreeModel,LogEventNodeType> logEvent;
+	
+	
+	@XmlElement(name="LogEventListChunk")
+	public static volatile BranchNodeType<LoggingTreeModel,LogEventListChunkNodeType> logEventListChunk;
+	
+	public static RootBranchNode<LoggingTreeModel,LogEventListChunkNodeType> createLogEventListChunk(long listSize, long chunkSize, long chunkSequence, boolean last)
+	{
+		RootBranchNode<LoggingTreeModel,LogEventListChunkNodeType> chunk = ModelRegistry.getTypedTreeMetaModel(LoggingTreeModel.class).createRootNode(LoggingTreeModel.logEventListChunk);
+		
+		chunk
+			.setValue(LogEventListChunkNodeType.listSize, listSize)
+			.setValue(LogEventListChunkNodeType.chunkSequnece, chunkSequence)
+			.setValue(LogEventListChunkNodeType.chunkSize, chunkSize)
+			.setValue(LogEventListChunkNodeType.itemSize, 0)
+			.setValue(LogEventListChunkNodeType.last, last);
+		
+		return chunk;
+	}
 }

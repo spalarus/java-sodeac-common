@@ -8,7 +8,7 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.misc;
+package org.sodeac.common.impl;
 
 import java.io.ByteArrayOutputStream;
 import java.sql.Connection;
@@ -28,6 +28,7 @@ import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sodeac.common.ILogService;
+import org.sodeac.common.ILogService.ILogEventBuilder;
 import org.sodeac.common.function.ExceptionConsumer;
 import org.sodeac.common.jdbc.DBSchemaUtils;
 import org.sodeac.common.jdbc.ParseDBSchemaHandler;
@@ -47,6 +48,7 @@ import org.sodeac.common.typedtree.BranchNode;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.TypedTreeMetaModel;
 import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
+import org.sodeac.common.typedtree.annotation.Domain;
 
 public class LogServiceImpl implements ILogService 
 {
@@ -144,6 +146,7 @@ public class LogServiceImpl implements ILogService
 	private class LogEventBuilderImpl implements ILogEventBuilder
 	{
 		private String domain = null; 
+		private String module = null; 
 		private String source = null;
 		private String format = null;
 		private LogEventType logEventType = null;
@@ -184,7 +187,6 @@ public class LogServiceImpl implements ILogService
 		@Override
 		public ILogEventBuilder setLogEventType(LogEventType logEventType) 
 		{
-			Objects.nonNull(this.logEventType);
 			if(logEventType == null)
 			{
 				logEventType = LogEventType.SYSTEM_LOG;
@@ -198,6 +200,14 @@ public class LogServiceImpl implements ILogService
 		{
 			Objects.nonNull(this.logEventType);
 			this.domain = domain;
+			return this;
+		}
+
+		@Override
+		public ILogEventBuilder setModule(String module)
+		{
+			Objects.nonNull(this.logEventType);
+			this.module = module;
 			return this;
 		}
 
@@ -306,6 +316,8 @@ public class LogServiceImpl implements ILogService
 			LogPropertyBuilder property = new LogPropertyBuilder();
 			property.type = LogPropertyType.THROWABLE;
 			property.throwable = throwable;
+			property.domain = CoreTreeModel.class.getDeclaredAnnotation(Domain.class).name();
+			property.module = CoreTreeModel.class.getDeclaredAnnotation(Domain.class).module();
 			getProperties().add(property);
 			return this;
 		}
@@ -364,6 +376,7 @@ public class LogServiceImpl implements ILogService
 				.setValue(LogEventNodeType.logLevelName, logLevel.name())
 				.setValue(LogEventNodeType.logLevelValue, logLevel.getIntValue())
 				.setValue(LogEventNodeType.domain, domain)
+				.setValue(LogEventNodeType.module, module)
 				.setValue(LogEventNodeType.createClientURI, source)
 				.setValue(LogEventNodeType.format, format)
 				.setValue(LogEventNodeType.sequence, LogServiceImpl.this.sequencer.getAndIncrement())
@@ -379,6 +392,7 @@ public class LogServiceImpl implements ILogService
 					BranchNode<LogEventNodeType, LogPropertyNodeType> property = logEvent.create(LogEventNodeType.propertyList)
 						.setValue(LogPropertyNodeType.type, propertyBuilder.type.name())
 						.setValue(LogPropertyNodeType.domain, propertyBuilder.domain)
+						.setValue(LogPropertyNodeType.module, propertyBuilder.module)
 						.setValue(LogPropertyNodeType.key, propertyBuilder.key)
 						.setValue(LogPropertyNodeType.format, propertyBuilder.format)
 						.setValue(LogPropertyNodeType.value, propertyBuilder.value);
@@ -435,6 +449,7 @@ public class LogServiceImpl implements ILogService
 			private String value; 
 			private String format;
 			private String domain;
+			private String module;
 			private Throwable throwable;
 			private StackTraceElement[] stacktrace;
 			
@@ -445,6 +460,7 @@ public class LogServiceImpl implements ILogService
 				this.value = null; 
 				this.format = null;
 				this.domain = null;
+				this.module = null;
 				this.throwable = null;
 				this.stacktrace = null;
 			}

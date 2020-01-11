@@ -20,13 +20,13 @@ import org.sodeac.common.typedtree.BranchNodeListType;
 import org.sodeac.common.typedtree.LeafNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.annotation.Association;
-import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.SQLColumn;
 import org.sodeac.common.typedtree.annotation.SQLReferencedByColumn;
 import org.sodeac.common.typedtree.annotation.SQLTable;
 import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 import org.sodeac.common.typedtree.annotation.XMLNodeList;
 import org.sodeac.common.typedtree.annotation.Association.AssociationType;
+import org.sodeac.common.typedtree.annotation.IgnoreIfNull;
 import org.sodeac.common.typedtree.annotation.SQLColumn.SQLColumnType;
 
 @SQLTable(name="sdc_log_event",updatable= false)
@@ -65,17 +65,26 @@ public class LogEventNodeType extends CommonBaseBranchNodeType
 	
 	@SQLColumn(name="log_domain",type=SQLColumnType.VARCHAR, nullable=true, length=512)
 	@XmlElement(name="Domain")
+	@IgnoreIfNull
 	public static volatile LeafNodeType<LogEventNodeType,String> domain;
+	
+	@SQLColumn(name="log_module",type=SQLColumnType.VARCHAR, nullable=true, length=512)
+	@XmlElement(name="Module")
+	@IgnoreIfNull
+	public static volatile LeafNodeType<LogEventNodeType,String> module;
 	
 	@SQLColumn(name="log_task",type=SQLColumnType.VARCHAR, nullable=true, length=512)
 	@XmlElement(name="Task")
+	@IgnoreIfNull
 	public static volatile LeafNodeType<LogEventNodeType,String> task;
 	
 	@SQLColumn(name="log_msg_format",type=SQLColumnType.VARCHAR, nullable=true, length=4000)
 	@XmlElement(name="Format")
+	@IgnoreIfNull
 	public static volatile LeafNodeType<LogEventNodeType,String> format;
 	
 	@SQLColumn(name="log_msg_value",type=SQLColumnType.CLOB, nullable=true)
+	@XmlElement(name="Message")
 	public static volatile LeafNodeType<LogEventNodeType,String> message;
 	
 	@SQLReferencedByColumn(name="sdc_log_event_id", nullable=false)

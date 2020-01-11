@@ -3,6 +3,8 @@ package org.sodeac.common.jdbc.misc;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -13,6 +15,11 @@ import org.junit.Test;
 import org.sodeac.common.ILogService;
 import org.sodeac.common.function.ConplierBean;
 import org.sodeac.common.misc.CloseableCollector;
+import org.sodeac.common.model.logging.LogEventListChunkNodeType;
+import org.sodeac.common.model.logging.LoggingTreeModel;
+import org.sodeac.common.typedtree.ModelRegistry;
+import org.sodeac.common.typedtree.XMLMarshaller;
+import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
 
 public class LogServiceTest
 {
@@ -31,7 +38,10 @@ public class LogServiceTest
 		
 		ConplierBean<DataSource> dataSourceProvider = new ConplierBean<DataSource>(ds);
 		
-		ILogService logService = ILogService.newLogService(LogServiceTest.class,dataSourceProvider,null);
+		RootBranchNode<LoggingTreeModel,LogEventListChunkNodeType> chunk = LoggingTreeModel.createLogEventListChunk(2, 1, 0, true);
+		
+		ILogService logService = ILogService.newLogService(LogServiceTest.class,dataSourceProvider,null)
+				.addLoggerBackend(e -> LogEventListChunkNodeType.addLogToEventListChunk(chunk, e));
 		
 		logService.error("TEST_MESSAGE_1", new RuntimeException("xxx"));
 		
@@ -54,6 +64,21 @@ public class LogServiceTest
 			
 		}
 		
+		XMLMarshaller marshaller = ModelRegistry.getTypedTreeMetaModel(LoggingTreeModel.class).getXMLMarshaller();
 		
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		marshaller.marshal(chunk, baos, true);
+		
+		String xml1 = baos.toString();
+		
+		ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+		RootBranchNode<LoggingTreeModel,LogEventListChunkNodeType> chunk2 = ModelRegistry.getTypedTreeMetaModel(LoggingTreeModel.class).createRootNode(LoggingTreeModel.logEventListChunk);
+		marshaller.unmarshal(chunk2, bais, true);
+		
+		baos = new ByteArrayOutputStream();
+		marshaller.marshal(chunk2, baos, true);
+		
+		String xml2 = baos.toString();
+		assertEquals("value should be correct",xml1, xml2);
 	}
 }

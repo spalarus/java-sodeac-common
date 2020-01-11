@@ -16,7 +16,6 @@ import javax.xml.bind.annotation.XmlElement;
 import org.sodeac.common.model.CommonBaseBranchNodeType;
 import org.sodeac.common.typedtree.LeafNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
-import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.IgnoreIfNull;
 import org.sodeac.common.typedtree.annotation.SQLColumn;
 import org.sodeac.common.typedtree.annotation.SQLTable;
@@ -42,6 +41,11 @@ public class LogPropertyNodeType extends CommonBaseBranchNodeType
 	@SQLColumn(name="log_property_domain",type=SQLColumnType.VARCHAR, nullable=true, length=512)
 	@XmlElement(name="Domain")
 	public static volatile LeafNodeType<LogPropertyNodeType,String> domain;
+	
+	@SQLColumn(name="log_property_module",type=SQLColumnType.VARCHAR, nullable=true, length=512)
+	@XmlElement(name="Module")
+	@IgnoreIfNull
+	public static volatile LeafNodeType<LogPropertyNodeType,String> module;
 	
 	@SQLColumn(name="log_property_format",type=SQLColumnType.VARCHAR, nullable=true, length=4000)
 	@XmlElement(name="Format")

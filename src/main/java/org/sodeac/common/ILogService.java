@@ -16,7 +16,7 @@ import java.util.function.Supplier;
 
 import javax.sql.DataSource;
 
-import org.sodeac.common.misc.LogServiceImpl;
+import org.sodeac.common.impl.LogServiceImpl;
 import org.sodeac.common.misc.OSGiUtils;
 import org.sodeac.common.model.logging.LogEventNodeType;
 import org.sodeac.common.model.logging.LogEventType;
@@ -154,6 +154,7 @@ public interface ILogService extends AutoCloseable
 		public ILogEventBuilder setLogItemLevel(LogLevel logLevel);
 		public ILogEventBuilder setLogEventType(LogEventType logEventType);
 		public ILogEventBuilder setDomain(String domain);
+		public ILogEventBuilder setModule(String module);
 		public ILogEventBuilder setSource(String source);
 		public ILogEventBuilder setFormat(String format);
 		public ILogEventBuilder setMessage(String message);
