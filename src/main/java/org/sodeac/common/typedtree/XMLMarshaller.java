@@ -20,7 +20,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -471,12 +470,40 @@ public class XMLMarshaller
 			SubUnmarshallerContainer unmarshallerContainerForText = null;
 			boolean isNull = false;
 			int openedElement = 0;
+			StringBuilder characterBuilder = null;
+			String singleCharacter = null;
 			while(readerInput.getReader().hasNext())
 			{
 				switch (readerInput.getReader().next()) 
 				{
 					case XMLStreamConstants.START_ELEMENT:
 						
+						if(characterBuilder != null)
+						{
+							if(isNull)
+							{
+								readerInput.setValue(null);
+							}
+							else
+							{
+								readerInput.setValue(characterBuilder.toString());
+							}
+							unmarshallerContainerForText.runner.accept(readerInput, node);
+						}
+						else if(singleCharacter != null)
+						{
+							if(isNull)
+							{
+								readerInput.setValue(null);
+							}
+							else
+							{
+								readerInput.setValue(singleCharacter);
+							}
+							unmarshallerContainerForText.runner.accept(readerInput, node);
+						}
+						characterBuilder = null;
+						singleCharacter = null;
 						unmarshallerContainerForText = null;
 						String name = readerInput.getReader().getLocalName();
 						
@@ -514,6 +541,32 @@ public class XMLMarshaller
 						
 					case XMLStreamConstants.END_ELEMENT:
 						
+						if(characterBuilder != null)
+						{
+							if(isNull)
+							{
+								readerInput.setValue(null);
+							}
+							else
+							{
+								readerInput.setValue(characterBuilder.toString());
+							}
+							unmarshallerContainerForText.runner.accept(readerInput, node);
+						}
+						else if(singleCharacter != null)
+						{
+							if(isNull)
+							{
+								readerInput.setValue(null);
+							}
+							else
+							{
+								readerInput.setValue(singleCharacter);
+							}
+							unmarshallerContainerForText.runner.accept(readerInput, node);
+						}
+						characterBuilder = null;
+						singleCharacter = null;
 						unmarshallerContainerForText = null;
 						openedElement--;
 						if(openedElement < 0)
@@ -527,15 +580,20 @@ public class XMLMarshaller
 						
 						if(unmarshallerContainerForText != null)
 						{
-							if(isNull)
+							if(singleCharacter == null)
 							{
-								readerInput.setValue(null);
+								singleCharacter = readerInput.getReader().getText();
+							}
+							else if(characterBuilder != null)
+							{
+								characterBuilder.append(readerInput.getReader().getText());
 							}
 							else
 							{
-								readerInput.setValue(readerInput.getReader().getText());
+								characterBuilder = new StringBuilder();
+								characterBuilder.append(singleCharacter);
+								characterBuilder.append(readerInput.getReader().getText());
 							}
-							unmarshallerContainerForText.runner.accept(readerInput, node);
 						}
 						
 						break;
