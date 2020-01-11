@@ -1387,6 +1387,16 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		}
 		try
 		{
+			if(nodeContainer.nodeList == null)
+			{
+				return this;
+			}
+			
+			if(nodeContainer.nodeList.isEmpty())
+			{
+				return this;
+			}
+			
 			List<BranchNode<P, T>> copy = (List<BranchNode<P, T>>)new ArrayList(nodeContainer.nodeList);
 			
 			for(BranchNode<P,T> node : copy)
@@ -2268,5 +2278,42 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			this.nodeListenerList = nodeListenerList;
 		}
 		
+	}
+	
+	public BranchNode<P,T> copyFrom(BranchNode<? extends BranchNodeMetaModel, ? extends T> copyFrom)
+	{
+		if(copyFrom == this)
+		{
+			return this;
+		}
+		for(NodeContainer nodeContainer : this._nodeContainerList)
+		{
+			if(nodeContainer.nodeType instanceof LeafNodeType)
+			{
+				this.setValue((LeafNodeType)nodeContainer.nodeType, copyFrom.getValue((LeafNodeType)nodeContainer.nodeType));
+			}
+			else if(nodeContainer.nodeType instanceof BranchNodeType)
+			{
+				BranchNode copyChild = copyFrom.get((BranchNodeType)nodeContainer.nodeType);
+				if((copyChild == null) && (get((BranchNodeType)nodeContainer.nodeType) != null))
+				{
+					remove((BranchNodeType)nodeContainer.nodeType);
+				}
+				else
+				{
+					this.create((BranchNodeType)nodeContainer.nodeType).copyFrom(copyChild);
+				}
+			}
+			else if(nodeContainer.nodeType instanceof BranchNodeListType)
+			{
+				this.clear((BranchNodeListType)nodeContainer.nodeType);
+				
+				for(BranchNode copyChild : (List<BranchNode>)copyFrom.getUnmodifiableNodeList((BranchNodeListType)nodeContainer.nodeType))
+				{
+					this.create((BranchNodeListType)nodeContainer.nodeType).copyFrom(copyChild);
+				}
+			}
+		}
+		return this;
 	}
 }
