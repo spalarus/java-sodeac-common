@@ -184,7 +184,7 @@ public class PGDBUtilDriver implements IDBSchemaUtilsDriver
 				
 				if(columnType == null)
 				{
-					throw new SQLException("No ColumnType Provider found for \"" + column.getValue(ColumnNodeType.columntype) + "\"");
+					throw new SQLException("No ColumnType Provider found for \"" + column.getValue(ColumnNodeType.columnType) + "\"");
 				}
 				
 				sqlBuilder.append(" " + columnType.getTypeExpression(connection, schema, table, column, "TODO", this));
@@ -231,7 +231,7 @@ public class PGDBUtilDriver implements IDBSchemaUtilsDriver
 					
 					if(columnType == null)
 					{
-						throw new SQLException("No ColumnType Provider found for \"" + column.getValue(ColumnNodeType.columntype) + "\"");
+						throw new SQLException("No ColumnType Provider found for \"" + column.getValue(ColumnNodeType.columnType) + "\"");
 					}
 					
 					sqlBuilder.append(" " + columnType.getDefaultValueExpression(connection, schema, table, column, "TODO", this));
