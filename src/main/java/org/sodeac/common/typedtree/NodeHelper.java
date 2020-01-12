@@ -10,12 +10,10 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
-import java.sql.SQLXML;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
 import org.sodeac.common.function.ConplierBean;
-import org.sodeac.common.jdbc.TypedTreeJDBCCruder.JDBCSetterDefinition;
 import org.sodeac.common.typedtree.annotation.SQLColumn;
 import org.sodeac.common.typedtree.annotation.SQLPrimaryKey;
 import org.sodeac.common.typedtree.annotation.SQLReplace;

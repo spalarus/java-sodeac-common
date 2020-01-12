@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -13,7 +13,9 @@ package org.sodeac.common.jdbc;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
@@ -60,6 +62,8 @@ import org.sodeac.common.typedtree.annotation.SQLTable;
 
 public class TypedTreeJDBCCruder implements AutoCloseable 
 {
+	
+	// TODO Transient
 	
 	protected TypedTreeJDBCCruder()
 	{
@@ -209,6 +213,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		private Map<String,PreparedStatement> preparedStatementCache = new HashMap<String,PreparedStatement>();
 		private Map<String,PreparedStatement> preparedStatementWithoutBatchesCache = new HashMap<String,PreparedStatement>();
 		private boolean isPostgreSQL = false;
+		private boolean isH2 = false;
 		
 		protected Session(DataSource mainDatasource)
 		{
@@ -280,9 +285,14 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					this.mainConnection = mainDatasource.getConnection();
 					this.mainConnection.setAutoCommit(false);
 					
-					if(this.mainConnection.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL"))
+					String dbProduct = this.mainConnection.getMetaData().getDatabaseProductName();
+					if(dbProduct.equalsIgnoreCase("PostgreSQL"))
 					{
 						this.isPostgreSQL = true;
+					}
+					else if(dbProduct.equalsIgnoreCase("H2"))
+					{
+						this.isH2 = true;
 					}
 				}
 				
@@ -348,9 +358,14 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					this.mainConnection = mainDatasource.getConnection();
 					this.mainConnection.setAutoCommit(false);
 					
-					if(this.mainConnection.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL"))
+					String dbProduct = this.mainConnection.getMetaData().getDatabaseProductName();
+					if(dbProduct.equalsIgnoreCase("PostgreSQL"))
 					{
 						this.isPostgreSQL = true;
+					}
+					else if(dbProduct.equalsIgnoreCase("H2"))
+					{
+						this.isH2 = true;
 					}
 				}
 				
@@ -401,9 +416,14 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					this.mainConnection = mainDatasource.getConnection();
 					this.mainConnection.setAutoCommit(false);
 					
-					if(this.mainConnection.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL"))
+					String dbProduct = this.mainConnection.getMetaData().getDatabaseProductName();
+					if(dbProduct.equalsIgnoreCase("PostgreSQL"))
 					{
 						this.isPostgreSQL = true;
+					}
+					else if(dbProduct.equalsIgnoreCase("H2"))
+					{
+						this.isH2 = true;
 					}
 				}
 				
@@ -447,9 +467,14 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					this.mainConnection = mainDatasource.getConnection();
 					this.mainConnection.setAutoCommit(false);
 					
-					if(this.mainConnection.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL"))
+					String dbProduct = this.mainConnection.getMetaData().getDatabaseProductName();
+					if(dbProduct.equalsIgnoreCase("PostgreSQL"))
 					{
 						this.isPostgreSQL = true;
+					}
+					else if(dbProduct.equalsIgnoreCase("H2"))
+					{
+						this.isH2 = true;
 					}
 				}
 				
@@ -501,9 +526,14 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					this.mainConnection = mainDatasource.getConnection();
 					this.mainConnection.setAutoCommit(false);
 					
-					if(this.mainConnection.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL"))
+					String dbProduct = this.mainConnection.getMetaData().getDatabaseProductName();
+					if(dbProduct.equalsIgnoreCase("PostgreSQL"))
 					{
 						this.isPostgreSQL = true;
+					}
+					else if(dbProduct.equalsIgnoreCase("H2"))
+					{
+						this.isH2 = true;
 					}
 				}
 				
@@ -549,9 +579,14 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					this.mainConnection = mainDatasource.getConnection();
 					this.mainConnection.setAutoCommit(false);
 					
-					if(this.mainConnection.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL"))
+					String dbProduct = this.mainConnection.getMetaData().getDatabaseProductName();
+					if(dbProduct.equalsIgnoreCase("PostgreSQL"))
 					{
 						this.isPostgreSQL = true;
+					}
+					else if(dbProduct.equalsIgnoreCase("H2"))
+					{
+						this.isH2 = true;
 					}
 				}
 				
@@ -639,6 +674,18 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			{
 				return resultSet;
 			}
+			protected void setResultSet(ResultSet resultSet)
+			{
+				this.resultSet = resultSet;
+			}
+			protected Object[] getValues()
+			{
+				return values;
+			}
+			protected void setValues(Object[] values)
+			{
+				this.values = values;
+			}
 			public BranchNode<? extends BranchNodeMetaModel, ? extends BranchNodeMetaModel> getBranchNode() 
 			{
 				return branchNode;
@@ -681,14 +728,21 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				this.childType = null;
 			}
 			
-			public PreparedStatement getPreparedStatement(String sql) throws SQLException
+			public PreparedStatement getPreparedStatement(String sql, boolean returnGeneratedKey) throws SQLException
 			{
 				PreparedStatement preparedStatement = Session.this.preparedStatementCache.get(sql);
 				if((preparedStatement != null) && (! preparedStatement.isClosed()))
 				{
 					return preparedStatement;
 				}
-				preparedStatement = connection.prepareStatement(sql);
+				if(returnGeneratedKey)
+				{
+					preparedStatement = connection.prepareStatement(sql,Statement.RETURN_GENERATED_KEYS);
+				}
+				else
+				{
+					preparedStatement = connection.prepareStatement(sql);
+				}
 				Session.this.preparedStatementCache.put(sql,preparedStatement);
 				return preparedStatement;
 			}
@@ -1109,6 +1163,10 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					{
 						sqlColumnType = SQLColumnType.BIGINT;
 					}
+					if(primaryKeyNode.getTypeClass() == Integer.class)
+					{
+						sqlColumnType = SQLColumnType.INTEGER;
+					}
 					
 					SQLColumn sqlColumnPK = primaryKeyNode.referencedByField().getAnnotation(SQLColumn.class);
 					
@@ -1120,6 +1178,10 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					if(sqlColumnType == SQLColumnType.BIGINT)
 					{
 						constraintHelper.sqlType = "BIGINT";
+					}
+					if(sqlColumnType == SQLColumnType.INTEGER)
+					{
+						constraintHelper.sqlType = "INTEGER";
 					}
 					constrainHelperIndex.put(runtimeParameter.searchField, constraintHelper);
 					
@@ -1138,6 +1200,10 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					{
 						sqlColumnType = SQLColumnType.BIGINT;
 					}
+					if(runtimeParameter.searchField.getTypeClass()  == Integer.class)
+					{
+						sqlColumnType = SQLColumnType.INTEGER;
+					}
 					if((sqlColumn != null) && (sqlColumn.type() != SQLColumnType.AUTO))
 					{
 						sqlColumnType = sqlColumn.type();
@@ -1146,6 +1212,10 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					if(sqlColumnType == SQLColumnType.BIGINT)
 					{
 						constraintHelper.sqlType = "BIGINT";
+					}
+					if(sqlColumnType == SQLColumnType.INTEGER)
+					{
+						constraintHelper.sqlType = "INTEGER";
 					}
 					constrainHelperIndex.put(runtimeParameter.searchField, constraintHelper);
 				}
@@ -1156,6 +1226,10 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			if(runtimeParameter.session.isPostgreSQL)
 			{
 				completeSQL = sql + " where " + constraintHelper.column + " in (select * from unnest(?))";
+			}
+			else if(runtimeParameter.session.isH2)
+			{
+				completeSQL = sql + " where " + constraintHelper.column + " in (UNNEST(?))";
 			}
 			else
 			{
@@ -1282,6 +1356,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			for(LeafNodeType leafNode : defaultInstance.getLeafNodeTypeList())
 			{
 				SQLColumn sqlColumn = (SQLColumn)leafNode.referencedByField().getAnnotation(SQLColumn.class);
+				SQLPrimaryKey primaryKey = (SQLPrimaryKey)leafNode.referencedByField().getAnnotation(SQLPrimaryKey.class);
 				
 				for(SQLReplace replace : replaces)
 				{
@@ -1303,6 +1378,14 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				
 				if(! sqlColumn.insertable())
 				{
+					continue;
+				}
+				
+				if((primaryKey != null) && (primaryKey.autoGenerated()))
+				{
+					BiConsumer<RuntimeParameter, PreparedLoadResultSetDefinition> nodeSetter = (r,d) -> {r.branchNode.get((LeafNodeType)r.type).setValue(r.staticValue);};
+					this.autoGeneratedRetrieve = new JDBCGetterDefinition(leafNode, sqlColumn, 1, nodeSetter);
+					
 					continue;
 				}
 				
@@ -1502,11 +1585,19 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		private String service = null;
 		private String sql = null;
 		private List<JDBCSetterDefinition> columns = null;
+		private JDBCGetterDefinition autoGeneratedRetrieve = null; 
 		
 		@SuppressWarnings({ "unchecked", "rawtypes" })
 		public void insertNode(RuntimeParameter runtimeParameter) throws SQLException
 		{
-			runtimeParameter.preparedStatement = runtimeParameter.getPreparedStatement(this.sql);
+			if(autoGeneratedRetrieve == null)
+			{
+				runtimeParameter.preparedStatement = runtimeParameter.getPreparedStatement(this.sql);
+			}
+			else
+			{
+				runtimeParameter.preparedStatement = runtimeParameter.getPreparedStatement(this.sql,true); // TODO WithoutBatch
+			}
 			
 			runtimeParameter.converterProperties.clear();
 			runtimeParameter.converterProperties.put(Connection.class.getCanonicalName(), runtimeParameter.connection);
@@ -1589,6 +1680,61 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			runtimeParameter.converterProperties.clear();
 			
 			runtimeParameter.preparedStatement.executeUpdate();
+			if(this.autoGeneratedRetrieve != null)
+			{
+				try
+				{
+					ResultSet backupResultSet = runtimeParameter.getResultSet();
+					try
+					{
+						Object[] backupValues = runtimeParameter.getValues();
+						try
+						{
+							runtimeParameter.setValues(new Object[1]);
+							runtimeParameter.setResultSet(runtimeParameter.preparedStatement.getGeneratedKeys());
+							try
+							{
+								runtimeParameter.getResultSet().next();
+								this.autoGeneratedRetrieve.getter.acceptWithException(runtimeParameter);
+								
+								runtimeParameter.childType = this.autoGeneratedRetrieve.childType;
+								runtimeParameter.type = this.autoGeneratedRetrieve.type;
+								runtimeParameter.staticValue = runtimeParameter.values[0];
+								
+								this.autoGeneratedRetrieve.nodeSetter.accept(runtimeParameter, null);
+								
+								runtimeParameter.childType = null;
+								runtimeParameter.type = null;
+								runtimeParameter.staticValue = null;
+							}
+							finally 
+							{
+								runtimeParameter.getResultSet().close();
+							}
+						}
+						finally 
+						{
+							runtimeParameter.setValues(backupValues);
+						}
+					}
+					finally 
+					{
+						runtimeParameter.setResultSet(backupResultSet);
+					}
+				}
+				catch (SQLException e) 
+				{
+					throw e;
+				}
+				catch (RuntimeException e) 
+				{
+					throw e;
+				}
+				catch (Exception e) 
+				{
+					throw new RuntimeException(e);
+				}
+			}
 		}
 		
 		private void close()
@@ -2826,7 +2972,11 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 	
 	public interface IRuntimeParameter
 	{
-		public PreparedStatement getPreparedStatement(String sql)throws SQLException;
+		public default PreparedStatement getPreparedStatement(String sql)throws SQLException
+		{
+			return getPreparedStatement(sql, false);
+		}
+		public PreparedStatement getPreparedStatement(String sql, boolean returnGeneratedKey)throws SQLException;
 		public PreparedStatement getPreparedStatementWithoutBatch(String sql) throws SQLException;
 		//public ResultSet getResultSet();
 	}
