@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2019 Sebastian Palarus
+ * Copyright (c) 2018, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -12,6 +12,7 @@ package org.sodeac.common.jdbc.impl;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
@@ -180,14 +181,18 @@ public class PGDBUtilDriver implements IDBSchemaUtilsDriver
 				driverProperties.put("SCHEMA", schema);
 				driverProperties.put("TABLE", table);
 				driverProperties.put("COLUMN", column);
+				
+				String productName = connection.getMetaData().getDatabaseProductName();
 				IColumnType columnType = Driver.getSingleDriver(IColumnType.class, driverProperties);
 				
 				if(columnType == null)
 				{
-					throw new SQLException("No ColumnType Provider found for \"" + column.getValue(ColumnNodeType.columnType) + "\"");
+					throw new SQLException(productName + ": no driver found for column type \"" + column.getValue(ColumnNodeType.columnType) + "\"");
 				}
 				
-				sqlBuilder.append(" " + columnType.getTypeExpression(connection, schema, table, column, "TODO", this));
+				
+				
+				sqlBuilder.append(" " + columnType.getTypeExpression(connection, schema, table, column, productName, this));
 				
 				createColumnStatement = connection.prepareStatement(sqlBuilder.toString());
 				createColumnStatement.executeUpdate();
@@ -213,7 +218,7 @@ public class PGDBUtilDriver implements IDBSchemaUtilsDriver
 			PreparedStatement createColumnStatement = null;
 			try
 			{
-				if(column.getValue(ColumnNodeType.defaultValue) == null)
+				if(column.getValue(ColumnNodeType.defaultValueClass) == null)
 				{
 					createColumnStatement = connection.prepareStatement("ALTER TABLE  " + tablePart + " ALTER " + columnPart + " DROP DEFAULT ");
 					createColumnStatement.executeUpdate();
@@ -227,14 +232,16 @@ public class PGDBUtilDriver implements IDBSchemaUtilsDriver
 					driverProperties.put("SCHEMA", schema);
 					driverProperties.put("TABLE", table);
 					driverProperties.put("COLUMN", column);
+					
+					String productName = connection.getMetaData().getDatabaseProductName();
 					IColumnType columnType = Driver.getSingleDriver(IColumnType.class, driverProperties);
 					
 					if(columnType == null)
 					{
-						throw new SQLException("No ColumnType Provider found for \"" + column.getValue(ColumnNodeType.columnType) + "\"");
+						throw new SQLException(productName + ": no driver found for column type \"" + column.getValue(ColumnNodeType.columnType) + "\"");
 					}
 					
-					sqlBuilder.append(" " + columnType.getDefaultValueExpression(connection, schema, table, column, "TODO", this));
+					sqlBuilder.append(" " + columnType.getDefaultValueExpression(connection, schema, table, column, productName, this));
 					
 					createColumnStatement = connection.prepareStatement(sqlBuilder.toString());
 					createColumnStatement.executeUpdate();
@@ -284,6 +291,86 @@ public class PGDBUtilDriver implements IDBSchemaUtilsDriver
 	public String getFunctionExpression(String function)
 	{
 		return function ;
+	}
+
+	@Override
+	public boolean isSequenceExists(String schema, String sequenceName, Connection connection) throws SQLException
+	{
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT count(*) FROM pg_sequences where lower(schemaname) = ? and lower(sequencename) = ?");
+		try
+		{
+			preparedStatement.setString(1, schema.toLowerCase());
+			preparedStatement.setString(2, sequenceName.toLowerCase());
+			ResultSet resultSet = preparedStatement.executeQuery();
+			try
+			{
+				resultSet.next();
+				return resultSet.getInt(1) > 0;
+			}
+			finally 
+			{
+				resultSet.close();
+			}
+		}
+		finally 
+		{
+			preparedStatement.close();
+		}
+	}
+
+	@Override
+	public void createSequence(String schema, String sequenceName, Connection connection, long min, long max, boolean cycle, Long cache) throws SQLException
+	{
+		StringBuilder sqlBuilder = new StringBuilder("create sequence " + schema + "." + sequenceName + " minvalue "+ min + " maxvalue " + max + " ");
+		sqlBuilder.append(cycle ? "cycle" : "no cycle");
+		sqlBuilder.append(cache == null ? " " : " cache " + cache + " ");
+		PreparedStatement preparedStatement = connection.prepareStatement(sqlBuilder.toString());
+		try
+		{
+			preparedStatement.executeUpdate();
+		}
+		finally 
+		{
+			preparedStatement.close();
+		}
+		
+	}
+
+	@Override
+	public void dropSquence(String schema, String sequenceName, Connection connection) throws SQLException
+	{
+		PreparedStatement preparedStatement = connection.prepareStatement("drop sequence " + schema + "." + sequenceName);
+		try
+		{
+			preparedStatement.executeUpdate();
+		}
+		finally 
+		{
+			preparedStatement.close();
+		}
+	}
+
+	@Override
+	public long nextFromSequence(String schema, String sequenceName, Connection connection) throws SQLException
+	{
+		PreparedStatement preparedStatement = connection.prepareStatement("select nextval('" + schema + "." + sequenceName + "'::regclass)");
+		try
+		{
+			ResultSet resultSet = preparedStatement.executeQuery();
+			try
+			{
+				resultSet.next();
+				return resultSet.getLong(1);
+			}
+			finally 
+			{
+				resultSet.close();
+			}
+		}
+		finally
+		{
+			preparedStatement.close();
+		}
 	}
 	
 	

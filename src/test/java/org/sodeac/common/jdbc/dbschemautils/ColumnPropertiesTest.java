@@ -22,6 +22,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.sodeac.common.jdbc.DBSchemaUtils;
 import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
+import org.sodeac.common.jdbc.schemax.IDefaultStaticValue;
 import org.sodeac.common.jdbc.DBSchemaUtils.ActionType;
 import org.sodeac.common.jdbc.DBSchemaUtils.ObjectType;
 import org.sodeac.common.jdbc.DBSchemaUtils.PhaseType;
@@ -368,7 +369,8 @@ public class ColumnPropertiesTest
 		table1ColumnPKDictionary.put(ObjectType.COLUMN, columnPK);
 		
 		BranchNode<TableNodeType, ColumnNodeType> column1 = TableNodeType.createVarcharColumn(table1, columnCharName, false,21);
-		column1.setValue(ColumnNodeType.defaultValue,"'defaultvalue1'");
+		column1.setValue(ColumnNodeType.defaultStaticValue,"'defaultvalue1'");
+		column1.setValue(ColumnNodeType.defaultValueClass, IDefaultStaticValue.class);
 		
 		// prepare column for simulation
 		
@@ -407,9 +409,15 @@ public class ColumnPropertiesTest
 		updateListenerMock.onAction(ActionType.CHECK, ObjectType.SCHEMA, PhaseType.POST, connection, DATATBASE_ID, schemaDictionary, driver, null);
 				
 		ctrl.replay();
-				
-		dbSchemaUtils.adaptSchema(schema);
 		
+		try
+		{
+			dbSchemaUtils.adaptSchema(schema);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
 		ctrl.verify();
 	}
 	
@@ -454,7 +462,8 @@ public class ColumnPropertiesTest
 		table1ColumnPKDictionary.put(ObjectType.COLUMN, columnPK);
 		
 		BranchNode<TableNodeType, ColumnNodeType> column1 = TableNodeType.createVarcharColumn(table1, columnCharName, false,21);
-		column1.setValue(ColumnNodeType.defaultValue,"'defaultvalue1'");
+		column1.setValue(ColumnNodeType.defaultStaticValue,"'defaultvalue1'");
+		column1.setValue(ColumnNodeType.defaultValueClass, IDefaultStaticValue.class);
 		
 		// prepare column for simulation
 		

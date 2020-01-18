@@ -55,6 +55,7 @@ public class LogServiceImpl implements ILogService
 	private volatile LogLevel writeLogLevel = LogLevel.INFO;
 	private volatile String defaultDomain = null;
 	private volatile String defaultSource = null;
+	private volatile String defaultModule = null;
 	private volatile LogEventType defaultLogEventType = LogEventType.SYSTEM_LOG;
 	private volatile List<Consumer<BranchNode<?,LogEventNodeType>>> backendList = new CopyOnWriteArrayList<Consumer<BranchNode<?,LogEventNodeType>>>();
 	private volatile boolean autoDispose = true;
@@ -113,6 +114,13 @@ public class LogServiceImpl implements ILogService
 	}
 
 	@Override
+	public ILogService setDefaultModule(String module)
+	{
+		this.defaultModule = module;
+		return this;
+	}
+
+	@Override
 	public ILogService setDefaultSource(String source) 
 	{
 		this.defaultSource = source;
@@ -159,6 +167,7 @@ public class LogServiceImpl implements ILogService
 			super();
 			this.domain = LogServiceImpl.this.defaultDomain;
 			this.source = LogServiceImpl.this.defaultSource;
+			this.module = LogServiceImpl.this.defaultModule;
 			this.logEventType = LogServiceImpl.this.defaultLogEventType;
 		}
 		
@@ -350,6 +359,7 @@ public class LogServiceImpl implements ILogService
 				}
 				
 				domain = null; 
+				module = null;
 				source = null;
 				format = null;
 				logEventType = null;
@@ -588,15 +598,28 @@ public class LogServiceImpl implements ILogService
 			try
 			{
 				TypedTreeJDBCCruder cruder = TypedTreeJDBCCruder.get();
+				try
+				{
+					Session session = cruder.openSession(dataSourceProvider.get());
+					try
+					{
+						session.persist(logEvent);
+						logEvent.getUnmodifiableNodeList(LogEventNodeType.propertyList).forEach(ExceptionConsumer.wrap(p -> session.persist(p)));
+						
+						session.flush();
+						session.commit();
+					}
+					finally 
+					{
+						session.close();
+					}
+					
+				}
+				finally 
+				{
+					cruder.close();
+				}
 				
-				Session session = cruder.openSession(dataSourceProvider.get());
-				session.persist(logEvent);
-				logEvent.getUnmodifiableNodeList(LogEventNodeType.propertyList).forEach(ExceptionConsumer.wrap(p -> session.persist(p)));
-				
-				session.flush();
-				session.commit();
-				
-				cruder.close();
 			}
 			catch (Exception e) {e.printStackTrace();}
 			catch (Error e) {e.printStackTrace();}
@@ -637,6 +660,7 @@ public class LogServiceImpl implements ILogService
 			this.defaultDomain = null;
 			this.defaultLogEventType = null;
 			this.defaultSource = null;
+			this.defaultModule = null;
 			this.writeLogLevel = null;
 			this.xmlMarshaller = null;
 		}

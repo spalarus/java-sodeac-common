@@ -17,9 +17,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 import org.sodeac.common.misc.Driver;
 import org.sodeac.common.misc.Driver.IDriver;
@@ -1166,15 +1168,19 @@ public interface IDBSchemaUtilsDriver extends IDriver
 			driverProperties.put("SCHEMA", schema);
 			driverProperties.put("TABLE", table);
 			driverProperties.put("COLUMN", column);
+			
+			String productName = connection.getMetaData().getDatabaseProductName();
 			IColumnType columnType = Driver.getSingleDriver(IColumnType.class, driverProperties);
 			
 			if(columnType == null)
 			{
-				throw new SQLException("No ColumnType Provider found for \"" + column.getValue(ColumnNodeType.columnType) + "\"");
+				throw new SQLException(productName + ": no driver found for column type \"" + column.getValue(ColumnNodeType.columnType) + "\"");
 			}
 			
-			sqlBuilder.append(" " + columnType.getTypeExpression(connection, schema, table, column, "TODO", this));
-			sqlBuilder.append(" " + columnType.getDefaultValueExpression(connection, schema, table, column, "TODO", this));
+			
+			
+			sqlBuilder.append(" " + columnType.getTypeExpression(connection, schema, table, column, productName, this));
+			sqlBuilder.append(" " + columnType.getDefaultValueExpression(connection, schema, table, column, productName, this));
 			
 			createColumnStatement = connection.prepareStatement(sqlBuilder.toString());
 			createColumnStatement.executeUpdate();
@@ -1279,6 +1285,15 @@ public interface IDBSchemaUtilsDriver extends IDriver
 		Map<String,Object> columnProperties
 	) throws SQLException
 	{
+		String schemaName = connection.getSchema();
+		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
+		{
+			schemaName = schema.getValue(DBSchemaNodeType.dbmsSchemaName);
+		}
+		if((table.getValue(TableNodeType.dbmsSchemaName) != null) && (! table.getValue(TableNodeType.dbmsSchemaName).isEmpty()))
+		{
+			schemaName = table.getValue(TableNodeType.dbmsSchemaName);
+		}
 		
 		boolean valid = true;
 		
@@ -1320,8 +1335,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 		
 		if(columnProperties.containsKey("COLUMN_COLUMN_DEF")) // exists
 		{
-			String defaultValue = column.getValue(ColumnNodeType.defaultValue);
-			if((defaultValue == null) || defaultValue.isEmpty())
+			if(column.getValue(ColumnNodeType.defaultValueClass) == null)
 			{
 				if((columnProperties.get("COLUMN_COLUMN_DEF") != null) &&  (! ((String)columnProperties.get("COLUMN_COLUMN_DEF")).isEmpty()))
 				{
@@ -1340,17 +1354,18 @@ public interface IDBSchemaUtilsDriver extends IDriver
 			}
 			else
 			{
-				boolean columnSpecDefaultValByFct = column.getValue(ColumnNodeType.defaultValueByFunction) == null ? false : column.getValue(ColumnNodeType.defaultValueByFunction).booleanValue();
-				if(columnSpecDefaultValByFct)
-				{
-					defaultValue = getFunctionExpression(defaultValue);
-				}
+				Hashtable<String, Object> properties = new Hashtable<>();
+				properties.put(Connection.class.getCanonicalName(),connection);
 				
-				if(! defaultValue.equalsIgnoreCase((String)columnProperties.get("COLUMN_COLUMN_DEF")))
+				IDefaultValueExpressionDriver driver = Driver.getSingleDriver(column.getValue(ColumnNodeType.defaultValueClass), properties);
+				Objects.requireNonNull(driver, "Extension Driver for " + column.getValue(ColumnNodeType.defaultValueClass).getCanonicalName() + " not found");
+					
+				if(driver.updateRequired(column, connection, schemaName, properties, this, (String)columnProperties.get("COLUMN_COLUMN_DEF")))
 				{
 					valid = false;
 					columnProperties.put("INVALID_DEFAULT", true);
 				}
+				properties.clear();
 			}
 		}
 		
@@ -1469,15 +1484,19 @@ public interface IDBSchemaUtilsDriver extends IDriver
 				driverProperties.put("SCHEMA", schema);
 				driverProperties.put("TABLE", table);
 				driverProperties.put("COLUMN", column);
+				
+				String productName = connection.getMetaData().getDatabaseProductName();
 				IColumnType columnType = Driver.getSingleDriver(IColumnType.class, driverProperties);
 				
 				if(columnType == null)
 				{
-					throw new SQLException("No ColumnType Provider found for \"" + column.getValue(ColumnNodeType.columnType) + "\"");
+					throw new SQLException(productName + ": no driver found for column type \"" + column.getValue(ColumnNodeType.columnType) + "\"");
 				}
 				
-				sqlBuilder.append(" " + columnType.getTypeExpression(connection, schema, table, column, "TODO", this));
-				sqlBuilder.append(" " + columnType.getDefaultValueExpression(connection, schema, table, column, "TODO", this));
+				
+				
+				sqlBuilder.append(" " + columnType.getTypeExpression(connection, schema, table, column, productName, this));
+				sqlBuilder.append(" " + columnType.getDefaultValueExpression(connection, schema, table, column, productName, this));
 				
 				createColumnStatement = connection.prepareStatement(sqlBuilder.toString());
 				createColumnStatement.executeUpdate();
@@ -1498,7 +1517,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 		if
 		(
 			(columnProperties.get("INVALID_DEFAULT") != null) &&
-			(column.getValue(ColumnNodeType.defaultValue) == null)
+			(column.getValue(ColumnNodeType.defaultValueClass) == null)
 		)
 		{
 			PreparedStatement createColumnStatement = null;
@@ -2528,6 +2547,11 @@ public interface IDBSchemaUtilsDriver extends IDriver
 		}
 	}
 	
+	public boolean isSequenceExists(String schema, String sequenceName, Connection connection) throws SQLException;
+	public void createSequence(String schema, String sequenceName, Connection connection,long min, long max, boolean cycle, Long cache) throws SQLException;
+	public void dropSquence(String schema, String sequenceName, Connection connection) throws SQLException;
+	public long nextFromSequence(String schema, String sequenceName, Connection connection) throws SQLException;
+	
 	/**
 	 * clean schema from columns created with table-objects by dbms can not create tables without columns
 	 * 
@@ -2660,6 +2684,10 @@ public interface IDBSchemaUtilsDriver extends IDriver
 	 */
 	public default String getFunctionExpression(String function)
 	{
+		if(function.trim().endsWith(")"))
+		{
+			return function;
+		}
 		return function + "()";
 	}
 	

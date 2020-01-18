@@ -1,0 +1,2 @@
+org.sodeac.common.jdbc.impl.H2DefaultBySequence
+org.sodeac.common.jdbc.impl.PGDefaultBySequence

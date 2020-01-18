@@ -13,6 +13,10 @@ package org.sodeac.common.model.dbschema;
 import org.sodeac.common.jdbc.DBSchemaUtils.DBSchemaEvent;
 import org.sodeac.common.function.ExceptionConsumer;
 import org.sodeac.common.jdbc.IColumnType;
+import org.sodeac.common.jdbc.schemax.IDefaultCurrentDate;
+import org.sodeac.common.jdbc.schemax.IDefaultCurrentTime;
+import org.sodeac.common.jdbc.schemax.IDefaultCurrentTimestamp;
+import org.sodeac.common.jdbc.schemax.IDefaultBySequence;
 import org.sodeac.common.typedtree.BranchNode;
 import org.sodeac.common.typedtree.BranchNodeListType;
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
@@ -57,6 +61,14 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.nullable, nullable);
 	}
 	
+	public static BranchNode<TableNodeType, ColumnNodeType> createUUIDColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
+	{
+		return table.create(TableNodeType.columns)
+			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.UUID.name())
+			.setValue(ColumnNodeType.name, columnName)
+			.setValue(ColumnNodeType.nullable, nullable);
+	}
+	
 	public static BranchNode<TableNodeType, ColumnNodeType> createBooleanColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
 	{
 		return table.create(TableNodeType.columns)
@@ -71,7 +83,7 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.BOOLEAN.name())
 			.setValue(ColumnNodeType.name, columnName)
 			.setValue(ColumnNodeType.nullable, false)
-			.setValue(ColumnNodeType.defaultValue, new Boolean(defaultValue).toString());
+			.setValue(ColumnNodeType.defaultStaticValue, new Boolean(defaultValue).toString());
 	}
 	
 	public static BranchNode<TableNodeType, ColumnNodeType> createSmallIntColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
@@ -88,7 +100,7 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.SMALLINT.name())
 			.setValue(ColumnNodeType.name, columnName)
 			.setValue(ColumnNodeType.nullable, false)
-			.setValue(ColumnNodeType.defaultValue, new Short(defaultValue).toString());
+			.setValue(ColumnNodeType.defaultStaticValue, new Short(defaultValue).toString());
 	}
 	
 	public static BranchNode<TableNodeType, ColumnNodeType> createIntegerColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
@@ -105,7 +117,7 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.INTEGER.name())
 			.setValue(ColumnNodeType.name, columnName)
 			.setValue(ColumnNodeType.nullable, false)
-			.setValue(ColumnNodeType.defaultValue, new Integer(defaultValue).toString());
+			.setValue(ColumnNodeType.defaultStaticValue, new Integer(defaultValue).toString());
 	}
 	
 	public static BranchNode<TableNodeType, ColumnNodeType> createBigIntColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
@@ -116,13 +128,30 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.nullable, nullable);
 	}
 	
+	public static BranchNode<TableNodeType, ColumnNodeType> createBigIntAutoIncrementColumn(BranchNode<?, TableNodeType> table, String columnName,String sequenceName)
+	{
+		BranchNode<TableNodeType, ColumnNodeType> column = table.create(TableNodeType.columns)
+			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.BIGINT.name())
+			.setValue(ColumnNodeType.name, columnName)
+			.setValue(ColumnNodeType.nullable, false)
+			.setValue(ColumnNodeType.defaultValueClass,IDefaultBySequence.class);
+		
+		column.create(ColumnNodeType.sequence)
+			.setValue(SequenceNodeType.name, sequenceName)
+			.setValue(SequenceNodeType.min, 1L)
+			.setValue(SequenceNodeType.max, Long.MAX_VALUE)
+			.setValue(SequenceNodeType.cycle, true);
+		
+		return column;
+	}
+	
 	public static BranchNode<TableNodeType, ColumnNodeType> createBigIntColumn(BranchNode<?, TableNodeType> table, String columnName,long defaultValue)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.BIGINT.name())
 			.setValue(ColumnNodeType.name, columnName)
 			.setValue(ColumnNodeType.nullable, false)
-			.setValue(ColumnNodeType.defaultValue, new Long(defaultValue).toString());
+			.setValue(ColumnNodeType.defaultStaticValue, new Long(defaultValue).toString());
 	}
 	
 	public static BranchNode<TableNodeType, ColumnNodeType> createRealColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
@@ -139,7 +168,7 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.REAL.name())
 			.setValue(ColumnNodeType.name, columnName)
 			.setValue(ColumnNodeType.nullable, false)
-			.setValue(ColumnNodeType.defaultValue, new Float(defaultValue).toString());
+			.setValue(ColumnNodeType.defaultStaticValue, new Float(defaultValue).toString());
 	}
 	
 	public static BranchNode<TableNodeType, ColumnNodeType> createDoubleColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
@@ -156,7 +185,7 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.DOUBLE.name())
 			.setValue(ColumnNodeType.name, columnName)
 			.setValue(ColumnNodeType.nullable, false)
-			.setValue(ColumnNodeType.defaultValue, new Double(defaultValue).toString());
+			.setValue(ColumnNodeType.defaultStaticValue, new Double(defaultValue).toString());
 	}
 	
 	public static BranchNode<TableNodeType, ColumnNodeType> createTimeColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
@@ -173,8 +202,7 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.TIME.name())
 			.setValue(ColumnNodeType.name, columnName)
 			.setValue(ColumnNodeType.nullable, false)
-			.setValue(ColumnNodeType.defaultValue, "NOW")
-			.setValue(ColumnNodeType.defaultValueByFunction,true);
+			.setValue(ColumnNodeType.defaultValueClass,IDefaultCurrentTime.class);
 	}
 	
 	public static BranchNode<TableNodeType, ColumnNodeType> createDateColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
@@ -191,8 +219,7 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.DATE.name())
 			.setValue(ColumnNodeType.name, columnName)
 			.setValue(ColumnNodeType.nullable, false)
-			.setValue(ColumnNodeType.defaultValue, "NOW")
-			.setValue(ColumnNodeType.defaultValueByFunction,true);
+			.setValue(ColumnNodeType.defaultValueClass,IDefaultCurrentDate.class);
 	}
 	
 	public static BranchNode<TableNodeType, ColumnNodeType> createTimestampColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
@@ -209,8 +236,7 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.TIMESTAMP.name())
 			.setValue(ColumnNodeType.name, columnName)
 			.setValue(ColumnNodeType.nullable, false)
-			.setValue(ColumnNodeType.defaultValue, "NOW")
-			.setValue(ColumnNodeType.defaultValueByFunction,true);
+			.setValue(ColumnNodeType.defaultValueClass,IDefaultCurrentTimestamp.class);
 	}
 	
 	public static BranchNode<TableNodeType, ColumnNodeType> createBinaryColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)

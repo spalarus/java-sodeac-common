@@ -45,6 +45,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 
 
@@ -61,7 +62,9 @@ public class ColumnTypeTextTest
 	private String table1Name = "TableColChar";
 	private String columnCharName = "column_char";
 	private String columnVarcharName = "column_varchar";
+	private String columnUUIDName = "column_uuid";
 	private String columnClobName = "column_clob";
+	private static UUID uuid = UUID.randomUUID();
 	
 	@Parameters
     public static List<Object[]> connections()
@@ -848,6 +851,204 @@ public class ColumnTypeTextTest
 			prepStat.close();
 			connection.commit();
 			
+		}
+		finally 
+		{
+			try {rset.close();}catch (Exception e) {}
+			try {prepStat.close();}catch (Exception e) {}
+		}
+	}
+	
+	@Test
+	public void test000340uuid() throws SQLException, ClassNotFoundException, IOException 
+	{
+		if(! testConnection.enabled)
+		{
+			return;
+		}
+		Connection connection = testConnection.connection;
+		DBSchemaUtils dbSchemaUtils = DBSchemaUtils.get(connection);
+		IDBSchemaUtilsDriver driver = dbSchemaUtils.getDriver();
+		
+		IMocksControl ctrl = support.createControl();
+		IDatabaseSchemaUpdateListener updateListenerMock = ctrl.createMock(IDatabaseSchemaUpdateListener.class);
+		
+		ctrl.checkOrder(true);
+		
+		// create spec
+		BranchNode<DBSchemaTreeModel, DBSchemaNodeType> schema = DBSchemaTreeModel.newSchema(databaseID,testConnection.dbmsSchemaName);
+		
+		// prepare spec for simulation
+		Dictionary<ObjectType, Object> schemaDictionary = new Hashtable<>();
+		schemaDictionary.put(ObjectType.SCHEMA, schema);
+		DBSchemaNodeType.addConsumer(schema, new DatabaseSchemaUpdateListener(updateListenerMock));
+		
+		BranchNode<DBSchemaNodeType, TableNodeType> table1 = schema.create(DBSchemaNodeType.tables).setValue(TableNodeType.name, table1Name);
+		
+		// prepare table for simulation
+		Dictionary<ObjectType, Object> table1Dictionary = new Hashtable<>();
+		table1Dictionary.put(ObjectType.SCHEMA, schema);
+		table1Dictionary.put(ObjectType.TABLE, table1);
+		TableNodeType.addConsumer(table1, new DatabaseSchemaUpdateListener(updateListenerMock));
+		
+		BranchNode<TableNodeType, ColumnNodeType> column1 = TableNodeType.createUUIDColumn(table1, columnUUIDName , true);
+		
+		// prepare column for simulation
+		
+		Dictionary<ObjectType, Object> table1Column1Dictionary = new Hashtable<>();
+		table1Column1Dictionary.put(ObjectType.SCHEMA, schema);
+		table1Column1Dictionary.put(ObjectType.TABLE, table1);
+		table1Column1Dictionary.put(ObjectType.COLUMN, column1);
+		
+		// simulate listener
+		
+		updateListenerMock.onAction(ActionType.CHECK, ObjectType.SCHEMA, PhaseType.PRE, connection, databaseID, schemaDictionary, driver, null);
+		
+		// table creation
+				
+		updateListenerMock.onAction(ActionType.CHECK, ObjectType.TABLE, PhaseType.PRE, connection, databaseID, table1Dictionary, driver, null);
+		updateListenerMock.onAction(ActionType.CHECK, ObjectType.TABLE, PhaseType.POST, connection, databaseID, table1Dictionary, driver, null);
+		
+		// table1 column creation
+		
+		updateListenerMock.onAction(ActionType.CHECK, ObjectType.COLUMN, PhaseType.PRE, connection, databaseID, table1Column1Dictionary, driver, null);
+		updateListenerMock.onAction(ActionType.UPDATE, ObjectType.COLUMN, PhaseType.PRE, connection, databaseID, table1Column1Dictionary, driver, null);
+		updateListenerMock.onAction(ActionType.UPDATE, ObjectType.COLUMN, PhaseType.POST, connection, databaseID, table1Column1Dictionary, driver, null);
+		updateListenerMock.onAction(ActionType.CHECK, ObjectType.COLUMN, PhaseType.POST, connection, databaseID, table1Column1Dictionary, driver, null);
+					
+		// convert schema
+					
+		updateListenerMock.onAction(ActionType.CHECK, ObjectType.SCHEMA_CONVERT_SCHEMA, PhaseType.PRE, connection, databaseID, schemaDictionary, driver,  null);
+		updateListenerMock.onAction(ActionType.UPDATE, ObjectType.SCHEMA_CONVERT_SCHEMA, PhaseType.PRE, connection, databaseID, schemaDictionary, driver,  null);
+		updateListenerMock.onAction(ActionType.UPDATE, ObjectType.SCHEMA_CONVERT_SCHEMA, PhaseType.POST, connection, databaseID, schemaDictionary, driver,  null);
+		updateListenerMock.onAction(ActionType.CHECK, ObjectType.SCHEMA_CONVERT_SCHEMA, PhaseType.POST, connection, databaseID, schemaDictionary, driver,  null);
+		updateListenerMock.onAction(ActionType.CHECK, ObjectType.SCHEMA, PhaseType.POST, connection, databaseID, schemaDictionary, driver, null);
+				
+		ctrl.replay();
+				
+		dbSchemaUtils.adaptSchema(schema);
+		
+		ctrl.verify();
+		
+		PreparedStatement prepStat = null;
+		ResultSet rset = null;
+		try
+		{
+			connection.setAutoCommit(false);
+			
+			prepStat = connection.prepareStatement("update " +  table1Name + " set " + columnUUIDName + " = ? ");
+			prepStat.setObject(1, uuid);
+			prepStat.executeUpdate();
+			prepStat.close();
+			connection.commit();
+			
+			int count = 0;
+			prepStat = connection.prepareStatement("select " + columnUUIDName + " from " +  table1Name);
+			rset = prepStat.executeQuery();
+			while( rset.next())
+			{
+				count++;
+				assertEquals("value should be correct", uuid, rset.getObject(1));
+			}
+			rset.close();
+			prepStat.close();
+			
+			assertEquals("rset should contains correct counts of entries", 2, count);
+		}
+		finally 
+		{
+			try {rset.close();}catch (Exception e) {}
+			try {prepStat.close();}catch (Exception e) {}
+		}
+	}
+	
+	@Test
+	public void test000341uuidAgain() throws SQLException, ClassNotFoundException, IOException 
+	{
+		if(! testConnection.enabled)
+		{
+			return;
+		}
+		Connection connection = testConnection.connection;
+		DBSchemaUtils dbSchemaUtils = DBSchemaUtils.get(connection);
+		IDBSchemaUtilsDriver driver = dbSchemaUtils.getDriver();
+		
+		IMocksControl ctrl = support.createControl();
+		IDatabaseSchemaUpdateListener updateListenerMock = ctrl.createMock(IDatabaseSchemaUpdateListener.class);
+		
+		ctrl.checkOrder(true);
+		
+		// create spec
+		BranchNode<DBSchemaTreeModel, DBSchemaNodeType> schema = DBSchemaTreeModel.newSchema(databaseID,testConnection.dbmsSchemaName);
+		
+		// prepare spec for simulation
+		Dictionary<ObjectType, Object> schemaDictionary = new Hashtable<>();
+		schemaDictionary.put(ObjectType.SCHEMA, schema);
+		DBSchemaNodeType.addConsumer(schema, new DatabaseSchemaUpdateListener(updateListenerMock));
+		
+		BranchNode<DBSchemaNodeType, TableNodeType> table1 = schema.create(DBSchemaNodeType.tables).setValue(TableNodeType.name, table1Name);
+		
+		// prepare table for simulation
+		Dictionary<ObjectType, Object> table1Dictionary = new Hashtable<>();
+		table1Dictionary.put(ObjectType.SCHEMA, schema);
+		table1Dictionary.put(ObjectType.TABLE, table1);
+		TableNodeType.addConsumer(table1, new DatabaseSchemaUpdateListener(updateListenerMock));
+		
+		BranchNode<TableNodeType, ColumnNodeType> column1 = TableNodeType.createUUIDColumn(table1, columnUUIDName , true);
+		
+		// prepare column for simulation
+		
+		Dictionary<ObjectType, Object> table1Column1Dictionary = new Hashtable<>();
+		table1Column1Dictionary.put(ObjectType.SCHEMA, schema);
+		table1Column1Dictionary.put(ObjectType.TABLE, table1);
+		table1Column1Dictionary.put(ObjectType.COLUMN, column1);
+		
+		// simulate listener
+		
+		updateListenerMock.onAction(ActionType.CHECK, ObjectType.SCHEMA, PhaseType.PRE, connection, databaseID, schemaDictionary, driver, null);
+		
+		// table creation
+				
+		updateListenerMock.onAction(ActionType.CHECK, ObjectType.TABLE, PhaseType.PRE, connection, databaseID, table1Dictionary, driver, null);
+		updateListenerMock.onAction(ActionType.CHECK, ObjectType.TABLE, PhaseType.POST, connection, databaseID, table1Dictionary, driver, null);
+		
+		// table1 column creation
+		
+		updateListenerMock.onAction(ActionType.CHECK, ObjectType.COLUMN, PhaseType.PRE, connection, databaseID, table1Column1Dictionary, driver, null);
+		updateListenerMock.onAction(ActionType.CHECK, ObjectType.COLUMN, PhaseType.POST, connection, databaseID, table1Column1Dictionary, driver, null);
+					
+		// convert schema
+					
+		updateListenerMock.onAction(ActionType.CHECK, ObjectType.SCHEMA_CONVERT_SCHEMA, PhaseType.PRE, connection, databaseID, schemaDictionary, driver,  null);
+		updateListenerMock.onAction(ActionType.UPDATE, ObjectType.SCHEMA_CONVERT_SCHEMA, PhaseType.PRE, connection, databaseID, schemaDictionary, driver,  null);
+		updateListenerMock.onAction(ActionType.UPDATE, ObjectType.SCHEMA_CONVERT_SCHEMA, PhaseType.POST, connection, databaseID, schemaDictionary, driver,  null);
+		updateListenerMock.onAction(ActionType.CHECK, ObjectType.SCHEMA_CONVERT_SCHEMA, PhaseType.POST, connection, databaseID, schemaDictionary, driver,  null);
+		
+		updateListenerMock.onAction(ActionType.CHECK, ObjectType.SCHEMA, PhaseType.POST, connection, databaseID, schemaDictionary, driver, null);
+				
+		ctrl.replay();
+				
+		dbSchemaUtils.adaptSchema(schema);
+		
+		ctrl.verify();
+		
+		PreparedStatement prepStat = null;
+		ResultSet rset = null;
+		try
+		{
+
+			int count = 0;
+			prepStat = connection.prepareStatement("select " + columnUUIDName + " from " +  table1Name);
+			rset = prepStat.executeQuery();
+			while( rset.next())
+			{
+				count++;
+				assertEquals("value should be correct", uuid, rset.getObject(1));
+			}
+			rset.close();
+			prepStat.close();
+			
+			assertEquals("rset should contains correct counts of entries", 2, count);
 		}
 		finally 
 		{

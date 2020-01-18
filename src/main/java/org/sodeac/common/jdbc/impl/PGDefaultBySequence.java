@@ -1,0 +1,99 @@
+/*******************************************************************************
+ * Copyright (c) 2020 Sebastian Palarus
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v20.html
+ *
+ * Contributors:
+ *     Sebastian Palarus - initial API and implementation
+ *******************************************************************************/
+package org.sodeac.common.jdbc.impl;
+
+import java.sql.Connection;
+import java.util.Dictionary;
+import java.util.Map;
+import java.util.Objects;
+
+import org.osgi.service.component.annotations.Component;
+import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
+import org.sodeac.common.jdbc.schemax.IDefaultBySequence;
+import org.sodeac.common.misc.Driver.IDriver;
+import org.sodeac.common.model.dbschema.ColumnNodeType;
+import org.sodeac.common.model.dbschema.DBSchemaNodeType;
+import org.sodeac.common.model.dbschema.SequenceNodeType;
+import org.sodeac.common.model.dbschema.TableNodeType;
+import org.sodeac.common.typedtree.BranchNode;
+
+@Component(service=IDefaultBySequence.class,immediate=true)
+public class PGDefaultBySequence implements IDefaultBySequence
+{
+	@Override
+	public int driverIsApplicableFor(Map<String, Object> properties)
+	{
+		try
+		{
+			Connection connection = (Connection)properties.get(Connection.class.getCanonicalName());
+			if(connection.getMetaData().getDatabaseProductName().equalsIgnoreCase("PostgreSQL"))
+			{
+				return IDriver.APPLICABLE_DEFAULT;
+			}
+		}
+		catch (Exception e) {}
+		return IDriver.APPLICABLE_NONE;
+	}
+
+	@Override
+	public String createExpression
+	(
+		BranchNode<?, ColumnNodeType> column, 
+		Connection connection, String schemaName, 
+		Dictionary<String, Object> properties, 
+		IDBSchemaUtilsDriver driver
+	)
+	{
+		BranchNode<ColumnNodeType, SequenceNodeType> sequence = column.get(ColumnNodeType.sequence);
+		Objects.requireNonNull(sequence, "sequence not defined for " + column.getValue(ColumnNodeType.name));
+		Objects.requireNonNull(schemaName);
+		
+		BranchNode<? , TableNodeType> table = (BranchNode<? , TableNodeType>) column.getParentNode();
+		BranchNode<? , DBSchemaNodeType> schema = (BranchNode<? , DBSchemaNodeType>) table.getParentNode();
+		
+		String sequenceName = sequence.getValue(SequenceNodeType.name);
+		if((sequenceName == null) || sequenceName.isEmpty())
+		{
+			sequenceName = driver.objectNameGuidelineFormat(schema, connection, "seq_" + table.getValue(TableNodeType.name) + "_" + column.get(ColumnNodeType.name), "SEQUENCE") ;
+		}
+			
+		return " nextval('" + schemaName + "." + sequenceName + "'::regclass) " ;
+	}
+
+	public boolean updateRequired(BranchNode<?,ColumnNodeType> column, Connection connection, String schemaName, Dictionary<String, Object> properties, IDBSchemaUtilsDriver driver, String currentValue)
+	{
+		String defaultValue = createExpression(column, connection, schemaName, properties, driver).toLowerCase().trim();
+		String currentValue2 = currentValue.toLowerCase().trim();
+		if(defaultValue.equalsIgnoreCase(currentValue2))
+		{
+			return false;
+		}
+		
+		if(! currentValue2.startsWith("nextval('"))
+		{
+			return true;
+		}
+		
+		BranchNode<ColumnNodeType, SequenceNodeType> sequence = column.get(ColumnNodeType.sequence);
+		BranchNode<? , TableNodeType> table = (BranchNode<? , TableNodeType>) column.getParentNode();
+		BranchNode<? , DBSchemaNodeType> schema = (BranchNode<? , DBSchemaNodeType>) table.getParentNode();
+		
+		String sequenceName = sequence.getValue(SequenceNodeType.name);
+		if((sequenceName == null) || sequenceName.isEmpty())
+		{
+			sequenceName = driver.objectNameGuidelineFormat(schema, connection, "seq_" + table.getValue(TableNodeType.name) + "_" + column.get(ColumnNodeType.name), "SEQUENCE") ;
+		}
+
+		sequenceName = sequenceName.toLowerCase();
+		
+		return ! currentValue2.contains(sequenceName);
+	}
+}

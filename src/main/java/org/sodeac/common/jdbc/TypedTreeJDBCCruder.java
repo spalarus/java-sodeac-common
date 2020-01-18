@@ -63,8 +63,6 @@ import org.sodeac.common.typedtree.annotation.SQLTable;
 public class TypedTreeJDBCCruder implements AutoCloseable 
 {
 	
-	// TODO Transient
-	
 	protected TypedTreeJDBCCruder()
 	{
 		super();
@@ -1934,7 +1932,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					continue;
 				}
 				
-				if(! sqlColumn.insertable())
+				if(! sqlColumn.updatable())
 				{
 					continue;
 				}
@@ -2391,7 +2389,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				}
 				
 			}
-			Class converterClass = sqlColumn.node2JDBC();
+			Class converterClass = sqlColumn.nodeValue2JDBC();
 			if(converterClass == SQLColumn.NoNode2JDBC.class)
 			{
 				converterClass = null;
@@ -2755,7 +2753,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				}
 				
 			}
-			Class converterClass = sqlColumn.JDBC2Node();
+			Class converterClass = sqlColumn.JDBC2NodeValue();
 			if(converterClass == SQLColumn.NoJDBC2Node.class)
 			{
 				converterClass = null;

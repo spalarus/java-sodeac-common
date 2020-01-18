@@ -33,6 +33,7 @@ import org.sodeac.common.model.dbschema.ColumnNodeType;
 import org.sodeac.common.model.dbschema.DBSchemaNodeType;
 import org.sodeac.common.model.dbschema.EventConsumerNodeType;
 import org.sodeac.common.model.dbschema.IndexNodeType;
+import org.sodeac.common.model.dbschema.SequenceNodeType;
 import org.sodeac.common.model.dbschema.TableNodeType;
 import org.sodeac.common.typedtree.BranchNode;
 
@@ -117,6 +118,69 @@ public class DBSchemaUtils
 		}
 		
 		List<TableTracker> tableTrackerList = new ArrayList<TableTracker>();
+		
+		// create sequences
+		
+		for(BranchNode<DBSchemaNodeType, TableNodeType> table : schema.getUnmodifiableNodeList(DBSchemaNodeType.tables))
+		{
+			try
+			{
+				for(BranchNode<TableNodeType,ColumnNodeType> column : table.getUnmodifiableNodeList(TableNodeType.columns))
+				{
+					BranchNode<ColumnNodeType, SequenceNodeType> sequence = column.get(ColumnNodeType.sequence);
+					if(sequence != null)
+					{
+						try
+						{
+							String schemaName = connection.getSchema();
+							if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
+							{
+								schemaName = schema.getValue(DBSchemaNodeType.dbmsSchemaName);
+							}
+							if((table.getValue(TableNodeType.dbmsSchemaName) != null) && (! table.getValue(TableNodeType.dbmsSchemaName).isEmpty()))
+							{
+								schemaName = table.getValue(TableNodeType.dbmsSchemaName);
+							}
+							
+							String sequenceName = sequence.getValue(SequenceNodeType.name);
+							if((sequenceName == null) || sequenceName.isEmpty())
+							{
+								sequenceName = driver.objectNameGuidelineFormat(schema, connection, "seq_" + table.getValue(TableNodeType.name) + "_" + column.get(ColumnNodeType.name), "SEQUENCE") ;
+							}
+							if(! driver.isSequenceExists(schemaName, sequenceName, connection))
+							{
+								Long min = sequence.getValue(SequenceNodeType.min); if(min == null) {min = 1L;}
+								Long max = sequence.getValue(SequenceNodeType.max); if(max == null) {max = Long.MAX_VALUE;}
+								Boolean cycle = sequence.getValue(SequenceNodeType.cycle); if(cycle == null) {cycle = true;}
+								
+								driver.createSequence(schemaName, sequenceName, connection, min, max, cycle, sequence.getValue(SequenceNodeType.cache));
+							}
+						}
+						catch (Exception e) 
+						{
+							this.logError
+							(
+								e, 
+								schema, 
+								"Error on checkSchema / sequence " 
+										+ table.getValue(TableNodeType.name) 
+										+ "." + column.getValue(ColumnNodeType.name) 
+										+ "." + sequence.getValue(SequenceNodeType.name), 
+								checkProperties
+							);
+						}
+					}
+				}
+			}
+			catch (Exception e) 
+			{
+				this.logError(e, schema, "Error on checkSchema / section sequences", checkProperties);
+			}
+			if(checkProperties.isInterrupted())
+			{
+				return checkProperties.getUnusableExceptionList().isEmpty();
+			}
+		}
 		
 		// create tables
 		
@@ -2272,7 +2336,8 @@ public class DBSchemaUtils
 						
 					if(columnProperties.get("INVALID_DEFAULT") != null)
 					{
-						dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=setcoldefaultvalue)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + ")} set nullable " + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + " " + column.getValue(ColumnNodeType.defaultValue),schema);
+						// TODO Fehlermeldung anpassen
+						dbSchemaUtils.logUpdate("{(type=updatedbmodel)(action=setcoldefaultvalue)(database=" + schemaSpecificationName + ")(object=" + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + ")} set nullable " + table.getValue(TableNodeType.name) + "." + column.getValue(ColumnNodeType.name) + " " + column.getValue(ColumnNodeType.defaultValueClass),schema);
 						
 						if(! table.getUnmodifiableNodeList(TableNodeType.consumers).isEmpty())
 						{

@@ -10,6 +10,7 @@
  *******************************************************************************/
 package org.sodeac.common.model.dbschema;
 
+import org.sodeac.common.jdbc.IDefaultValueExpressionDriver;
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.BranchNodeType;
 import org.sodeac.common.typedtree.LeafNodeType;
@@ -26,9 +27,10 @@ public class ColumnNodeType extends BranchNodeMetaModel
 	public static volatile LeafNodeType<ColumnNodeType,Boolean> quotedName;
 	public static volatile LeafNodeType<ColumnNodeType,Boolean> nullable;
 	public static volatile LeafNodeType<ColumnNodeType,Integer> size;
-	public static volatile LeafNodeType<ColumnNodeType,String> defaultValue;
-	public static volatile LeafNodeType<ColumnNodeType,Boolean> defaultValueByFunction;
+	public static volatile LeafNodeType<ColumnNodeType,String> defaultStaticValue;
+	public static volatile LeafNodeType<ColumnNodeType,Class<? extends IDefaultValueExpressionDriver>> defaultValueClass;
 	
 	public static volatile BranchNodeType<ColumnNodeType,PrimaryKeyNodeType> primaryKey;
 	public static volatile BranchNodeType<ColumnNodeType,ForeignKeyNodeType> foreignKey;
+	public static volatile BranchNodeType<ColumnNodeType,SequenceNodeType> sequence;
 }

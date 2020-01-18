@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2019 Sebastian Palarus
+ * Copyright (c) 2018, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -12,11 +12,15 @@ package org.sodeac.common.jdbc.impl;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.List;
+
+import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import org.osgi.service.component.annotations.Component;
+import org.sodeac.common.misc.Driver;
 import org.sodeac.common.misc.Driver.IDriver;
 import org.sodeac.common.model.dbschema.ColumnNodeType;
 import org.sodeac.common.model.dbschema.DBSchemaNodeType;
@@ -24,41 +28,43 @@ import org.sodeac.common.model.dbschema.TableNodeType;
 import org.sodeac.common.typedtree.BranchNode;
 import org.sodeac.common.jdbc.IColumnType;
 import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
+import org.sodeac.common.jdbc.IDefaultValueExpressionDriver;
 
 @Component(name="DefaultColumnType", service=IColumnType.class)
 public class DefaultColumnTypeImpl implements IColumnType
 {
-	private static final List<String> typeList = Arrays.asList(new String[] 
-	{
-		ColumnType.CHAR.toString(),
-		ColumnType.VARCHAR.toString(),
-		ColumnType.CLOB.toString(),
-		ColumnType.BOOLEAN.toString(),
-		ColumnType.SMALLINT.toString(),
-		ColumnType.INTEGER.toString(),
-		ColumnType.BIGINT.toString(),
-		ColumnType.REAL.toString(),
-		ColumnType.DOUBLE.toString(),
-		ColumnType.TIMESTAMP.toString(),
-		ColumnType.DATE.toString(),
-		ColumnType.TIME.toString(),
-		ColumnType.BINARY.toString(),
-		ColumnType.BLOB.toString()
-	});
+	private static Set<String> supportedTypes;
 	
+	static
+	{
+		supportedTypes = new HashSet<>();
+		supportedTypes.add(ColumnType.CHAR.name());
+		supportedTypes.add(ColumnType.VARCHAR.name());
+		supportedTypes.add(ColumnType.CLOB.name());
+		supportedTypes.add(ColumnType.UUID.name());
+		supportedTypes.add(ColumnType.BOOLEAN.name());
+		supportedTypes.add(ColumnType.SMALLINT.name());
+		supportedTypes.add(ColumnType.INTEGER.name());
+		supportedTypes.add(ColumnType.BIGINT.name());
+		supportedTypes.add(ColumnType.REAL.name());
+		supportedTypes.add(ColumnType.DOUBLE.name());
+		supportedTypes.add(ColumnType.TIMESTAMP.name());
+		supportedTypes.add(ColumnType.DATE.name());
+		supportedTypes.add(ColumnType.TIME.name());
+		supportedTypes.add(ColumnType.BINARY.name());
+		supportedTypes.add(ColumnType.BLOB.name());
+	}
 	@Override
 	public int driverIsApplicableFor(Map<String, Object> properties)
 	{
+		BranchNode<?, ColumnNodeType> column = (BranchNode<?, ColumnNodeType>)properties.get("COLUMN");
+		if(! supportedTypes.contains(column.getValue(ColumnNodeType.columnType).toUpperCase()))
+		{
+			return IDriver.APPLICABLE_NONE;
+		}
 		return IDriver.APPLICABLE_FALLBACK;
 	}
 	
-	@Override
-	public List<String> getTypeList()
-	{
-		return typeList;
-	}
-	
-
 	@Override
 	public String getTypeExpression
 	(
@@ -192,64 +198,33 @@ public class DefaultColumnTypeImpl implements IColumnType
 		IDBSchemaUtilsDriver schemaDriver
 	) throws SQLException
 	{
-		String columnType = column.getValue(ColumnNodeType.columnType);
-		String defaultValue = column.getValue(ColumnNodeType.defaultValue);
-		boolean defaultValueByFunction = column.getValue(ColumnNodeType.defaultValueByFunction) == null ? false : column.getValue(ColumnNodeType.defaultValueByFunction).booleanValue();
-		
-		if((columnType == null) || ColumnType.VARCHAR.toString().equalsIgnoreCase(columnType) || ColumnType.CHAR.toString().equalsIgnoreCase(columnType) )
+		String schemaName = connection.getSchema();
+		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
-			if(defaultValue != null)
-			{
-				return "DEFAULT " + (defaultValueByFunction ? schemaDriver.getFunctionExpression(defaultValue) :  defaultValue );
-			}
+			schemaName = schema.getValue(DBSchemaNodeType.dbmsSchemaName);
 		}
-		if(ColumnType.BOOLEAN.toString().equalsIgnoreCase(columnType))
+		if((table.getValue(TableNodeType.dbmsSchemaName) != null) && (! table.getValue(TableNodeType.dbmsSchemaName).isEmpty()))
 		{
-			if((defaultValue != null) && (!defaultValue.isEmpty()))
-			{
-				return "DEFAULT " + 
-					(
-						defaultValue.equalsIgnoreCase("true") ? 
-						schemaDriver.objectNameGuidelineFormat(schema, connection, "TRUE" , "BOOLEAN") : 
-						schemaDriver.objectNameGuidelineFormat(schema, connection, "FALSE" , "BOOLEAN")
-					);
-			}
+			schemaName = table.getValue(TableNodeType.dbmsSchemaName);
 		}
 		
-		if(ColumnType.TIMESTAMP.toString().equals(columnType))
+		String defaultValue = null;
+		
+		if(column.getValue(ColumnNodeType.defaultValueClass) != null)
 		{
-			if((defaultValue != null) && (!defaultValue.isEmpty()))
-			{
-				if(defaultValue.equals("NOW"))
-				{
-					return "DEFAULT " + schemaDriver.getFunctionExpression(IColumnType.Function.CURRENT_TIMESTAMP.toString()); 
-				}
-			}
-		}
-		else if(ColumnType.DATE.toString().equals(columnType))
-		{
-			if((defaultValue != null) && (!defaultValue.isEmpty()))
-			{
-				if(defaultValue.equals("NOW"))
-				{
-					return "DEFAULT " + schemaDriver.getFunctionExpression(IColumnType.Function.CURRENT_DATE.toString()); 
-				}
-			}
-		}
-		else if(ColumnType.TIME.toString().equals(columnType))
-		{
-			if((defaultValue != null) && (!defaultValue.isEmpty()))
-			{
-				if(defaultValue.equals("NOW"))
-				{
-					return "DEFAULT " + schemaDriver.getFunctionExpression(IColumnType.Function.CURRENT_TIME.toString()); 
-				}
-			}	
-		}
-		if((defaultValue != null) && (defaultValue.length() > 0))
-		{
+			Hashtable<String, Object> properties = new Hashtable<>();
+			properties.put(Connection.class.getCanonicalName(),connection);
 			
-			return "DEFAULT " + (defaultValueByFunction ? schemaDriver.getFunctionExpression(defaultValue) : defaultValue);
+			IDefaultValueExpressionDriver driver = Driver.getSingleDriver(column.getValue(ColumnNodeType.defaultValueClass), properties);
+			Objects.requireNonNull(driver, "Extension Driver for " + column.getValue(ColumnNodeType.defaultValueClass).getCanonicalName() + " not found");
+			defaultValue = driver.createExpression(column, connection, schemaName, properties, schemaDriver);
+			
+			properties.clear();
+		}
+		
+		if(defaultValue != null)
+		{
+			return "DEFAULT " + defaultValue;
 		}
 		
 		return new String();

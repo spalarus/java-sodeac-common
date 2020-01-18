@@ -12,12 +12,9 @@ package org.sodeac.common.model.logging;
 
 import javax.xml.bind.annotation.XmlElement;
 
-import org.sodeac.common.model.dbschema.DBSchemaNodeType;
-import org.sodeac.common.model.dbschema.DBSchemaTreeModel;
 import org.sodeac.common.typedtree.BranchNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.TypedTreeMetaModel;
-import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
 import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.Version;
 

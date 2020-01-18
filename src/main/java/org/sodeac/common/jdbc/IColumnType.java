@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2019 Sebastian Palarus
+ * Copyright (c) 2018, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -28,16 +28,7 @@ import org.sodeac.common.typedtree.BranchNode;
  */
 public interface IColumnType extends IDriver
 {	
-	public static enum ColumnType {CHAR,VARCHAR,CLOB,BOOLEAN,SMALLINT,INTEGER,BIGINT,REAL,DOUBLE,TIMESTAMP,DATE,TIME,BINARY,BLOB}
-	
-	public static enum Function {CURRENT_TIMESTAMP,CURRENT_DATE,CURRENT_TIME};
-	
-	/**
-	 * Getter for supported column types
-	 * 
-	 * @return list of string represent of supported column types
-	 */
-	public List<String> getTypeList();
+	public static enum ColumnType {CHAR,VARCHAR,CLOB,UUID,BOOLEAN,SMALLINT,INTEGER,BIGINT,REAL,DOUBLE,TIMESTAMP,DATE,TIME,BINARY,BLOB}
 	
 	
 	/**

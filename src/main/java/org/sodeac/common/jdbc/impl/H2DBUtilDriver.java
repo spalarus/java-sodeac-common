@@ -11,6 +11,8 @@
 package org.sodeac.common.jdbc.impl;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
 
@@ -60,5 +62,89 @@ public class H2DBUtilDriver implements IDBSchemaUtilsDriver
 		return name == null ? name : name.toUpperCase();
 	}
 
-	
+	@Override
+	public boolean isSequenceExists(String schema, String sequenceName, Connection connection) throws SQLException
+	{
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT count(*) FROM INFORMATION_SCHEMA.SEQUENCES WHERE UPPER(SEQUENCE_SCHEMA) = ? AND UPPER(SEQUENCE_NAME) = ?");
+		try
+		{
+			preparedStatement.setString(1, schema.toUpperCase());
+			preparedStatement.setString(2, sequenceName.toUpperCase());
+			ResultSet resultSet = preparedStatement.executeQuery();
+			try
+			{
+				resultSet.next();
+				return resultSet.getInt(1) > 0;
+			}
+			finally 
+			{
+				resultSet.close();
+			}
+		}
+		finally 
+		{
+			preparedStatement.close();
+		}
+	}
+
+	@Override
+	public void createSequence(String schema, String sequenceName, Connection connection, long min, long max, boolean cycle, Long cache) throws SQLException
+	{
+		StringBuilder sqlBuilder = new StringBuilder("CREATE SEQUENCE IF NOT EXISTS " + schema + "." + sequenceName + " MINVALUE ? MAXVALUE ? ");
+		sqlBuilder.append(cycle ? "CYCLE" : "NOCYCLE");
+		sqlBuilder.append(cache == null ? " " : " CACHE ? ");
+		PreparedStatement preparedStatement = connection.prepareStatement(sqlBuilder.toString());
+		try
+		{
+			preparedStatement.setLong(1, min);
+			preparedStatement.setLong(2, max);
+			if(cache != null)
+			{
+				preparedStatement.setLong(3, cache);
+			}
+			preparedStatement.executeUpdate();
+		}
+		finally 
+		{
+			preparedStatement.close();
+		}
+		
+	}
+
+	@Override
+	public void dropSquence(String schema, String sequenceName, Connection connection) throws SQLException
+	{
+		PreparedStatement preparedStatement = connection.prepareStatement("DROP SEQUENCE " + schema + "." + sequenceName);
+		try
+		{
+			preparedStatement.executeUpdate();
+		}
+		finally 
+		{
+			preparedStatement.close();
+		}
+	}
+
+	@Override
+	public long nextFromSequence(String schema, String sequenceName, Connection connection) throws SQLException
+	{
+		PreparedStatement preparedStatement = connection.prepareStatement("SELECT NEXT VALUE FOR " + schema + "." + sequenceName);
+		try
+		{
+			ResultSet resultSet = preparedStatement.executeQuery();
+			try
+			{
+				resultSet.next();
+				return resultSet.getLong(1);
+			}
+			finally 
+			{
+				resultSet.close();
+			}
+		}
+		finally
+		{
+			preparedStatement.close();
+		}
+	}
 }

@@ -648,11 +648,7 @@ public class XMLMarshaller
 			}
 			catch (Exception e) 
 			{
-				if(e instanceof RuntimeException)
-				{
-					throw (RuntimeException)e;
-				}
-				throw new RuntimeException(e);
+				throw new RuntimeException("" + nodeType + " " + e.getMessage(),e);
 			}
 		}
 		
@@ -692,11 +688,7 @@ public class XMLMarshaller
 			}
 			catch (Exception e) 
 			{
-				if(e instanceof RuntimeException)
-				{
-					throw (RuntimeException)e;
-				}
-				throw new RuntimeException(e);
+				throw new RuntimeException("" + nodeType + " " + e.getMessage(),e);
 			}
 		}
 		protected void runBranchNodeListWithoutListElement(ReaderInput readerInput, BranchNode node)
@@ -723,11 +715,7 @@ public class XMLMarshaller
 			}
 			catch (Exception e) 
 			{
-				if(e instanceof RuntimeException)
-				{
-					throw (RuntimeException)e;
-				}
-				throw new RuntimeException(e);
+				throw new RuntimeException("" + nodeType + " " + e.getMessage(),e);
 			}
 		}
 	}
@@ -781,7 +769,7 @@ public class XMLMarshaller
 			}
 			catch (Exception e) 
 			{
-				throw new RuntimeException(e);
+				throw new RuntimeException("" + nodeType + " " + e.getMessage(),e);
 			}
 		}
 		
@@ -813,7 +801,7 @@ public class XMLMarshaller
 			}
 			catch (Exception e) 
 			{
-				throw new RuntimeException(e);
+				throw new RuntimeException("" + nodeType + " " + e.getMessage(),e);
 			}
 		}
 		
@@ -842,7 +830,7 @@ public class XMLMarshaller
 			}
 			catch (Exception e) 
 			{
-				throw new RuntimeException(e);
+				throw new RuntimeException("" + nodeType + " " + e.getMessage(),e);
 			}
 		}
 		
@@ -883,7 +871,7 @@ public class XMLMarshaller
 			}
 			catch (Exception e) 
 			{
-				throw new RuntimeException(e);
+				throw new RuntimeException("" + nodeType + " " + e.getMessage(),e);
 			}
 		}
 		
