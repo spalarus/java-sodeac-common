@@ -22,7 +22,7 @@ import java.util.concurrent.Callable;
 public class Statics
 {
 	public static final Boolean ENABLED_H2 = true;
-	public static final Boolean ENABLED_POSTGRES = true;
+	public static final Boolean ENABLED_POSTGRES = false;
 	
 	// TODO mvn -DmyVariable=someValue for DB Config
 	
