@@ -22,7 +22,11 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+
+import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
+import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 
 /**
  * A branch node meta model defines type and cardinality of child nodes.
@@ -172,6 +176,8 @@ public class BranchNodeMetaModel
 		this.nodeTypeIndexByName = Collections.unmodifiableMap(nodeTypeIndexByName);
 		this.nodeTypeIndexByClass = Collections.unmodifiableMap(nodeTypeIndexByClass);
 	}
+	
+	protected volatile BranchNodeType<? extends BranchNodeMetaModel,? extends BranchNodeMetaModel> anonymous;
 	
 	private String[] nodeTypeNames = null;
 	private List<INodeType> nodeTypeList = null;

@@ -19,6 +19,7 @@ import org.junit.runners.MethodSorters;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.sodeac.common.jdbc.DBSchemaUtils;
+import org.sodeac.common.jdbc.TestConnection;
 import org.sodeac.common.model.dbschema.DBSchemaNodeType;
 import org.sodeac.common.model.dbschema.DBSchemaTreeModel;
 import org.sodeac.common.model.dbschema.TableNodeType;

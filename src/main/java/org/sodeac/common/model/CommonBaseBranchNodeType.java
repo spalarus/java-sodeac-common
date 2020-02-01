@@ -10,14 +10,28 @@
  *******************************************************************************/
 package org.sodeac.common.model;
 
+import java.lang.reflect.Field;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 
+import org.sodeac.common.jdbc.DBSchemaUtils;
+import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
+import org.sodeac.common.jdbc.TypedTreeJDBCCruder;
+import org.sodeac.common.jdbc.TypedTreeJDBCCruder.ConvertEvent;
+import org.sodeac.common.jdbc.TypedTreeJDBCHelper.TableNode.ColumnNode;
+import org.sodeac.common.jdbc.schemax.IDefaultBySequence;
+import org.sodeac.common.jdbc.schemax.IDefaultCurrentTimestamp;
+import org.sodeac.common.jdbc.schemax.IDefaultStaticValue;
+import org.sodeac.common.misc.Driver;
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.LeafNode;
 import org.sodeac.common.typedtree.LeafNodeType;
@@ -29,6 +43,7 @@ import org.sodeac.common.typedtree.annotation.IgnoreIfTrue;
 import org.sodeac.common.typedtree.annotation.SQLColumn;
 import org.sodeac.common.typedtree.annotation.SQLColumn.SQLColumnType;
 import org.sodeac.common.typedtree.annotation.SQLPrimaryKey;
+import org.sodeac.common.typedtree.annotation.SQLSequence;
 import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 
 @TypedTreeModel(modelClass=CoreTreeModel.class)
@@ -36,22 +51,23 @@ public class CommonBaseBranchNodeType extends BranchNodeMetaModel
 {
 	static{ModelRegistry.getBranchNodeMetaModel(CoreTreeModel.class);}
 	
-	@SQLColumn(name="id",type=SQLColumnType.CHAR,length=36,nullable=false,updatable=false,onInsert=GenerateUUIDIfNull.class)
+	@SQLColumn(name="id",type=SQLColumnType.UUID,nullable=false,updatable=false,onInsert=GenerateUUIDIfNull.class)
 	@SQLPrimaryKey
 	@XmlAttribute(name="id")
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,UUID> id;
 	
-	@SQLColumn(name="persist_version_no",type=SQLColumnType.BIGINT) // TODO nullable=false / updates
+	@SQLColumn(name="persist_version_no",type=SQLColumnType.BIGINT,nullable=false,defaultValueExpressionDriver=IDefaultBySequence.class,onUpsert=ValueBySequence.class)
 	@XmlAttribute(name="pversionnumber")
+	@SQLSequence
 	@IgnoreIfNull
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,Long> persistVersionNumber;
 	
-	@SQLColumn(name="persist_version_id",type=SQLColumnType.CHAR,length=36,nullable=false,onUpsert=GenerateUUID.class)
+	@SQLColumn(name="persist_version_id",type=SQLColumnType.UUID,nullable=false,onUpsert=GenerateUUID.class)
 	@XmlAttribute(name="pversionid")
 	@IgnoreIfNull
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,UUID> persistVersionId;
 	
-	@SQLColumn(name="create_timestamp",type=SQLColumnType.TIMESTAMP,onInsert=CurrentTimestamp.class,updatable=false)
+	@SQLColumn(name="create_timestamp",type=SQLColumnType.TIMESTAMP,nullable=false,updatable=false,onInsert=CurrentTimestamp.class,defaultValueExpressionDriver=IDefaultCurrentTimestamp.class)
 	@XmlElement(name="CreateTimestamp")
 	@IgnoreIfNull
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,Date> createTimestamp;
@@ -61,12 +77,12 @@ public class CommonBaseBranchNodeType extends BranchNodeMetaModel
 	@IgnoreIfNull
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,Date> persistTimestamp;
 	
-	@SQLColumn(name="create_node_id",type=SQLColumnType.CHAR,length=36,updatable=false)
+	@SQLColumn(name="create_node_id",type=SQLColumnType.UUID,updatable=false)
 	@XmlElement(name="CreateNodeId")
 	@IgnoreIfNull
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,UUID> createNodeId;
 	
-	@SQLColumn(name="persist_node_id",type=SQLColumnType.CHAR,length=36)
+	@SQLColumn(name="persist_node_id",type=SQLColumnType.UUID)
 	@XmlElement(name="PersistNodeId")
 	@IgnoreIfNull
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,UUID> persistNodeId;
@@ -81,101 +97,135 @@ public class CommonBaseBranchNodeType extends BranchNodeMetaModel
 	@IgnoreIfNull
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,String> persistClientURI;
 	
-	@SQLColumn(name="record_enabled",type=SQLColumnType.BOOLEAN,nullable=false,onInsert=TrueIfNull.class)
+	@SQLColumn(name="record_enabled",type=SQLColumnType.BOOLEAN,nullable=false,onInsert=TrueIfNull.class,defaultValueExpressionDriver=IDefaultStaticValue.class,staticDefaultValue="true")
 	@XmlAttribute(name="enabled")
 	@IgnoreIfTrue
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,Boolean> enabled;
 	
-	@SQLColumn(name="record_disabled",type=SQLColumnType.BOOLEAN,nullable=false,onInsert=FalseIfNull.class)
-	@XmlAttribute(name="disabled")
+	@SQLColumn(name="record_deleted",type=SQLColumnType.BOOLEAN,nullable=false,onInsert=FalseIfNull.class,defaultValueExpressionDriver=IDefaultStaticValue.class,staticDefaultValue="false")
+	@XmlAttribute(name="deleted")
 	@IgnoreIfFalse
-	public static volatile LeafNodeType<CommonBaseBranchNodeType,Boolean> disabled;
+	public static volatile LeafNodeType<CommonBaseBranchNodeType,Boolean> deleted;
 	
-	@SQLColumn(name="record_valid_from",type=SQLColumnType.TIMESTAMP)
+	@SQLColumn(name="record_valid_from",type=SQLColumnType.DATE)
 	@XmlAttribute(name="validfrom")
 	@IgnoreIfNull
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,Date> validFrom;
 	
-	@SQLColumn(name="record_valid_through",type=SQLColumnType.TIMESTAMP)
+	@SQLColumn(name="record_valid_through",type=SQLColumnType.DATE)
 	@XmlAttribute(name="validthrough")
 	@IgnoreIfNull
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,Date> validThrough;
 	
-	public static class GenerateUUIDIfNull implements BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>
+	public static class GenerateUUIDIfNull implements Consumer<TypedTreeJDBCCruder.ConvertEvent>
 	{
 		@Override
-		public void accept(Node<? extends BranchNodeMetaModel,?> t, Map<String,?> u)
+		public void accept(ConvertEvent t)
 		{
-			if(t.getNodeType().getTypeClass() == UUID.class)
+			if(t.getNode().getNodeType().getTypeClass() == UUID.class)
 			{
-				if(((LeafNode<?,UUID>)t).getValue() == null)
+				if(((LeafNode<?,UUID>)t.getNode()).getValue() == null)
 				{
-					((LeafNode<?,UUID>)t).setValue(UUID.randomUUID());
+					((LeafNode<?,UUID>)t.getNode()).setValue(UUID.randomUUID());
 				}
 			}
-			else if(t.getNodeType().getTypeClass() == String.class)
+			else if(t.getNode().getNodeType().getTypeClass() == String.class)
 			{
-				if((((LeafNode<?,String>)t).getValue() == null) || ((LeafNode<?,String>)t).getValue().isEmpty())
+				if((((LeafNode<?,String>)t.getNode()).getValue() == null) || ((LeafNode<?,String>)t.getNode()).getValue().isEmpty())
 				{
-					((LeafNode<?,String>)t).setValue(UUID.randomUUID().toString());
+					((LeafNode<?,String>)t.getNode()).setValue(UUID.randomUUID().toString());
 				}
 			}
 			else
 			{
-				throw new IllegalStateException("Unsupported type for generating UUID: " + t.getNodeType().getTypeClass());
+				throw new IllegalStateException("Unsupported type for generating UUID: " + t.getNode().getNodeType().getTypeClass());
 			}
 		}
 	}
 	
-	public static class GenerateUUID implements BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>
+	public static class GenerateUUID implements Consumer<TypedTreeJDBCCruder.ConvertEvent>
 	{
 		@Override
-		public void accept(Node<? extends BranchNodeMetaModel,?> t, Map<String,?> u)
+		public void accept(ConvertEvent t)
 		{
-			if(t.getNodeType().getTypeClass() == UUID.class)
+			if(t.getNode().getNodeType().getTypeClass() == UUID.class)
 			{
-				((LeafNode<?,UUID>)t).setValue(UUID.randomUUID());
+				((LeafNode<?,UUID>)t.getNode()).setValue(UUID.randomUUID());
 			}
-			else if(t.getNodeType().getTypeClass() == String.class)
+			else if(t.getNode().getNodeType().getTypeClass() == String.class)
 			{
-				((LeafNode<?,String>)t).setValue(UUID.randomUUID().toString());
+				((LeafNode<?,String>)t.getNode()).setValue(UUID.randomUUID().toString());
 			}
 			else
 			{
-				throw new IllegalStateException("Unsupported type for generating UUID: " + t.getNodeType().getTypeClass());
+				throw new IllegalStateException("Unsupported type for generating UUID: " + t.getNode().getNodeType().getTypeClass());
 			}
 		}
 	}
 	
-	public static class CurrentTimestamp implements BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>
+	public static class CurrentTimestamp implements Consumer<TypedTreeJDBCCruder.ConvertEvent>
 	{
 		@Override
-		public void accept(Node<? extends BranchNodeMetaModel,?> t, Map<String,?> u)
+		public void accept(ConvertEvent t)
 		{
-			((LeafNode<?,Date>)t).setValue(new Date());
+			((LeafNode<?,Date>)t.getNode()).setValue(new Date());
 		}
 	}
 	
-	public static class TrueIfNull implements BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>
+	public static class TrueIfNull implements Consumer<TypedTreeJDBCCruder.ConvertEvent>
 	{
 		@Override
-		public void accept(Node<? extends BranchNodeMetaModel,?> t, Map<String,?> u)
+		public void accept(ConvertEvent t)
 		{
-			if(((LeafNode)t).getValue() == null) 
+			if(((LeafNode)t.getNode()).getValue() == null) 
 			{
-				((LeafNode<?,Boolean>)t).setValue(true);
+				((LeafNode<?,Boolean>)t.getNode()).setValue(true);
 			}
 		}
 	}
 	
-	public static class FalseIfNull implements BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>
+	public static class FalseIfNull implements Consumer<TypedTreeJDBCCruder.ConvertEvent>
 	{
 		@Override
-		public void accept(Node<? extends BranchNodeMetaModel,?> t, Map<String,?> u)
+		public void accept(ConvertEvent t)
 		{
-			if(((LeafNode)t).getValue() == null) 
+			if(((LeafNode)t.getNode()).getValue() == null) 
 			{
-				((LeafNode<?,Boolean>)t).setValue(false);
+				((LeafNode<?,Boolean>)t.getNode()).setValue(false);
+			}
+		}
+	}
+	
+	public static class ValueBySequence implements Consumer<TypedTreeJDBCCruder.ConvertEvent>
+	{
+		@Override
+		public void accept(ConvertEvent t)
+		{
+			if(t.getNode().getNodeType().getTypeClass() != Long.class)
+			{
+				throw new IllegalStateException("Sequence for long nodes not supported for type " + t.getNode().getNodeType().getTypeClass()); 
+			}
+			
+			ColumnNode columnNode = t.getColumnNode();
+			
+			String sequenceName = columnNode.getSequenceName();
+			if(sequenceName.isEmpty())
+			{
+				sequenceName = "seq_" + columnNode.getTableName() + "_" + columnNode.getColumnName();
+				
+			}
+			
+			Connection connection = t.getConnection();
+			IDBSchemaUtilsDriver driver = t.getSchemaUtilDriver();
+			
+			try
+			{
+				long next = driver.nextFromSequence(connection.getSchema(), sequenceName, connection);
+				((LeafNode<?,Long>)t.getNode()).setValue(next);
+			}
+			catch (SQLException e) 
+			{
+				throw new RuntimeException(e);
 			}
 		}
 	}

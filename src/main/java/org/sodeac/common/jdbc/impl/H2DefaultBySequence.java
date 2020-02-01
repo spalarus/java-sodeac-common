@@ -62,10 +62,10 @@ public class H2DefaultBySequence implements IDefaultBySequence
 		String sequenceName = sequence.getValue(SequenceNodeType.name);
 		if((sequenceName == null) || sequenceName.isEmpty())
 		{
-			sequenceName = driver.objectNameGuidelineFormat(schema, connection, "seq_" + table.getValue(TableNodeType.name) + "_" + column.get(ColumnNodeType.name), "SEQUENCE") ;
+			sequenceName = driver.objectNameGuidelineFormat(schema, connection, "seq_" + table.getValue(TableNodeType.name) + "_" + column.getValue(ColumnNodeType.name), "SEQUENCE") ;
 		}
 			
-		return " NEXT VALUE FOR " + schemaName + "." + sequence.getValue(SequenceNodeType.name) + " " ;
+		return " NEXT VALUE FOR " + schemaName + "." + sequenceName + " " ;
 	}
 
 	public boolean updateRequired(BranchNode<?,ColumnNodeType> column, Connection connection, String schema, Dictionary<String, Object> properties, IDBSchemaUtilsDriver driver, String currentValue)

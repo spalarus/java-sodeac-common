@@ -145,13 +145,13 @@ public class DBSchemaUtils
 							String sequenceName = sequence.getValue(SequenceNodeType.name);
 							if((sequenceName == null) || sequenceName.isEmpty())
 							{
-								sequenceName = driver.objectNameGuidelineFormat(schema, connection, "seq_" + table.getValue(TableNodeType.name) + "_" + column.get(ColumnNodeType.name), "SEQUENCE") ;
+								sequenceName = driver.objectNameGuidelineFormat(schema, connection, "seq_" + table.getValue(TableNodeType.name) + "_" + column.getValue(ColumnNodeType.name), "SEQUENCE") ;
 							}
 							if(! driver.isSequenceExists(schemaName, sequenceName, connection))
 							{
 								Long min = sequence.getValue(SequenceNodeType.min); if(min == null) {min = 1L;}
 								Long max = sequence.getValue(SequenceNodeType.max); if(max == null) {max = Long.MAX_VALUE;}
-								Boolean cycle = sequence.getValue(SequenceNodeType.cycle); if(cycle == null) {cycle = true;}
+								Boolean cycle = sequence.getValue(SequenceNodeType.cycle); if(cycle == null) {cycle = false;}
 								
 								driver.createSequence(schemaName, sequenceName, connection, min, max, cycle, sequence.getValue(SequenceNodeType.cache));
 							}

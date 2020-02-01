@@ -8,7 +8,7 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.jdbc.dbschemautils;
+package org.sodeac.common.jdbc;
 
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -17,9 +17,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-
-import org.sodeac.common.jdbc.TestConnection;
-import org.sodeac.common.jdbc.TestTools;
 
 
 public class Statics
@@ -31,7 +28,7 @@ public class Statics
 	
 	public static List<Object[]> connections(Map<String,Boolean> createdSchema)
     {
-		final String schemaName = "S" + TestTools.getSchemaName();
+		final String schemaName = "S_" + TestTools.getSchemaName();
     	return Arrays.asList
 		(
 			new Object[][]

@@ -62,7 +62,7 @@ public class PGDefaultBySequence implements IDefaultBySequence
 		String sequenceName = sequence.getValue(SequenceNodeType.name);
 		if((sequenceName == null) || sequenceName.isEmpty())
 		{
-			sequenceName = driver.objectNameGuidelineFormat(schema, connection, "seq_" + table.getValue(TableNodeType.name) + "_" + column.get(ColumnNodeType.name), "SEQUENCE") ;
+			sequenceName = driver.objectNameGuidelineFormat(schema, connection, "seq_" + table.getValue(TableNodeType.name) + "_" + column.getValue(ColumnNodeType.name), "SEQUENCE") ;
 		}
 			
 		return " nextval('" + schemaName + "." + sequenceName + "'::regclass) " ;
@@ -89,7 +89,7 @@ public class PGDefaultBySequence implements IDefaultBySequence
 		String sequenceName = sequence.getValue(SequenceNodeType.name);
 		if((sequenceName == null) || sequenceName.isEmpty())
 		{
-			sequenceName = driver.objectNameGuidelineFormat(schema, connection, "seq_" + table.getValue(TableNodeType.name) + "_" + column.get(ColumnNodeType.name), "SEQUENCE") ;
+			sequenceName = driver.objectNameGuidelineFormat(schema, connection, "seq_" + table.getValue(TableNodeType.name) + "_" + column.getValue(ColumnNodeType.name), "SEQUENCE") ;
 		}
 
 		sequenceName = sequenceName.toLowerCase();

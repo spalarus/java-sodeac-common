@@ -19,16 +19,16 @@ import java.lang.annotation.Target;
 import java.sql.Connection;
 import java.util.Dictionary;
 import java.util.Map;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
 import org.sodeac.common.jdbc.IDefaultValueExpressionDriver;
+import org.sodeac.common.jdbc.TypedTreeJDBCCruder;
+import org.sodeac.common.jdbc.TypedTreeJDBCCruder.ConvertEvent;
 import org.sodeac.common.misc.Driver.IDriver;
 import org.sodeac.common.model.dbschema.ColumnNodeType;
 import org.sodeac.common.typedtree.BranchNode;
-import org.sodeac.common.typedtree.BranchNodeMetaModel;
-import org.sodeac.common.typedtree.Node;
 
 @Documented
 @Retention(RUNTIME)
@@ -46,16 +46,17 @@ public @interface SQLColumn
 	boolean updatable() default true;
 	String staticDefaultValue() default "";
 	Class<? extends IDefaultValueExpressionDriver> defaultValueExpressionDriver() default NoDefaultValueExpressionDriver.class;
-	Class<? extends BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>> onInsert() default NoConsumer.class;
-	Class<? extends BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>> onUpdate() default NoConsumer.class;
-	Class<? extends BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>> onUpsert() default NoConsumer.class;
+	Class<? extends Consumer<TypedTreeJDBCCruder.ConvertEvent>> onInsert() default NoConsumer.class;
+	Class<? extends Consumer<TypedTreeJDBCCruder.ConvertEvent>> onUpdate() default NoConsumer.class;
+	Class<? extends Consumer<TypedTreeJDBCCruder.ConvertEvent>> onUpsert() default NoConsumer.class;
 	Class<? extends Function<?,?>> nodeValue2JDBC() default NoNode2JDBC.class;
 	Class<? extends Function<?,?>> JDBC2NodeValue() default NoJDBC2Node.class ;
 	
-	public class NoConsumer implements BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>
+	public class NoConsumer implements Consumer<TypedTreeJDBCCruder.ConvertEvent>
 	{
 		@Override
-		public void accept(Node<? extends BranchNodeMetaModel,?> t, Map<String,?> u) {}
+		public void accept(ConvertEvent t){}
+		
 	}
 	
 	public class NoNode2JDBC implements Function<Object,Object>

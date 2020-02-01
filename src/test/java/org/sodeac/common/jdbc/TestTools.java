@@ -8,7 +8,7 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.jdbc.dbschemautils;
+package org.sodeac.common.jdbc;
 
 
 import java.text.SimpleDateFormat;

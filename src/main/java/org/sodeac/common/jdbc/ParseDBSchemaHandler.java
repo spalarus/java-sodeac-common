@@ -10,36 +10,32 @@
  *******************************************************************************/
 package org.sodeac.common.jdbc;
 
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 
 import org.sodeac.common.jdbc.IColumnType.ColumnType;
+import org.sodeac.common.jdbc.TypedTreeJDBCHelper.MASK;
+import org.sodeac.common.jdbc.TypedTreeJDBCHelper.TableNode;
+import org.sodeac.common.jdbc.TypedTreeJDBCHelper.TableNode.ColumnNode;
 import org.sodeac.common.model.dbschema.ColumnNodeType;
 import org.sodeac.common.model.dbschema.DBSchemaNodeType;
 import org.sodeac.common.model.dbschema.DBSchemaTreeModel;
 import org.sodeac.common.model.dbschema.ForeignKeyNodeType;
+import org.sodeac.common.model.dbschema.IndexColumnNodeType;
+import org.sodeac.common.model.dbschema.IndexNodeType;
 import org.sodeac.common.model.dbschema.PrimaryKeyNodeType;
+import org.sodeac.common.model.dbschema.SequenceNodeType;
 import org.sodeac.common.model.dbschema.TableNodeType;
-import org.sodeac.common.model.logging.LogEventNodeType;
 import org.sodeac.common.typedtree.ITypedTreeModelParserHandler;
-import org.sodeac.common.typedtree.ModelRegistry;
+import org.sodeac.common.typedtree.TypedTreeMetaModel;
 import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
 import org.sodeac.common.typedtree.BranchNode;
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.INodeType;
-import org.sodeac.common.typedtree.annotation.SQLColumn;
-import org.sodeac.common.typedtree.annotation.SQLPrimaryKey;
-import org.sodeac.common.typedtree.annotation.SQLReferencedByColumn;
-import org.sodeac.common.typedtree.annotation.SQLReplace;
-import org.sodeac.common.typedtree.annotation.SQLTable;
-import org.sodeac.common.typedtree.annotation.SQLColumn.SQLColumnType;
 
 public class ParseDBSchemaHandler implements ITypedTreeModelParserHandler 
 {
@@ -56,562 +52,301 @@ public class ParseDBSchemaHandler implements ITypedTreeModelParserHandler
 	}
 	
 	private RootBranchNode<?, DBSchemaNodeType> schema = null;
-	private List<Table> tableList = new ArrayList<Table>();
-	private List<TableDefinition> currentDefinitionList = new ArrayList<TableDefinition>();
+	private Map<String,TableNode> tableNodes = new HashMap<>();
 	
 	@Override
 	public void startModel(BranchNodeMetaModel model, Set<INodeType<BranchNodeMetaModel, ?>> references) 
 	{
 		Objects.nonNull(this.schema);
-		Objects.nonNull(this.tableList);
-		Objects.nonNull(this.currentDefinitionList);
+		Objects.nonNull(this.tableNodes);
 		
-		ITypedTreeModelParserHandler.super.startModel(model, references);
-		
+		if(references == null)
 		{
-			SQLTable sqlTable = model.getClass().getDeclaredAnnotation(SQLTable.class);
-			if(sqlTable != null)
+			return;
+		}
+		
+		for(INodeType<? extends BranchNodeMetaModel, ?> nodeType : references)
+		{
+			TableNode tableNode = TypedTreeJDBCHelper.parseTableNode(nodeType, MASK.ALL);
+			
+			if(tableNode == null)
 			{
-				String key = null;
-				String schema = sqlTable.schema();
-				String tableName = sqlTable.name();
-				if((schema == null) || schema.isEmpty())
-				{
-					key = tableName;
-				}
-				else
-				{
-					key = schema + "." + tableName;
-				}
-				
-				
-				if((! tableName.isEmpty()) && (! key.isEmpty()))
-				{
-					Table table = null;
-					for(Table tbl : this.tableList)
-					{
-						if(tbl.key.equals(key))
-						{
-							table = tbl;
-							break;
-						}
-					}
-					if(table == null)
-					{
-						table = new Table();
-						table.key = key;
-						table.schema = schema;
-						table.tableName = tableName;
-						this.tableList.add(table);
-					}
-					
-					TableDefinition tableDefinition = new TableDefinition();
-					tableDefinition.metaModel = model;
-					tableDefinition.references = references;
-					table.tableDefinitionList.add(tableDefinition);
-					this.currentDefinitionList.add(tableDefinition);
-				}
+				continue;
 			}
 			
-		}
-		
-		if(references != null)
-		{
-			for(INodeType<BranchNodeMetaModel, ?> reference : references)
+			String schema = tableNode.getTableSchema();
+			String tableName = tableNode.getTableName();
+			
+			String tableKey = ((schema == null) || (schema.isEmpty())) ? tableName : schema + "." + tableName;
+			if((!tableNode.isTableSkipSchemaGeneration()) || (! this.tableNodes.containsKey(tableKey)))
 			{
-				SQLReplace[] sqlReplaces = reference.referencedByField().getDeclaredAnnotationsByType(SQLReplace.class);
-				if(sqlReplaces != null)
-				{
-					for(SQLReplace  replace : sqlReplaces)
-					{
-						if(replace.table() != null)
-						{
-							for(SQLTable sqlTable : replace.table())
-							{
-								String key = null;
-								String schema = sqlTable.schema();
-								String tableName = sqlTable.name();
-								if((schema == null) || schema.isEmpty())
-								{
-									key = tableName;
-								}
-								else
-								{
-									key = schema + "." + tableName;
-								}
-								
-								if((! tableName.isEmpty()) && (! key.isEmpty()))
-								{
-									Table table = null;
-									for(Table tbl : this.tableList)
-									{
-										if(tbl.key.equals(key))
-										{
-											table = tbl;
-											break;
-										}
-									}
-									if(table == null)
-									{
-										table = new Table();
-										table.key = key;
-										table.schema = schema;
-										table.tableName = tableName;
-										this.tableList.add(table);
-									}
-									
-									boolean exits = false;
-									
-									for(TableDefinition def : table.tableDefinitionList)
-									{
-										if(def.metaModel == model)
-										{
-											exits = true;
-										}
-									}
-									if(! exits)
-									{
-										TableDefinition tableDefinition = new TableDefinition();
-										tableDefinition.metaModel = model;
-										tableDefinition.references = references;
-										table.tableDefinitionList.add(tableDefinition);
-										this.currentDefinitionList.add(tableDefinition);
-									}
-								}
-							}
-						}
-					}
-				}
+				this.tableNodes.put(tableKey, tableNode);
 			}
 		}
 	}
 	
-	@Override
-	public void endModel(BranchNodeMetaModel model, Set<INodeType<BranchNodeMetaModel, ?>> references) 
-	{
-		ITypedTreeModelParserHandler.super.endModel(model, references);
-		this.currentDefinitionList.clear();
-	}
-
-	@Override
-	public void onNodeType(BranchNodeMetaModel model, INodeType<BranchNodeMetaModel, ?> nodeType) 
-	{
-		for(TableDefinition tableDefintion : this.currentDefinitionList)
-		{
-			NodeTypeDefinition nodeTypeDefinition = new NodeTypeDefinition();
-			nodeTypeDefinition.nodeType = nodeType;
-			tableDefintion.nodeTypeList.add(nodeTypeDefinition);
-		}
-	}
-	
-	private class Table 
-	{
-		private String key = null;
-		private String schema = null;
-		private String tableName = null;
-		private BranchNode<DBSchemaNodeType,TableNodeType> tableSpec = null;
-		private List<TableDefinition> tableDefinitionList = new ArrayList<>();
-		
-		private String idName = null;
-		private Class<?> idType = null;
-		private SQLColumnType idSqlType = SQLColumnType.AUTO;
-		private ColumnType idColumnType = ColumnType.VARCHAR;
-		private int idColumnLength = 36;
-		private String sequence = null;
-		private int fkCounter = 1;
-		
-		@Override
-		public int hashCode() 
-		{
-			final int prime = 31;
-			int result = 1;
-			result = prime * result + ((key == null) ? 0 : key.hashCode());
-			return result;
-		}
-		@Override
-		public boolean equals(Object obj)
-		{
-			if (this == obj)
-				return true;
-			if (obj == null)
-				return false;
-			if (getClass() != obj.getClass())
-				return false;
-			Table other = (Table) obj;
-			if (key == null) {
-				if (other.key != null)
-					return false;
-			} else if (!key.equals(other.key))
-				return false;
-			return true;
-		}
-		
-		
-		
-	}
-	
-	private class TableDefinition
-	{
-		private BranchNodeMetaModel metaModel;
-		private Set<INodeType<BranchNodeMetaModel, ?>> references;
-		private List<NodeTypeDefinition> nodeTypeList = new ArrayList<NodeTypeDefinition>();
-	}
-	
-	private class NodeTypeDefinition
-	{
-		private INodeType<BranchNodeMetaModel, ?> nodeType = null;
-	}
-	
-	public RootBranchNode<?, DBSchemaNodeType> fillSchemaSpec() 
+	public RootBranchNode<?, DBSchemaNodeType> fillSchemaSpec(Class<? extends TypedTreeMetaModel<?>>... modelClasses) 
 	{
 		try
 		{
-			// first: determine id
-			
-			for(Table table : this.tableList)
+			Set<Class<? extends TypedTreeMetaModel<?>>> modelClassSet = null;
+			if((modelClasses != null) && (modelClasses.length > 0))
 			{
-				for(TableDefinition tableDefinition : table.tableDefinitionList)
+				modelClassSet = new HashSet<>();
+				for(Class<? extends TypedTreeMetaModel<?>> modelClass : modelClasses)
 				{
-					for(NodeTypeDefinition nodeTypeDefinition : tableDefinition.nodeTypeList)
+					modelClassSet.add(modelClass);
+				}
+			}
+			
+			for(Entry<String,TableNode> tableNodeEntry : this.tableNodes.entrySet())
+			{
+				Map<String,BranchNode<TableNodeType,IndexNodeType>> indexSet = new HashMap<>();
+				Map<String,BranchNode<TableNodeType,IndexNodeType>> uniqueIndexSet = new HashMap<>();
+				
+				TableNode tableNode = tableNodeEntry.getValue();
+				
+				if(tableNode.isTableSkipSchemaGeneration())
+				{
+					continue;
+				}
+				
+				if(modelClassSet != null)
+				{
+					if(! modelClassSet.contains(tableNode.getModelClass()))
 					{
-						SQLPrimaryKey primaryKey;
-						if((primaryKey = nodeTypeDefinition.nodeType.referencedByField().getDeclaredAnnotation(SQLPrimaryKey.class)) == null)
-						{
-							continue;
-						}
-						
-						SQLColumn column;
-						if((column = nodeTypeDefinition.nodeType.referencedByField().getDeclaredAnnotation(SQLColumn.class)) == null)
-						{
-							continue;
-						}
-						
-						String nm = nodeTypeDefinition.nodeType.getNodeName();
-						if((column.name() != null) && (! column.name().isEmpty()))
-						{
-							nm = column.name();
-						}
-						
-						if((nm == null) || nm.isEmpty())
-						{
-							continue;
-						}
-						
-						if((table.idName != null) && (! table.idName.equals(nm)))
-						{
-							throw new IllegalStateException(table.key + " multiple ids: " + table.idName + " vs. " + nm);
-						}
-						
-						table.idName = nm;
-						if(column.type() != SQLColumnType.AUTO)
-						{
-							table.idSqlType = column.type();
-						}
-						table.idType = nodeTypeDefinition.nodeType.getTypeClass();
-						
-						if((primaryKey.sequence() != null) && (! primaryKey.sequence().isEmpty()))
-						{
-							table.sequence = primaryKey.sequence();
-						}
-						
-						/*if(referencedByColumn.type == SQLColumnType.AUTO)
-						{
-							referencedByColumn.type = column.referencedByField().getDeclaredAnnotation(SQLColumn.class).type();
-						}*/
+						continue;
+					}
+				}
+				ColumnNode primaryKeyColumn = tableNode.getPrimaryKeyNode();
+				
+				Objects.requireNonNull(primaryKeyColumn, "primary key is requiered for table " + tableNodeEntry.getKey());
+				
+				//	Table
+				
+				BranchNode<DBSchemaNodeType, TableNodeType>  tableSpec = this.schema.create(DBSchemaNodeType.tables).setValue(TableNodeType.name,tableNode.getTableName());
+				if((tableNode.getTableSchema() != null) && (! tableNode.getTableSchema().isEmpty()))
+				{
+					tableSpec.setValue(TableNodeType.dbmsSchemaName, tableNode.getTableSchema());
+				}
+				
+				// PrimaryKey
+				
+				ColumnType pkColumnType = TypedTreeJDBCHelper.getColumnType(primaryKeyColumn.getSqlType(),primaryKeyColumn.getJavaType());
+				if(pkColumnType == ColumnType.VARCHAR)
+				{
+					if(primaryKeyColumn.getLength() < 0)
+					{
+						pkColumnType = ColumnType.CLOB;
 					}
 				}
 				
-			}
-			
-			// 2.: pk sequence by SQLReplace
-			// TODO
-			
-			// 3. TableSpec and PKs
-			
-			for(Table table : this.tableList)
-			{
-				table.tableSpec = this.schema.create(DBSchemaNodeType.tables).setValue(TableNodeType.name,table.tableName);
-				if((table.schema != null) && (! table.schema.isEmpty()))
+				BranchNode<TableNodeType, ColumnNodeType> columnSpec = tableSpec.create(TableNodeType.columns)
+					.setValue(ColumnNodeType.name, primaryKeyColumn.getColumnName())
+					.setValue(ColumnNodeType.columnType, pkColumnType.name())
+					.setValue(ColumnNodeType.nullable, primaryKeyColumn.isNullable());
+				
+				if((pkColumnType == ColumnType.VARCHAR) || (pkColumnType == ColumnType.VARCHAR))
 				{
-					table.tableSpec.setValue(TableNodeType.dbmsSchemaName, table.schema);
+					columnSpec.setValue(ColumnNodeType.size, primaryKeyColumn.getLength());
 				}
 				
-				if((table.idName == null) || table.idName.isEmpty())
+				if(primaryKeyColumn.getDefaultValueExpressionDriver() != null)
 				{
-					throw new IllegalStateException("unknown pk for " + table.key);
+					columnSpec.setValue(ColumnNodeType.defaultValueClass,primaryKeyColumn.getDefaultValueExpressionDriver());
+					columnSpec.setValue(ColumnNodeType.defaultStaticValue, primaryKeyColumn.getStaticDefaultValue());
 				}
 				
-				if
-				(!(
-					(table.idType == String.class) ||
-					(table.idType == UUID.class) ||
-					(table.idType == Long.class)
-				))
+				if(primaryKeyColumn.isSequence())
 				{
-					throw new IllegalStateException("Unsupported PK type");
+					columnSpec.create(ColumnNodeType.sequence)
+						.setValue(SequenceNodeType.name, primaryKeyColumn.getSequenceName())
+						.setValue(SequenceNodeType.min, primaryKeyColumn.getSequenceMinValue())
+						.setValue(SequenceNodeType.max, primaryKeyColumn.getSequenceMaxValue())
+						.setValue(SequenceNodeType.cycle, primaryKeyColumn.getSequenceCycle())
+						.setValue(SequenceNodeType.cache, primaryKeyColumn.getSequenceCache());
 				}
 				
-				BranchNode<TableNodeType, ColumnNodeType> primaryKeyColumn =  null;
-				if((table.idType == Long.class))
+				columnSpec.create(ColumnNodeType.primaryKey).setValue(PrimaryKeyNodeType.constraintName, "pk_" + tableNode.getTableName());
+				
+				if(primaryKeyColumn.getIndexSet() != null)
 				{
-					primaryKeyColumn = TableNodeType.createBigIntColumn(table.tableSpec, table.idName, false);
-					table.idColumnType = ColumnType.BIGINT;
-					table.idColumnLength = 36;
-				}
-				else
-				{
-					primaryKeyColumn = TableNodeType.createCharColumn(table.tableSpec, table.idName, false, 36);
-				}
-				primaryKeyColumn.create(ColumnNodeType.primaryKey);
-				// TODO squence
-			}
-			// 4. fks by referenced By flags
-			
-			Map<Class<? extends BranchNodeMetaModel>,Table> modelClassToTableIndex = new HashMap<>();
-			Map<Class<? extends BranchNodeMetaModel>,BranchNodeMetaModel> modelClassToModelIndex = new HashMap<>();
-			for(Table table : this.tableList)
-			{
-				for(TableDefinition tableDefinition : table.tableDefinitionList)
-				{
-					modelClassToTableIndex.put(tableDefinition.metaModel.getClass(), table);
-					modelClassToModelIndex.put(tableDefinition.metaModel.getClass(), tableDefinition.metaModel);
-				}
-			}
-			for(Table table : this.tableList)
-			{
-				for(TableDefinition tableDefinition : table.tableDefinitionList)
-				{
-					if(tableDefinition.references != null)
+					for(String indexName : primaryKeyColumn.getIndexSet())
 					{
-						for(INodeType<BranchNodeMetaModel, ?> nodeType : tableDefinition.references)
+						BranchNode<TableNodeType,IndexNodeType> indexSpec = tableSpec.create(TableNodeType.indices).setValue(IndexNodeType.name, indexName).setValue(IndexNodeType.unique, false);
+						indexSet.put(indexName, indexSpec);
+						indexSpec.create(IndexNodeType.members).setValue(IndexColumnNodeType.columName, primaryKeyColumn.getColumnName());
+					}
+				}
+				
+				if(primaryKeyColumn.getUniqueIndexSet() != null)
+				{
+					for(String indexName : primaryKeyColumn.getUniqueIndexSet())
+					{
+						BranchNode<TableNodeType,IndexNodeType> indexSpec = tableSpec.create(TableNodeType.indices).setValue(IndexNodeType.name, indexName).setValue(IndexNodeType.unique, true);
+						uniqueIndexSet.put(indexName, indexSpec);
+						indexSpec.create(IndexNodeType.members).setValue(IndexColumnNodeType.columName, primaryKeyColumn.getColumnName());
+					}
+				}
+				
+				// Parent Referenced By
+				
+				ColumnNode referencedByColumnNode = tableNode.getReferencedByColumnNode();
+				
+				if(referencedByColumnNode != null)
+				{
+					ColumnNode parentPKColumnNode = referencedByColumnNode.getReferencedPrimaryKey();
+					
+					Objects.requireNonNull(parentPKColumnNode, tableNodeEntry.getKey() + ": pk column of parent table not defined / reference: " + tableNode.getNodeType().getParentNodeClass() + "::" + tableNode.getNodeType().getNodeName() );
+					
+					ColumnType columnType = TypedTreeJDBCHelper.getColumnType(referencedByColumnNode.getSqlType(),referencedByColumnNode.getJavaType());
+					if(columnType == ColumnType.VARCHAR)
+					{
+						if(referencedByColumnNode.getLength() < 0)
 						{
-							SQLReferencedByColumn referencedByColumn = nodeType.referencedByField().getDeclaredAnnotation(SQLReferencedByColumn.class);
-							if(referencedByColumn == null)
+							columnType = ColumnType.CLOB;
+						}
+					}
+					
+					columnSpec = tableSpec.create(TableNodeType.columns)
+						.setValue(ColumnNodeType.name, referencedByColumnNode.getColumnName())
+						.setValue(ColumnNodeType.columnType, columnType.name())
+						.setValue(ColumnNodeType.nullable, referencedByColumnNode.isNullable());
+					
+					if((columnType == ColumnType.VARCHAR) || (columnType == ColumnType.VARCHAR))
+					{
+						columnSpec.setValue(ColumnNodeType.size, referencedByColumnNode.getLength());
+					}
+					
+					columnSpec.create(ColumnNodeType.foreignKey)
+						.setValue(ForeignKeyNodeType.constraintName, "fk_" + tableNode.getTableName()  + "__" + referencedByColumnNode.getColumnName())
+						.setValue(ForeignKeyNodeType.referencedTableName, parentPKColumnNode.getTableName()) // TODO referenced Schema
+						.setValue(ForeignKeyNodeType.referencedColumnName, parentPKColumnNode.getColumnName());
+					
+					if(referencedByColumnNode.getIndexSet() != null)
+					{
+						for(String indexName : referencedByColumnNode.getIndexSet())
+						{
+							BranchNode<TableNodeType,IndexNodeType> indexSpec = indexSet.get(indexName);
+							if(indexSpec == null)
 							{
-								continue;
+								indexSpec = tableSpec.create(TableNodeType.indices).setValue(IndexNodeType.name, indexName).setValue(IndexNodeType.unique, false);
+								indexSet.put(indexName, indexSpec);
 							}
-							
-							String refName = referencedByColumn.name();
-							if((refName == null) || refName.isEmpty())
+							indexSpec.create(IndexNodeType.members).setValue(IndexColumnNodeType.columName, referencedByColumnNode.getColumnName());
+						}
+					}
+					
+					if(referencedByColumnNode.getUniqueIndexSet() != null)
+					{
+						for(String indexName : referencedByColumnNode.getUniqueIndexSet())
+						{
+							BranchNode<TableNodeType,IndexNodeType> indexSpec = uniqueIndexSet.get(indexName);
+							if(indexSpec == null)
 							{
-								continue;
+								indexSpec =tableSpec.create(TableNodeType.indices).setValue(IndexNodeType.name, indexName).setValue(IndexNodeType.unique, true);
+								uniqueIndexSet.put(indexName, indexSpec);
 							}
-							
-							Table referenceTable = modelClassToTableIndex.get(nodeType.getParentNodeClass());
-							if(referenceTable == null)
-							{
-								throw new IllegalStateException("Table not found for field " + nodeType.getParentNodeClass().getCanonicalName() + "." + nodeType.referencedByField());
-							}
-							
-							table.tableSpec.create(TableNodeType.columns)
-								.setValue(ColumnNodeType.name, refName)
-								.setValue(ColumnNodeType.columnType, referenceTable.idColumnType.name())
-								.setValue(ColumnNodeType.nullable, referencedByColumn.nullable())
-								.setValue(ColumnNodeType.size, referenceTable.idColumnLength)
-								.create(ColumnNodeType.foreignKey)
-									.setValue(ForeignKeyNodeType.constraintName, "fk" + (table.fkCounter++) + "_" + table.tableName)
-									.setValue(ForeignKeyNodeType.referencedTableName, referenceTable.tableName)
-									.setValue(ForeignKeyNodeType.referencedColumnName, referenceTable.idName);
-							
+							indexSpec.create(IndexNodeType.members).setValue(IndexColumnNodeType.columName, referencedByColumnNode.getColumnName());
 						}
 					}
 				}
 				
-				
-			}
-			
-			// 5. Columns
-			for(Table table : this.tableList)
-			{
-				Set<String> columnNameSet = new HashSet<String>();
-				
-				for(BranchNode<TableNodeType, ColumnNodeType> column : table.tableSpec.getUnmodifiableNodeList(TableNodeType.columns))
+				for(ColumnNode columnNode : tableNode.getColumnList())
 				{
-					columnNameSet.add(column.getValue(ColumnNodeType.name));
-				}
-				
-				for(TableDefinition tableDefinition : table.tableDefinitionList)
-				{
-					for (NodeTypeDefinition nodeTypeDefinition : tableDefinition.nodeTypeList)
+					if(columnNode == primaryKeyColumn)
 					{
-						SQLColumn sqlColumn = nodeTypeDefinition.nodeType.referencedByField().getDeclaredAnnotation(SQLColumn.class);
-						if(sqlColumn == null)
+						continue;
+					}
+					
+					ColumnType columnType = TypedTreeJDBCHelper.getColumnType(columnNode.getSqlType(),columnNode.getJavaType());
+					if(columnType == ColumnType.VARCHAR)
+					{
+						if(columnNode.getLength() < 0)
 						{
-							continue;
+							columnType = ColumnType.CLOB;
 						}
-						String columnName = sqlColumn.name();
-						if((columnName == null) || columnName.isEmpty())
+					}
+					
+					columnSpec = tableSpec.create(TableNodeType.columns)
+						.setValue(ColumnNodeType.name, columnNode.getColumnName())
+						.setValue(ColumnNodeType.columnType, columnType.name())
+						.setValue(ColumnNodeType.nullable, columnNode.isNullable());
+					
+					if((columnType == ColumnType.VARCHAR) || (columnType == ColumnType.VARCHAR))
+					{
+						columnSpec.setValue(ColumnNodeType.size, columnNode.getLength());
+					}
+					
+					if(columnNode.getDefaultValueExpressionDriver() != null)
+					{
+						columnSpec.setValue(ColumnNodeType.defaultValueClass,columnNode.getDefaultValueExpressionDriver());
+						columnSpec.setValue(ColumnNodeType.defaultStaticValue, columnNode.getStaticDefaultValue());
+					}
+					
+					if(columnNode.isSequence())
+					{
+						columnSpec.create(ColumnNodeType.sequence)
+							.setValue(SequenceNodeType.name, columnNode.getSequenceName())
+							.setValue(SequenceNodeType.min, columnNode.getSequenceMinValue())
+							.setValue(SequenceNodeType.max, columnNode.getSequenceMaxValue())
+							.setValue(SequenceNodeType.cycle, columnNode.getSequenceCycle())
+							.setValue(SequenceNodeType.cache, columnNode.getSequenceCache());
+					}
+					
+					if(columnNode.getReferencedPrimaryKey() != null)
+					{
+						columnSpec.create(ColumnNodeType.foreignKey)
+							.setValue(ForeignKeyNodeType.constraintName, "fk_" + columnNode.getTableName()  + "__" + columnNode.getColumnName())
+							.setValue(ForeignKeyNodeType.referencedTableName, columnNode.getReferencedPrimaryKey().getTableName()) // TODO referenced Schema
+							.setValue(ForeignKeyNodeType.referencedColumnName, columnNode.getReferencedPrimaryKey().getColumnName());
+					}
+					
+					if(columnNode.getIndexSet() != null)
+					{
+						for(String indexName : columnNode.getIndexSet())
 						{
-							columnName = nodeTypeDefinition.nodeType.getNodeName();
-						}
-						
-						if(columnNameSet.contains(columnName))
-						{
-							continue;
-						}
-						
-						columnNameSet.add(columnName);
-						
-						ColumnType columnType = getColumnType(sqlColumn.type(), nodeTypeDefinition.nodeType.getTypeClass());
-						if(columnType == columnType.VARCHAR)
-						{
-							if(sqlColumn.length() < 0)
+							BranchNode<TableNodeType,IndexNodeType> indexSpec = indexSet.get(indexName);
+							if(indexSpec == null)
 							{
-								columnType = columnType.CLOB;
+								indexSpec = tableSpec.create(TableNodeType.indices).setValue(IndexNodeType.name, indexName).setValue(IndexNodeType.unique, false);
+								indexSet.put(indexName, indexSpec);
 							}
+							indexSpec.create(IndexNodeType.members).setValue(IndexColumnNodeType.columName, columnNode.getColumnName());
 						}
-							
-						BranchNode<TableNodeType, ColumnNodeType>  column = table.tableSpec.create(TableNodeType.columns)
-							.setValue(ColumnNodeType.name, columnName)
-							.setValue(ColumnNodeType.columnType, columnType.name())
-							.setValue(ColumnNodeType.nullable, sqlColumn.nullable());
-						
-						if((columnType == columnType.VARCHAR) || (columnType == columnType.CHAR))
+					}
+					
+					if(columnNode.getUniqueIndexSet() != null)
+					{
+						for(String indexName : columnNode.getUniqueIndexSet())
 						{
-							column.setValue(ColumnNodeType.size, sqlColumn.length());
+							BranchNode<TableNodeType,IndexNodeType> indexSpec = uniqueIndexSet.get(indexName);
+							if(indexSpec == null)
+							{
+								indexSpec =tableSpec.create(TableNodeType.indices).setValue(IndexNodeType.name, indexName).setValue(IndexNodeType.unique, true);
+								uniqueIndexSet.put(indexName, indexSpec);
+							}
+							indexSpec.create(IndexNodeType.members).setValue(IndexColumnNodeType.columName, columnNode.getColumnName());
 						}
-						
-						if(! sqlColumn.staticDefaultValue().isEmpty())
-						{
-							column.setValue(ColumnNodeType.defaultStaticValue, sqlColumn.staticDefaultValue());
-						}
-						else if(sqlColumn.defaultValueExpressionDriver() != SQLColumn.NoDefaultValueExpressionDriver.class)
-						{
-							column.setValue(ColumnNodeType.defaultValueClass,sqlColumn.defaultValueExpressionDriver());
-						}
-						
 					}
 				}
 				
-				columnNameSet.clear();
+				indexSet.clear();
+				uniqueIndexSet.clear();
 			}
 			
 			return schema;
 		}
 		finally 
 		{
-			for(Table  table :  this.tableList)
-			{
-				for(TableDefinition tableDefinition :  table.tableDefinitionList)
-				{
-					for (NodeTypeDefinition nodeTypeDefinition : tableDefinition.nodeTypeList)
-					{
-						nodeTypeDefinition.nodeType =  null;
-					}
-					tableDefinition.nodeTypeList.clear();
-					tableDefinition.metaModel = null;
-					tableDefinition.references = null;
-					tableDefinition.nodeTypeList = null;
-				}
-				table.tableDefinitionList.clear();
-				table.key = null;
-				table.schema = null;
-				table.tableName = null;
-				table.tableDefinitionList = null;
-			}
-			tableList.clear();
-			tableList = null;
-			currentDefinitionList.clear();
-			currentDefinitionList = null;
+			
+			tableNodes.clear();
+			tableNodes = null;
 			schema = null;
 		}
 	}
-	
-	private ColumnType getColumnType(SQLColumnType type , Class clazz)
-	{
-		if(type == SQLColumnType.AUTO)
-		{
-			if(clazz == Boolean.class)
-			{
-				type = SQLColumnType.BOOLEAN;
-			}
-			else if(clazz == Integer.class)
-			{
-				type = SQLColumnType.INTEGER;
-			}
-			else if(clazz == Long.class)
-			{
-				type = SQLColumnType.BIGINT;
-			}
-			else if(clazz == Float.class)
-			{
-				type = SQLColumnType.REAL;
-			}
-			else if(clazz == Double.class)
-			{
-				type = SQLColumnType.DOUBLE;
-			}
-			else if(clazz == Date.class)
-			{
-				type = SQLColumnType.TIMESTAMP;
-			}
-			else
-			{
-				type = SQLColumnType.VARCHAR;
-			}
-		}
-		
-		if(type == SQLColumnType.BIGINT)
-		{
-			return ColumnType.BIGINT;
-		}
-		if(type == SQLColumnType.INTEGER)
-		{
-			return ColumnType.INTEGER;
-		}
-		if(type == SQLColumnType.SMALLINT)
-		{
-			return ColumnType.SMALLINT;
-		}
-		if(type == SQLColumnType.REAL)
-		{
-			return ColumnType.REAL;
-		}
-		if(type == SQLColumnType.DOUBLE)
-		{
-			return ColumnType.DOUBLE;
-		}
-		if(type == SQLColumnType.TIMESTAMP)
-		{
-			return ColumnType.TIMESTAMP;
-		}
-		if(type == SQLColumnType.DATE)
-		{
-			return ColumnType.DATE;
-		}
-		if(type == SQLColumnType.TIME)
-		{
-			return ColumnType.TIME;
-		}
-		if(type == SQLColumnType.BOOLEAN)
-		{
-			return ColumnType.BOOLEAN;
-		}
-		return ColumnType.VARCHAR;
-	}
 
-	public static void main(String[] args)
-	{
-		ParseDBSchemaHandler parseDBSchemaHandler = new ParseDBSchemaHandler("Logging");
-		ModelRegistry.parse(LogEventNodeType.class, parseDBSchemaHandler);
-		BranchNode<?, DBSchemaNodeType> schemaSpec = parseDBSchemaHandler.fillSchemaSpec();
-		for(BranchNode<DBSchemaNodeType, TableNodeType> tableSpec : schemaSpec.getUnmodifiableNodeList(DBSchemaNodeType.tables))
-		{
-			System.out.println(tableSpec.getValue(TableNodeType.name));
-			for(BranchNode<TableNodeType, ColumnNodeType> columnSpec : tableSpec.getUnmodifiableNodeList(TableNodeType.columns))
-			{
-				System.out.println("\t: " + columnSpec.getValue(ColumnNodeType.name) + " " + columnSpec.getValue(ColumnNodeType.columnType) + " " + columnSpec.getValue(ColumnNodeType.nullable) + " " + columnSpec.getValue(ColumnNodeType.size));
-				if(columnSpec.get(ColumnNodeType.primaryKey) != null)
-				{
-					System.out.println("\t\t: PK : " +  columnSpec.get(ColumnNodeType.primaryKey).getValue(PrimaryKeyNodeType.constraintName) + " / " + columnSpec.get(ColumnNodeType.primaryKey).getValue(PrimaryKeyNodeType.indexName));
-				}
-				if(columnSpec.get(ColumnNodeType.foreignKey) != null)
-				{
-					System.out.println("\t\t: FK : " + columnSpec.get(ColumnNodeType.foreignKey).getValue(ForeignKeyNodeType.constraintName) + " / " + columnSpec.get(ColumnNodeType.foreignKey).getValue(ForeignKeyNodeType.referencedTableName)  + "" + columnSpec.get(ColumnNodeType.foreignKey).getValue(ForeignKeyNodeType.referencedColumnName));
-				}
-			}
-		}
-		
-	}
+	@Override
+	public void onNodeType(BranchNodeMetaModel model, INodeType<BranchNodeMetaModel, ?> nodeType){}
 
 }

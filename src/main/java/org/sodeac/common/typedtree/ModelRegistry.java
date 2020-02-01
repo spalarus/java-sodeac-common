@@ -21,8 +21,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
-
 /**
  * Intern helper class
  * 
@@ -145,13 +143,27 @@ public class ModelRegistry
 		}
 	}
 	
+	public static void parse(BranchNodeType<? extends BranchNodeMetaModel, ? extends BranchNodeMetaModel> nodeType, ITypedTreeModelParserHandler handler)
+	{
+		parse(nodeType.getTypeClass(), handler, nodeType);
+	}
+	
+	public static void parse(BranchNodeListType<? extends BranchNodeMetaModel, ? extends BranchNodeMetaModel> nodeType, ITypedTreeModelParserHandler handler)
+	{
+		parse(nodeType.getTypeClass(), handler, nodeType);
+	}
+	
 	public static void parse(Class<? extends BranchNodeMetaModel> clazz, ITypedTreeModelParserHandler handler)
+	{
+		parse(clazz, handler, null);
+	}
+	
+	private static void parse(Class<? extends BranchNodeMetaModel> clazz, ITypedTreeModelParserHandler handler, INodeType parentNodeType)
 	{
 		if(clazz ==  null)
 		{
 			return;
 		}
-		
 		
 		Map<Class<? extends BranchNodeMetaModel>,Set<INodeType<BranchNodeMetaModel, ?>>> toParseSet = new HashMap<Class<? extends BranchNodeMetaModel>,Set<INodeType<BranchNodeMetaModel, ?>>>();
 		List<Class<? extends BranchNodeMetaModel>> orderedParseClassList = new ArrayList<Class<? extends BranchNodeMetaModel>>();
@@ -161,6 +173,11 @@ public class ModelRegistry
 		{
 			toParseSet.put(clazz, new HashSet<>());
 			orderedParseClassList.add(clazz);
+			
+			if(parentNodeType != null)
+			{
+				toParseSet.get(clazz).add(parentNodeType);
+			}
 			
 			while(toParseSet.size() > doneSet.size())
 			{

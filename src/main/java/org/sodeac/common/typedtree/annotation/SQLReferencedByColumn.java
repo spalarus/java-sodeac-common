@@ -27,7 +27,7 @@ public @interface SQLReferencedByColumn
 	String name();
 	boolean nullable() default true;
 	SQLColumnType type() default SQLColumnType.AUTO;
-	int length() default 255;
+	int length() default -1;
 	boolean readable() default true;
 	boolean insertable() default true;
 	boolean updatable() default true;

@@ -15,6 +15,7 @@ import java.util.Date;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 
+import org.sodeac.common.jdbc.schemax.IDefaultBySequence;
 import org.sodeac.common.model.CommonBaseBranchNodeType;
 import org.sodeac.common.typedtree.BranchNodeListType;
 import org.sodeac.common.typedtree.LeafNodeType;
@@ -22,6 +23,7 @@ import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.annotation.Association;
 import org.sodeac.common.typedtree.annotation.SQLColumn;
 import org.sodeac.common.typedtree.annotation.SQLReferencedByColumn;
+import org.sodeac.common.typedtree.annotation.SQLSequence;
 import org.sodeac.common.typedtree.annotation.SQLTable;
 import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 import org.sodeac.common.typedtree.annotation.XMLNodeList;
@@ -59,7 +61,8 @@ public class LogEventNodeType extends CommonBaseBranchNodeType
 	@XmlAttribute(name="loglevelname")
 	public static volatile LeafNodeType<LogEventNodeType,String> logLevelName;
 	
-	@SQLColumn(name="log_seq",type=SQLColumnType.BIGINT, nullable=false)
+	@SQLColumn(name="log_seq",type=SQLColumnType.BIGINT, nullable=false,defaultValueExpressionDriver=IDefaultBySequence.class)
+	@SQLSequence(name="seq_sdc_log_event_log_seq",cycle=true)
 	@XmlElement(name="Sequence")
 	public static volatile LeafNodeType<LogEventNodeType,Long> sequence;
 	

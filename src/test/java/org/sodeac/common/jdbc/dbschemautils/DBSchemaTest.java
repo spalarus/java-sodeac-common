@@ -21,6 +21,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.sodeac.common.jdbc.DBSchemaUtils;
 import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
+import org.sodeac.common.jdbc.TestConnection;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

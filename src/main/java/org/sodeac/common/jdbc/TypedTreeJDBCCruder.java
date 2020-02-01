@@ -13,7 +13,6 @@ package org.sodeac.common.jdbc;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
@@ -37,7 +36,12 @@ import javax.sql.DataSource;
 
 import org.sodeac.common.function.ConplierBean;
 import org.sodeac.common.function.ExceptionConsumer;
+import org.sodeac.common.jdbc.TypedTreeJDBCCruder.ConvertEvent.ConvertEventProvider;
 import org.sodeac.common.jdbc.TypedTreeJDBCCruder.Session.RuntimeParameter;
+import org.sodeac.common.jdbc.TypedTreeJDBCHelper.MASK;
+import org.sodeac.common.jdbc.TypedTreeJDBCHelper.TableNode;
+import org.sodeac.common.jdbc.TypedTreeJDBCHelper.TableNode.ColumnNode;
+import org.sodeac.common.misc.Driver;
 import org.sodeac.common.typedtree.BranchNode;
 import org.sodeac.common.typedtree.BranchNodeListType;
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
@@ -47,8 +51,6 @@ import org.sodeac.common.typedtree.LeafNode;
 import org.sodeac.common.typedtree.LeafNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.Node;
-import org.sodeac.common.typedtree.NodeHelper;
-import org.sodeac.common.typedtree.TypedTreeHelper;
 import org.sodeac.common.typedtree.TypedTreeMetaModel;
 import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
 import org.sodeac.common.typedtree.annotation.Association.AssociationType;
@@ -57,8 +59,6 @@ import org.sodeac.common.typedtree.annotation.SQLColumn.SQLColumnType;
 
 import org.sodeac.common.typedtree.annotation.SQLPrimaryKey;
 import org.sodeac.common.typedtree.annotation.SQLReferencedByColumn;
-import org.sodeac.common.typedtree.annotation.SQLReplace;
-import org.sodeac.common.typedtree.annotation.SQLTable;
 
 public class TypedTreeJDBCCruder implements AutoCloseable 
 {
@@ -208,8 +208,8 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		private volatile boolean error = false;
 		private volatile DataSource mainDatasource = null;
 		private volatile Connection mainConnection = null;
+		private volatile IDBSchemaUtilsDriver mainUtilsDriver = null;
 		private Map<String,PreparedStatement> preparedStatementCache = new HashMap<String,PreparedStatement>();
-		private Map<String,PreparedStatement> preparedStatementWithoutBatchesCache = new HashMap<String,PreparedStatement>();
 		private boolean isPostgreSQL = false;
 		private boolean isH2 = false;
 		
@@ -217,6 +217,29 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		{
 			super();
 			this.mainDatasource = mainDatasource;
+		}
+		
+		private void checkMainConnection() throws SQLException
+		{
+			if(this.mainConnection == null)
+			{
+				this.mainConnection = mainDatasource.getConnection();
+				this.mainConnection.setAutoCommit(false);
+				
+				Map<String,Object> driverProperties = new HashMap<>();
+				driverProperties.put(Connection.class.getCanonicalName(), this.mainConnection);
+				this.mainUtilsDriver = Driver.getSingleDriver(IDBSchemaUtilsDriver.class, driverProperties);
+				
+				String dbProduct = this.mainConnection.getMetaData().getDatabaseProductName();
+				if(dbProduct.equalsIgnoreCase("PostgreSQL"))
+				{
+					this.isPostgreSQL = true;
+				}
+				else if(dbProduct.equalsIgnoreCase("H2"))
+				{
+					this.isH2 = true;
+				}
+			}
 		}
 		
 		@Override
@@ -241,16 +264,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				}
 				catch (Exception e) {}
 			}
-			for(PreparedStatement preparedStatement : this.preparedStatementWithoutBatchesCache.values())
-			{
-				try
-				{
-					preparedStatement.close();
-				}
-				catch (Exception e) {}
-			}
 			this.preparedStatementCache.clear();
-			this.preparedStatementWithoutBatchesCache.clear();
 			try
 			{
 				if(this.mainConnection != null)
@@ -262,8 +276,8 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			
 			this.mainDatasource = null;
 			this.mainConnection = null;
+			this.mainUtilsDriver = null;
 			this.preparedStatementCache = null;
-			this.preparedStatementWithoutBatchesCache = null;
 		}
 		
 		public <T extends BranchNodeMetaModel> List<BranchNode<?,T>> loadList(BranchNodeType<? extends BranchNodeMetaModel,T> type, INodeType<T,?> searchField, Object[] searchValues, Function<Object[], Collection<BranchNode<? extends BranchNodeMetaModel,T>>> nodeFactory) throws SQLException
@@ -272,34 +286,19 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			{
 				throw new RuntimeException("Session is invalid by thrown exception");
 			}
+			
 			List<BranchNode<?,T>> collector = new ArrayList<BranchNode<?,T>>();
 			boolean valid = false;
 			try
 			{
+				checkMainConnection();
+				
 				PreparedLoadDefinitionContainer preparedDefinitionContainer = TypedTreeJDBCCruder.this.getPreparedLoadDefinitionContainer(type);
 				
-				if(this.mainConnection == null)
-				{
-					this.mainConnection = mainDatasource.getConnection();
-					this.mainConnection.setAutoCommit(false);
-					
-					String dbProduct = this.mainConnection.getMetaData().getDatabaseProductName();
-					if(dbProduct.equalsIgnoreCase("PostgreSQL"))
-					{
-						this.isPostgreSQL = true;
-					}
-					else if(dbProduct.equalsIgnoreCase("H2"))
-					{
-						this.isH2 = true;
-					}
-				}
-				
 				RuntimeParameter runtimeParameter = new RuntimeParameter();
-				runtimeParameter.connection = mainConnection;
 				runtimeParameter.searchField = searchField;
 				runtimeParameter.searchValues = searchValues;
 				runtimeParameter.nodeFactory = (Function)nodeFactory;
-				runtimeParameter.session = this;
 				
 				preparedDefinitionContainer.loadDefinition.selectNode(runtimeParameter,collector);
 				
@@ -319,7 +318,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		
 		public <P extends TypedTreeMetaModel,T extends BranchNodeMetaModel> RootBranchNode<P, T> loadRootNode(BranchNodeType<P,T> nodeType, Object id) throws SQLException
 		{
-			LeafNodeType<T,?> searchField = TypedTreeHelper.getPrimaryKeyNode(nodeType.getTypeClass());
+			LeafNodeType<T,?> searchField = TypedTreeJDBCHelper.parseTableNode(nodeType, MASK.PK_COLUMN).getPrimaryKeyNode().getLeafNodeType();
 			RootBranchNode<P, T> node = (RootBranchNode)loadItem((BranchNodeType)nodeType, (INodeType)searchField, new Object[] {id}, (Function)getRootNodeFactory(nodeType));
 			return node;
 		}
@@ -330,7 +329,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			{
 				return;
 			}
-			LeafNodeType searchField = TypedTreeHelper.getPrimaryKeyNode(branchNode.getNodeType().getTypeClass());
+			LeafNodeType searchField = TypedTreeJDBCHelper.parseTableNode(branchNode.getNodeType(), MASK.PK_COLUMN).getPrimaryKeyNode().getLeafNodeType();
 			Object id = branchNode.getValue(searchField);
 			if(id == null)
 			{
@@ -351,28 +350,12 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			{
 				PreparedLoadDefinitionContainer preparedDefinitionContainer = TypedTreeJDBCCruder.this.getPreparedLoadDefinitionContainer(type);
 				
-				if(this.mainConnection == null)
-				{
-					this.mainConnection = mainDatasource.getConnection();
-					this.mainConnection.setAutoCommit(false);
-					
-					String dbProduct = this.mainConnection.getMetaData().getDatabaseProductName();
-					if(dbProduct.equalsIgnoreCase("PostgreSQL"))
-					{
-						this.isPostgreSQL = true;
-					}
-					else if(dbProduct.equalsIgnoreCase("H2"))
-					{
-						this.isH2 = true;
-					}
-				}
+				checkMainConnection();
 				
 				RuntimeParameter runtimeParameter = new RuntimeParameter();
-				runtimeParameter.connection = mainConnection;
 				runtimeParameter.searchField = searchField;
 				runtimeParameter.searchValues = searchValues;
 				runtimeParameter.nodeFactory = (Function)nodeFactory;
-				runtimeParameter.session = this;
 				
 				preparedDefinitionContainer.loadDefinition.selectNode(runtimeParameter,collector);
 				
@@ -409,28 +392,12 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			{
 				PreparedLoadDefinitionContainer preparedDefinitionContainer = TypedTreeJDBCCruder.this.getPreparedLoadDefinitionContainer(type);
 				
-				if(this.mainConnection == null)
-				{
-					this.mainConnection = mainDatasource.getConnection();
-					this.mainConnection.setAutoCommit(false);
-					
-					String dbProduct = this.mainConnection.getMetaData().getDatabaseProductName();
-					if(dbProduct.equalsIgnoreCase("PostgreSQL"))
-					{
-						this.isPostgreSQL = true;
-					}
-					else if(dbProduct.equalsIgnoreCase("H2"))
-					{
-						this.isH2 = true;
-					}
-				}
+				checkMainConnection();
 				
 				RuntimeParameter runtimeParameter = new RuntimeParameter();
-				runtimeParameter.connection = mainConnection;
 				runtimeParameter.searchField = type;
 				runtimeParameter.searchValues = searchValues;
 				runtimeParameter.nodeFactory = (Function)nodeFactory;
-				runtimeParameter.session = this;
 				
 				preparedDefinitionContainer.loadDefinition.selectNode(runtimeParameter,collector);
 				
@@ -460,28 +427,12 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			{
 				PreparedLoadDefinitionContainer preparedDefinitionContainer = TypedTreeJDBCCruder.this.getPreparedLoadDefinitionContainer(type);
 				
-				if(this.mainConnection == null)
-				{
-					this.mainConnection = mainDatasource.getConnection();
-					this.mainConnection.setAutoCommit(false);
-					
-					String dbProduct = this.mainConnection.getMetaData().getDatabaseProductName();
-					if(dbProduct.equalsIgnoreCase("PostgreSQL"))
-					{
-						this.isPostgreSQL = true;
-					}
-					else if(dbProduct.equalsIgnoreCase("H2"))
-					{
-						this.isH2 = true;
-					}
-				}
+				checkMainConnection();
 				
 				RuntimeParameter runtimeParameter = new RuntimeParameter();
-				runtimeParameter.connection = mainConnection;
 				runtimeParameter.searchField = type;
 				runtimeParameter.searchValues = searchValues;
 				runtimeParameter.nodeFactory = (Function)nodeFactory;
-				runtimeParameter.session = this;
 				
 				preparedDefinitionContainer.loadDefinition.selectNode(runtimeParameter,collector);
 				
@@ -505,10 +456,10 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			{
 				node.clear(childNodeType);
 			}
-			loadListByReferencedNode(childNodeType, Collections.singleton(node.get(TypedTreeHelper.getPrimaryKeyNode(node.getNodeType().getTypeClass())).getValue() ).toArray(), ids -> Collections.singletonList(node.create(childNodeType))).clear();
+			loadListByReferencedNode(childNodeType, Collections.singleton(node.get(TypedTreeJDBCHelper.parseTableNode(node.getNodeType(), MASK.PK_COLUMN).getPrimaryKeyNode().getLeafNodeType()).getValue() ).toArray(), ids -> Collections.singletonList(node.create(childNodeType))).clear();
 		}
 		
-		public void persist(BranchNode< ? extends BranchNodeMetaModel, ? extends BranchNodeMetaModel> node) throws SQLException
+		public < P extends BranchNodeMetaModel, T extends BranchNodeMetaModel> BranchNode< P,T> persist(BranchNode< P,T> node) throws SQLException, InstantiationException, IllegalAccessException
 		{
 			if(error)
 			{
@@ -519,26 +470,10 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			{
 				PreparedPersistDefinitionContainer preparedDefinitionContainer = TypedTreeJDBCCruder.this.getPreparedPersistDefinitionContainer(node.getNodeType());
 				
-				if(this.mainConnection == null)
-				{
-					this.mainConnection = mainDatasource.getConnection();
-					this.mainConnection.setAutoCommit(false);
-					
-					String dbProduct = this.mainConnection.getMetaData().getDatabaseProductName();
-					if(dbProduct.equalsIgnoreCase("PostgreSQL"))
-					{
-						this.isPostgreSQL = true;
-					}
-					else if(dbProduct.equalsIgnoreCase("H2"))
-					{
-						this.isH2 = true;
-					}
-				}
+				checkMainConnection();
 				
 				RuntimeParameter runtimeParameter = new RuntimeParameter();
 				runtimeParameter.branchNode = node;
-				runtimeParameter.connection = mainConnection;
-				runtimeParameter.session = this;
 				
 				if(preparedDefinitionContainer.checkPersistableIsNew.checkIsNew(runtimeParameter))
 				{
@@ -559,9 +494,11 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					this.error = true;
 				}
 			}
+			
+			return node;
 		}
 		
-		public void delete(BranchNode< ? extends BranchNodeMetaModel, ? extends BranchNodeMetaModel> node) throws SQLException
+		public < P extends BranchNodeMetaModel, T extends BranchNodeMetaModel> BranchNode< P,T> delete(BranchNode< P,T> node) throws SQLException
 		{
 			if(error)
 			{
@@ -572,26 +509,10 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			{
 				PreparedDeleteDefinitionContainer preparedDefinitionContainer = TypedTreeJDBCCruder.this.getPreparedDeleteDefinitionContainer(node.getNodeType());
 				
-				if(this.mainConnection == null)
-				{
-					this.mainConnection = mainDatasource.getConnection();
-					this.mainConnection.setAutoCommit(false);
-					
-					String dbProduct = this.mainConnection.getMetaData().getDatabaseProductName();
-					if(dbProduct.equalsIgnoreCase("PostgreSQL"))
-					{
-						this.isPostgreSQL = true;
-					}
-					else if(dbProduct.equalsIgnoreCase("H2"))
-					{
-						this.isH2 = true;
-					}
-				}
+				checkMainConnection();
 				
 				RuntimeParameter runtimeParameter = new RuntimeParameter();
 				runtimeParameter.branchNode = node;
-				runtimeParameter.connection = mainConnection;
-				runtimeParameter.session = this;
 				
 				preparedDefinitionContainer.preparedDeleteStatementDefinition.deleteNode(runtimeParameter);
 				
@@ -605,14 +526,12 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					this.error = true;
 				}
 			}
+			return node;
 		}
 		
 		public void flush()throws SQLException
 		{
-			if(mainConnection != null)
-			{
-				// TODO
-			}
+			
 		}
 		
 		public void commit() throws SQLException
@@ -639,10 +558,17 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				this.isNew = new ConplierBean<Boolean>(Boolean.FALSE);
 				this.isExisting = new ConplierBean<Boolean>(Boolean.FALSE);
 				this.conplierBean = new ConplierBean<Object>();
-				this.converterProperties = new HashMap<String,Object>();
+				this.convertEvent = new ConvertEventProvider();
+				
+				this.connection = Session.this.mainConnection;
+				this.dbSchemaUtilsDriver = Session.this.mainUtilsDriver;
+				this.convertEvent.setRuntimeParameter(this);
+				this.convertEvent.setConnection(Session.this.mainConnection);
+				this.convertEvent.setSchemaUtilDriver(Session.this.mainUtilsDriver);
 			}
 			
 			private Connection connection = null;
+			private IDBSchemaUtilsDriver dbSchemaUtilsDriver = null;
 			private PreparedStatement preparedStatement;
 			private ResultSet resultSet = null;
 			
@@ -656,14 +582,17 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			private ConplierBean<Boolean> isNew;
 			private ConplierBean<Boolean> isExisting;
 			private ConplierBean<Object> conplierBean;
-			private Map<String,Object> converterProperties;
+			private ConvertEventProvider convertEvent;
 			private INodeType searchField;
-			private Session session;
 			private Object[] searchValues;
 			private Object[] values = null;
 			
 			private Function<Object[], Collection<BranchNode<? extends BranchNodeMetaModel, ? extends BranchNodeMetaModel>>> nodeFactory;
 			
+			public Session getSession()
+			{
+				return Session.this;
+			}
 			public PreparedStatement getPreparedStatement() 
 			{
 				return preparedStatement;
@@ -699,6 +628,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			public void close()
 			{
 				this.connection = null;
+				this.dbSchemaUtilsDriver = null;
 				this.preparedStatement = null;
 				this.resultSet = null;
 				this.branchNode = null;
@@ -711,13 +641,12 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					this.conplierBean.setValue(null);
 				}
 				this.conplierBean = null;
-				if(this.converterProperties != null)
+				if(this.convertEvent != null)
 				{
-					this.converterProperties.clear();
+					this.convertEvent.clear();
 				}
-				this.converterProperties = null;
+				this.convertEvent = null;
 				
-				this.session = null;
 				this.searchField = null;
 				this.searchValues = null;
 				this.nodeFactory = null;
@@ -744,19 +673,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				Session.this.preparedStatementCache.put(sql,preparedStatement);
 				return preparedStatement;
 			}
-			public PreparedStatement getPreparedStatementWithoutBatch(String sql) throws SQLException
-			{
-				PreparedStatement preparedStatement = Session.this.preparedStatementWithoutBatchesCache.get(sql);
-				if((preparedStatement != null) && (! preparedStatement.isClosed()))
-				{
-					return preparedStatement;
-				}
-				preparedStatement = connection.prepareStatement(sql);
-				Session.this.preparedStatementWithoutBatchesCache.put(sql,preparedStatement);
-				return preparedStatement;
-			}
 		}
-	
 	}
 	
 	private class PreparedDeleteDefinitionContainer
@@ -851,30 +768,10 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		public PreparedLoadResultSetDefinition(INodeType nodeType) 
 		{
 			super();
-			this.nodeType = nodeType;
-			this.create();
-		}
-		
-		private void create()
-		{
-			BranchNodeMetaModel defaultInstance = (BranchNodeMetaModel)this.nodeType.getValueDefaultInstance();
 			
-			SQLTable table = (SQLTable)this.nodeType.getTypeClass().getAnnotation(SQLTable.class);
+			this.tableNode = TypedTreeJDBCHelper.parseTableNode(nodeType, MASK.ALL);
 			
-			// replaces by referenced field ???
-			
-			SQLReplace[] replaces = (SQLReplace[])this.nodeType.referencedByField().getAnnotationsByType(SQLReplace.class);
-			
-			for(SQLReplace replace : replaces)
-			{
-				for(SQLTable replacedTable : replace.table())
-				{
-					table = replacedTable;
-					break;
-				}
-			}
-			
-			if(table == null)
+			if(tableNode == null)
 			{ 
 				throw new RuntimeException("Annotation SQLTable not found in model " + nodeType.getTypeClass());
 			}
@@ -887,30 +784,14 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			
 			int cursorPosititon = 1;
 			
-			
-			for(LeafNodeType leafNode : defaultInstance.getLeafNodeTypeList())
+			for(ColumnNode columnNode : tableNode.getColumnList())
 			{
-				SQLColumn sqlColumn = (SQLColumn)leafNode.referencedByField().getAnnotation(SQLColumn.class);
-				
-				for(SQLReplace replace : replaces)
-				{
-					if(! leafNode.getNodeName().equals(replace.nodeName()))
-					{
-						continue;
-					}
-					for(SQLColumn replacedColumn : replace.column())
-					{
-						
-						sqlColumn = replacedColumn;
-						break;
-					}
-				}
-				if(sqlColumn == null)
+				if(columnNode.getLeafNodeType() == null)
 				{
 					continue;
 				}
 				
-				if(! sqlColumn.insertable())
+				if(! columnNode.isReadable())
 				{
 					continue;
 				}
@@ -920,80 +801,28 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					sqlColumns.append(",");
 				}
 				
-				sqlColumns.append(sqlColumn.name());
+				sqlColumns.append(columnNode.getColumnName());
 				BiConsumer<RuntimeParameter, PreparedLoadResultSetDefinition> nodeSetter = (r,d) -> {r.branchNode.get((LeafNodeType)r.type).setValue(r.staticValue);};
-				this.columns.add(new JDBCGetterDefinition(leafNode, sqlColumn, cursorPosititon++, nodeSetter));
-				this.nodeTypeList.add(leafNode);
+				this.columns.add(new JDBCGetterDefinition(columnNode, cursorPosititon++, nodeSetter));
+				this.nodeTypeList.add(columnNode.getLeafNodeType());
 			}
 			
-			for(BranchNodeType branchNode : defaultInstance.getBranchNodeTypeList())
+
+			for(ColumnNode columnNode : tableNode.getColumnList())
 			{
-				SQLColumn sqlColumn = (SQLColumn)branchNode.referencedByField().getAnnotation(SQLColumn.class);
-				SQLReferencedByColumn sqlRefrencedByColumn = (SQLReferencedByColumn)branchNode.referencedByField().getAnnotation(SQLReferencedByColumn.class);
-				for(SQLReplace replace : replaces)
-				{
-					if(! branchNode.getNodeName().equals(replace.nodeName()))
-					{
-						continue;
-					}
-					for(SQLColumn replacedColumn : replace.column())
-					{
-						
-						sqlColumn = replacedColumn;
-						break;
-					}
-					for(SQLReferencedByColumn replacedReferencedByColumn : replace.referencedByColumn())
-					{
-						
-						sqlRefrencedByColumn = replacedReferencedByColumn;
-						break;
-					}
-				}
-				
-				if((sqlColumn == null) || (sqlRefrencedByColumn != null))
+				if(columnNode.getBranchNodeType() == null)
 				{
 					continue;
 				}
 				
-				if(! sqlColumn.insertable())
+				if(! columnNode.isReadable())
 				{
 					continue;
 				}
 				
-				LeafNodeType pkLeafNode = null;
 				
-				JDBCGetterDefinition getColumnDefinition = null;
-				BranchNodeMetaModel childInstance = branchNode.getValueDefaultInstance();
-				for(LeafNodeType childLeafNode : childInstance.getLeafNodeTypeList())
+				if(columnNode.getReferencedPrimaryKey() != null)
 				{
-					SQLColumn sqlColumnChild = (SQLColumn)childLeafNode.referencedByField().getAnnotation(SQLColumn.class);
-					SQLPrimaryKey primaryKey = (SQLPrimaryKey)childLeafNode.referencedByField().getAnnotation(SQLPrimaryKey.class);
-					
-					for(SQLReplace replace : (SQLReplace[])branchNode.referencedByField().getAnnotationsByType(SQLReplace.class))
-					{
-						if(! childLeafNode.getNodeName().equals(replace.nodeName()))
-						{
-							continue;
-						}
-						for(SQLColumn replacedColumn : replace.column())
-						{
-							
-							sqlColumn = replacedColumn;
-							break;
-						}
-						for(SQLPrimaryKey replacedPrimaryKey : replace.primaryKey())
-						{
-							
-							primaryKey = replacedPrimaryKey;
-							break;
-						}
-					}
-					
-					if((sqlColumnChild == null) || (primaryKey == null))
-					{
-						continue;
-					}
-					
 					BiConsumer<RuntimeParameter, PreparedLoadResultSetDefinition> nodeSetter = (r,d) -> 
 					{
 						if(r.staticValue == null)
@@ -1003,77 +832,29 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 						BranchNode<? extends BranchNodeMetaModel,? extends BranchNodeMetaModel> childNode = r.branchNode.create((BranchNodeType)r.childType);
 						childNode.setValue((LeafNodeType)r.type,r.staticValue);
 					};
-					getColumnDefinition = new JDBCGetterDefinition(childLeafNode, sqlColumn, cursorPosititon++,nodeSetter);//, branchNode.referencedByField().getAnnotationsByType(SQLReplace.class));
-					pkLeafNode = childLeafNode;
+					JDBCGetterDefinition getColumnDefinition = new JDBCGetterDefinition(columnNode, cursorPosititon++,nodeSetter);
 					
-					break;
+					getColumnDefinition.childType = columnNode.getBranchNodeType();
+					getColumnDefinition.type = columnNode.getReferencedPrimaryKey().getLeafNodeType();
+					
+					if(sqlColumns.length() > 0)
+					{
+						sqlColumns.append(",");
+					}
+					sqlColumns.append(columnNode.getColumnName());
+					
+					this.columns.add(getColumnDefinition);
+					this.nodeTypeList.add(columnNode.getBranchNodeType());
 					
 				}
 				
-				if(getColumnDefinition == null)
-				{
-					throw new RuntimeException("no primary key found in " + branchNode.getTypeClass().getCanonicalName());
-				}
-				
-				getColumnDefinition.childType = branchNode;
-				getColumnDefinition.type = pkLeafNode;
-				
-				if(sqlColumns.length() > 0)
-				{
-					sqlColumns.append(",");
-				}
-				sqlColumns.append(sqlColumn.name());
-				
-				this.columns.add(getColumnDefinition);
-				this.nodeTypeList.add(branchNode);
 			}
 			
-			 // columns defined by Parent
-			
-			/*SQLReferencedByColumn referencedBy = (SQLReferencedByColumn)this.nodeType.referencedByField().getAnnotation(SQLReferencedByColumn.class);
-			// TODO replaceByParent
-			if(referencedBy != null)
-			{
-				
-				try
-				{
-					// TODO getDefaultInstanceParent
-					// TODO INodeType.getParentNodeType ???
-					BranchNodeMetaModel defaultInstanceParent = (BranchNodeMetaModel)this.nodeType.getParentNodeClass().newInstance();
-					for(LeafNodeType<BranchNodeMetaModel, ?>  childNodeType : defaultInstanceParent.getLeafNodeTypeList())
-					{
-						SQLColumn sqlColumn = childNodeType.referencedByField().getAnnotation(SQLColumn.class);
-						SQLPrimaryKey primaryKey = childNodeType.referencedByField().getAnnotation(SQLPrimaryKey.class);
-						// TODO replaceByParent
-						if((primaryKey != null) && (sqlColumn != null))
-						{
-							JDBCGetterDefinition setColumnDefinition = new JDBCGetterDefinition(childNodeType, sqlColumn, cursorPosititon++, null);
-							setColumnDefinition.parentType = true;
-							
-							if(sqlColumns.length() > 0)
-							{
-								sqlColumns.append(",");
-							}
-							
-							sqlColumns.append(referencedBy.name());
-							
-							this.columns.add(setColumnDefinition);
-							this.nodeTypeList.add(childNodeType);
-						}
-					}
-					
-				}
-				catch (Exception e) 
-				{
-					throw new RuntimeException(e);
-				}
-			}*/
-			
-			this.sql = "select " + sqlColumns + "  from " + table.name() + " ";
+			this.sql = "select " + sqlColumns + "  from " + tableNode.getTableName() + " ";
 			this.nodeTypeList = Collections.unmodifiableList(this.nodeTypeList);
 		}
 		
-		private INodeType nodeType = null;
+		private TableNode tableNode = null;
 		private BranchNodeMetaModel type = null;
 		private String domain = null;
 		private String boundedContext = null;
@@ -1099,8 +880,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				}
 				constrainHelperIndex.clear();
 			}
-			
-			nodeType = null;
+			tableNode = null;
 			type = null;
 			domain = null;
 			boundedContext = null;
@@ -1120,112 +900,57 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		@SuppressWarnings({ "unchecked", "rawtypes" })
 		protected void selectNode(RuntimeParameter runtimeParameter, List collector) throws SQLException
 		{
+			Objects.requireNonNull(runtimeParameter.searchField,"search field not defined");
+			
 			ConstraintHelper constraintHelper = constrainHelperIndex.get(runtimeParameter.searchField);
 			if(constraintHelper == null)
 			{
-				SQLColumn sqlColumn = runtimeParameter.searchField.referencedByField().getAnnotation(SQLColumn.class);
-				SQLReferencedByColumn sqlReferencedByColumn = runtimeParameter.searchField.referencedByField().getAnnotation(SQLReferencedByColumn.class);
-				
-				constraintHelper = new ConstraintHelper();
-				constraintHelper.sqlType = "VARCHAR";
-				
-				if(sqlReferencedByColumn != null)
+				ColumnNode columnNode  = null;
+				if(this.tableNode.getReferencedByColumnNode() != null)
 				{
-					constraintHelper.column = sqlReferencedByColumn.name();
-					
-					Class<BranchNodeMetaModel> clazz = runtimeParameter.searchField.getTypeClass();
-					BranchNodeMetaModel metaModel = ModelRegistry.getBranchNodeMetaModel(clazz);
-					LeafNodeType primaryKeyNode = null;
-					
-					for(LeafNodeType childLeafNode : metaModel.getLeafNodeTypeList())
+					if
+					(!(
+						(this.tableNode.getReferencedByColumnNode().getBranchNodeType() == runtimeParameter.searchField) ||
+						(this.tableNode.getReferencedByColumnNode().getBranchNodeListType() == runtimeParameter.searchField)
+					))
 					{
-						SQLPrimaryKey primaryKey = childLeafNode.referencedByField().getAnnotation(SQLPrimaryKey.class);
-						
-						if(primaryKey == null)
-						{
-							continue;
-						}
-						
-						primaryKeyNode = childLeafNode;
-						break;
+						throw new IllegalStateException("ReferencedBy type is an unexpected instance");
 					}
-					
-					if(primaryKeyNode == null)
-					{
-						throw new RuntimeException("No primaryKey node found for " + runtimeParameter.searchField.referencedByField());
-					}
-					
-					SQLColumnType sqlColumnType = SQLColumnType.VARCHAR;
-					
-					if(primaryKeyNode.getTypeClass() == Long.class)
-					{
-						sqlColumnType = SQLColumnType.BIGINT;
-					}
-					if(primaryKeyNode.getTypeClass() == Integer.class)
-					{
-						sqlColumnType = SQLColumnType.INTEGER;
-					}
-					
-					SQLColumn sqlColumnPK = primaryKeyNode.referencedByField().getAnnotation(SQLColumn.class);
-					
-					if((sqlColumnPK != null) && (sqlColumnPK.type() != SQLColumnType.AUTO))
-					{
-						sqlColumnType = sqlColumnPK.type();
-					}
-					
-					if(sqlColumnType == SQLColumnType.BIGINT)
-					{
-						constraintHelper.sqlType = "BIGINT";
-					}
-					if(sqlColumnType == SQLColumnType.INTEGER)
-					{
-						constraintHelper.sqlType = "INTEGER";
-					}
-					constrainHelperIndex.put(runtimeParameter.searchField, constraintHelper);
-					
+				
+					columnNode = this.tableNode.getReferencedByColumnNode();
 				}
 				else
 				{
-					constraintHelper.column = runtimeParameter.searchField.getNodeName();
-					if(sqlColumn != null)
+					for(ColumnNode check : this.tableNode.getColumnList())
 					{
-						constraintHelper.column = sqlColumn.name();
+						if(check.getLeafNodeType() == runtimeParameter.searchField)
+						{
+							columnNode = check;
+						}
+						else if(check.getBranchNodeType() == runtimeParameter.searchField)
+						{
+							columnNode = check;
+						}
 					}
-					
-					SQLColumnType sqlColumnType = SQLColumnType.VARCHAR;
-					
-					if(runtimeParameter.searchField.getTypeClass() == Long.class)
-					{
-						sqlColumnType = SQLColumnType.BIGINT;
-					}
-					if(runtimeParameter.searchField.getTypeClass()  == Integer.class)
-					{
-						sqlColumnType = SQLColumnType.INTEGER;
-					}
-					if((sqlColumn != null) && (sqlColumn.type() != SQLColumnType.AUTO))
-					{
-						sqlColumnType = sqlColumn.type();
-					}
-					
-					if(sqlColumnType == SQLColumnType.BIGINT)
-					{
-						constraintHelper.sqlType = "BIGINT";
-					}
-					if(sqlColumnType == SQLColumnType.INTEGER)
-					{
-						constraintHelper.sqlType = "INTEGER";
-					}
-					constrainHelperIndex.put(runtimeParameter.searchField, constraintHelper);
 				}
+				
+				Objects.requireNonNull(columnNode, "search field not found in searchable fields of " + runtimeParameter.searchField.getParentNodeClass());
+				
+				constraintHelper = new ConstraintHelper();
+				constraintHelper.sqlType = "VARCHAR";
+				constraintHelper.column = columnNode.getColumnName();
+				constraintHelper.sqlType = columnNode.getSqlType().name().toUpperCase();
+					
+				constrainHelperIndex.put(runtimeParameter.searchField, constraintHelper);
 			}
 			
 			
 			String completeSQL = null;
-			if(runtimeParameter.session.isPostgreSQL)
+			if(runtimeParameter.getSession().isPostgreSQL)
 			{
 				completeSQL = sql + " where " + constraintHelper.column + " in (select * from unnest(?))";
 			}
-			else if(runtimeParameter.session.isH2)
+			else if(runtimeParameter.getSession().isH2)
 			{
 				completeSQL = sql + " where " + constraintHelper.column + " in (UNNEST(?))";
 			}
@@ -1234,14 +959,9 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				completeSQL = sql + " where " + constraintHelper.column + " in (?)";
 			}
 			
-			runtimeParameter.preparedStatement = runtimeParameter.getPreparedStatementWithoutBatch(completeSQL);
+			runtimeParameter.preparedStatement = runtimeParameter.getPreparedStatement(completeSQL);
 			runtimeParameter.values = new Object[this.columns.size()];
-			
-			runtimeParameter.converterProperties.clear();
-			runtimeParameter.converterProperties.put(Connection.class.getCanonicalName(), runtimeParameter.connection);
-			runtimeParameter.converterProperties.put(PreparedStatement.class.getCanonicalName(), runtimeParameter.preparedStatement);
-			runtimeParameter.converterProperties.put(IRuntimeParameter.class.getCanonicalName(), runtimeParameter);
-			
+			runtimeParameter.convertEvent.setPreparedStatement(runtimeParameter.preparedStatement);
 			runtimeParameter.preparedStatement.setArray(1, runtimeParameter.connection.createArrayOf(constraintHelper.sqlType, runtimeParameter.searchValues));
 			
 			ResultSet resultSet = runtimeParameter.preparedStatement.executeQuery();
@@ -1305,8 +1025,6 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				resultSet.close();
 			}
 			
-			runtimeParameter.converterProperties.clear();
-			
 		}
 	}
 	
@@ -1316,30 +1034,9 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		public PreparedInsertStatementDefinition(INodeType nodeType) 
 		{
 			super();
-			this.nodeType = nodeType;
-			this.create();
-		}
-		
-		private void create()
-		{
-			BranchNodeMetaModel defaultInstance = (BranchNodeMetaModel)this.nodeType.getValueDefaultInstance();
+			this.tableNode = TypedTreeJDBCHelper.parseTableNode(nodeType);
 			
-			SQLTable table = (SQLTable)this.nodeType.getTypeClass().getAnnotation(SQLTable.class);
-			
-			// replaces by referenced field ???
-			
-			SQLReplace[] replaces = (SQLReplace[])this.nodeType.referencedByField().getAnnotationsByType(SQLReplace.class);
-			
-			for(SQLReplace replace : replaces)
-			{
-				for(SQLTable replacedTable : replace.table())
-				{
-					table = replacedTable;
-					break;
-				}
-			}
-			
-			if(table == null)
+			if(tableNode == null)
 			{ 
 				throw new RuntimeException("Annotation SQLTable not found in model " + nodeType.getTypeClass());
 			}
@@ -1351,38 +1048,22 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			
 			int cursorPosititon = 1;
 			
-			for(LeafNodeType leafNode : defaultInstance.getLeafNodeTypeList())
+			for(ColumnNode columnNode : tableNode.getColumnList())
 			{
-				SQLColumn sqlColumn = (SQLColumn)leafNode.referencedByField().getAnnotation(SQLColumn.class);
-				SQLPrimaryKey primaryKey = (SQLPrimaryKey)leafNode.referencedByField().getAnnotation(SQLPrimaryKey.class);
-				
-				for(SQLReplace replace : replaces)
-				{
-					if(! leafNode.getNodeName().equals(replace.nodeName()))
-					{
-						continue;
-					}
-					for(SQLColumn replacedColumn : replace.column())
-					{
-						
-						sqlColumn = replacedColumn;
-						break;
-					}
-				}
-				if(sqlColumn == null)
+				if(columnNode.getLeafNodeType() == null)
 				{
 					continue;
 				}
 				
-				if(! sqlColumn.insertable())
+				if(! columnNode.isInsertable())
 				{
 					continue;
 				}
 				
-				if((primaryKey != null) && (primaryKey.autoGenerated()))
+				if(columnNode.isPrimaryKey() && (columnNode.isPrimaryKeyAutoGenerated()))
 				{
 					BiConsumer<RuntimeParameter, PreparedLoadResultSetDefinition> nodeSetter = (r,d) -> {r.branchNode.get((LeafNodeType)r.type).setValue(r.staticValue);};
-					this.autoGeneratedRetrieve = new JDBCGetterDefinition(leafNode, sqlColumn, 1, nodeSetter);
+					this.autoGeneratedRetrieve = new JDBCGetterDefinition(columnNode, 1, nodeSetter);
 					
 					continue;
 				}
@@ -1396,162 +1077,27 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					sqlValues.append(",");
 				}
 				
-				sqlColumns.append(sqlColumn.name());
+				sqlColumns.append(columnNode.getColumnName());
 				sqlValues.append("?");
 				
-				this.columns.add(new JDBCSetterDefinition(leafNode, sqlColumn, cursorPosititon++, replaces));
+				this.columns.add(new JDBCSetterDefinition(columnNode, cursorPosititon++));
 			}
 			
-			for(BranchNodeType branchNode : defaultInstance.getBranchNodeTypeList())
+			for(ColumnNode columnNode : tableNode.getColumnList())
 			{
-				SQLColumn sqlColumn = (SQLColumn)branchNode.referencedByField().getAnnotation(SQLColumn.class);
-				SQLReferencedByColumn sqlRefrencedByColumn = (SQLReferencedByColumn)branchNode.referencedByField().getAnnotation(SQLReferencedByColumn.class);
-				for(SQLReplace replace : replaces)
-				{
-					if(! branchNode.getNodeName().equals(replace.nodeName()))
-					{
-						continue;
-					}
-					for(SQLColumn replacedColumn : replace.column())
-					{
-						
-						sqlColumn = replacedColumn;
-						break;
-					}
-					for(SQLReferencedByColumn replacedReferencedByColumn : replace.referencedByColumn())
-					{
-						
-						sqlRefrencedByColumn = replacedReferencedByColumn;
-						break;
-					}
-				}
-				
-				if((sqlColumn == null) || (sqlRefrencedByColumn != null))
+				if(columnNode.getBranchNodeType() == null)
 				{
 					continue;
 				}
 				
-				if(! sqlColumn.insertable())
+				if(! columnNode.isInsertable())
 				{
 					continue;
 				}
 				
-				JDBCSetterDefinition setColumnDefinition = null;
-				BranchNodeMetaModel childInstance = branchNode.getValueDefaultInstance();
-				for(LeafNodeType childLeafNode : childInstance.getLeafNodeTypeList())
-				{
-					SQLColumn sqlColumnChild = (SQLColumn)childLeafNode.referencedByField().getAnnotation(SQLColumn.class);
-					SQLPrimaryKey primaryKey = (SQLPrimaryKey)childLeafNode.referencedByField().getAnnotation(SQLPrimaryKey.class);
-					
-					for(SQLReplace replace : (SQLReplace[])branchNode.referencedByField().getAnnotationsByType(SQLReplace.class))
-					{
-						if(! childLeafNode.getNodeName().equals(replace.nodeName()))
-						{
-							continue;
-						}
-						for(SQLColumn replacedColumn : replace.column())
-						{
-							
-							sqlColumn = replacedColumn;
-							break;
-						}
-						for(SQLPrimaryKey replacedPrimaryKey : replace.primaryKey())
-						{
-							
-							primaryKey = replacedPrimaryKey;
-							break;
-						}
-					}
-					
-					if((sqlColumnChild == null) || (primaryKey == null))
-					{
-						continue;
-					}
-					setColumnDefinition = new JDBCSetterDefinition(childLeafNode, sqlColumn, cursorPosititon++, branchNode.referencedByField().getAnnotationsByType(SQLReplace.class));
-					setColumnDefinition.onUpsert = null;
-					setColumnDefinition.onInsert = null;
-					setColumnDefinition.generateId = null;
-					
-					break;
-					
-				}
 				
-				if(setColumnDefinition == null)
+				if(columnNode.getReferencedPrimaryKey() != null)
 				{
-					throw new RuntimeException("no primary key found in " + branchNode.getTypeClass().getCanonicalName());
-				}
-				
-				Class onInsertClass = sqlColumn.onInsert();
-				if(onInsertClass != SQLColumn.NoConsumer.class)
-				{
-					try
-					{
-						setColumnDefinition.onInsert= (BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>)onInsertClass.newInstance();
-					}
-					catch (Exception e) 
-					{
-						throw new RuntimeException(e);
-					}
-				}
-				
-				Class onUpsertClass = sqlColumn.onUpsert();
-				if(onUpsertClass != SQLColumn.NoConsumer.class)
-				{
-					try
-					{
-						setColumnDefinition.onUpsert = (BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>)onUpsertClass.newInstance();
-					}
-					catch (Exception e) 
-					{
-						throw new RuntimeException(e);
-					}
-				}
-				
-				setColumnDefinition.childType = branchNode;
-				
-				if(sqlColumns.length() > 0)
-				{
-					sqlColumns.append(",");
-				}
-				if(sqlValues.length() > 0)
-				{
-					sqlValues.append(",");
-				}
-				
-				sqlColumns.append(sqlColumn.name());
-				sqlValues.append("?");
-				
-				this.columns.add(setColumnDefinition);
-			}
-			
-			 // columns defined by Parent
-			
-			try
-			{
-				BranchNodeMetaModel defaultInstanceParent = (BranchNodeMetaModel)this.nodeType.getParentNodeClass().newInstance();
-				SQLReferencedByColumn referencedByColumn = this.nodeType.referencedByField().getAnnotation(SQLReferencedByColumn.class);
-				//SQLColumn sqlColumn = this.nodeType.referencedByField().getAnnotation(SQLColumn.class);
-				if(referencedByColumn != null)
-				{
-					LeafNodeType<BranchNodeMetaModel, ?>  leafNodePrimaryKeyParent = null;
-					SQLColumn sqlColumnPrimaryKeyParent = null;
-					for(LeafNodeType<BranchNodeMetaModel, ?>  childNodeType : defaultInstanceParent.getLeafNodeTypeList())
-					{
-						SQLColumn sqlColumnParent = childNodeType.referencedByField().getAnnotation(SQLColumn.class);
-						SQLPrimaryKey primaryKey = childNodeType.referencedByField().getAnnotation(SQLPrimaryKey.class);
-						if((primaryKey != null) && (sqlColumnParent != null))
-						{
-							leafNodePrimaryKeyParent = childNodeType;
-							sqlColumnPrimaryKeyParent = sqlColumnParent;
-						}
-					}
-					
-					JDBCSetterDefinition setColumnDefinition = new JDBCSetterDefinition(leafNodePrimaryKeyParent, sqlColumnPrimaryKeyParent, cursorPosititon++, null);
-					setColumnDefinition.onUpsert = null;
-					setColumnDefinition.onInsert = null;
-					setColumnDefinition.generateId = null;
-					setColumnDefinition.parentType = true;
-					
 					if(sqlColumns.length() > 0)
 					{
 						sqlColumns.append(",");
@@ -1561,32 +1107,48 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 						sqlValues.append(",");
 					}
 					
-					sqlColumns.append(referencedByColumn.name());
+					sqlColumns.append(columnNode.getColumnName());
 					sqlValues.append("?");
 					
-					this.columns.add(setColumnDefinition);
+					this.columns.add(new JDBCSetterDefinition(columnNode, cursorPosititon++));
 				}
+				
+				
 			}
-			catch (Exception e) 
+			
+			// column defined by Parent
+			
+			if(tableNode.getReferencedByColumnNode()  != null)
 			{
-				throw new RuntimeException(e);
+				JDBCSetterDefinition setColumnDefinition = new JDBCSetterDefinition(tableNode.getReferencedByColumnNode(), cursorPosititon++);
+				setColumnDefinition.parentType = true;
+				
+				if(sqlColumns.length() > 0)
+				{
+					sqlColumns.append(",");
+				}
+				if(sqlValues.length() > 0)
+				{
+					sqlValues.append(",");
+				}
+				
+				sqlColumns.append(tableNode.getReferencedByColumnNode().getColumnName());
+				sqlValues.append("?");
+				
+				this.columns.add(setColumnDefinition);
 			}
 			
-			this.sql = "insert into " + table.name() + " (" + sqlColumns + ") values (" + sqlValues + ")";
-			
+			this.sql = "insert into " + tableNode.getTableName() + " (" + sqlColumns + ") values (" + sqlValues + ")";
 		}
 		
-		private INodeType nodeType = null;
-		private BranchNodeMetaModel type = null;
-		private String domain = null;
-		private String boundedContext = null;
-		private String service = null;
+		
+		private TableNode tableNode = null;
 		private String sql = null;
 		private List<JDBCSetterDefinition> columns = null;
 		private JDBCGetterDefinition autoGeneratedRetrieve = null; 
 		
 		@SuppressWarnings({ "unchecked", "rawtypes" })
-		public void insertNode(RuntimeParameter runtimeParameter) throws SQLException
+		public void insertNode(RuntimeParameter runtimeParameter) throws SQLException, InstantiationException, IllegalAccessException
 		{
 			if(autoGeneratedRetrieve == null)
 			{
@@ -1594,36 +1156,43 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			}
 			else
 			{
-				runtimeParameter.preparedStatement = runtimeParameter.getPreparedStatement(this.sql,true); // TODO WithoutBatch
+				runtimeParameter.preparedStatement = runtimeParameter.getPreparedStatement(this.sql,true);
 			}
 			
-			runtimeParameter.converterProperties.clear();
-			runtimeParameter.converterProperties.put(Connection.class.getCanonicalName(), runtimeParameter.connection);
-			runtimeParameter.converterProperties.put(PreparedStatement.class.getCanonicalName(), runtimeParameter.preparedStatement);
-			runtimeParameter.converterProperties.put(IRuntimeParameter.class.getCanonicalName(), runtimeParameter);
+			runtimeParameter.convertEvent.setPreparedStatement(runtimeParameter.preparedStatement);
+			runtimeParameter.convertEvent.setPersistNode(runtimeParameter.branchNode);
 			
 			for(JDBCSetterDefinition column : this.columns)
 			{
 				try
 				{
-					runtimeParameter.converterProperties.put(BranchNode.class.getCanonicalName(), runtimeParameter.branchNode);
-					runtimeParameter.converterProperties.put("BRANCH_CHILD",column.childType);
-					runtimeParameter.converterProperties.put("LEAF_CHILD",column.type);
+					runtimeParameter.convertEvent.setColumnNode(column.columnNode);
 					
-					Node node = null;		// TriggerParameter
-					if(column.childType instanceof BranchNodeType)
+					// select nodes
+					
+					Node node = null;
+					if(column.branchNodeType != null)
 					{
-						node = runtimeParameter.branchNode.get((BranchNodeType)column.childType);// TODO force no autocreate
+						boolean backupAutocreate = runtimeParameter.branchNode.getRootNode().isBranchNodeGetterAutoCreate();
+						if(backupAutocreate)
+						{
+							runtimeParameter.branchNode.getRootNode().setBranchNodeGetterAutoCreate(false);
+						}
+						node = runtimeParameter.branchNode.get((BranchNodeType)column.branchNodeType);
 						runtimeParameter.workingBranchNode = (BranchNode)node;
+						if(backupAutocreate)
+						{
+							runtimeParameter.branchNode.getRootNode().setBranchNodeGetterAutoCreate(true);
+						}
 					}
 					else if(column.parentType)
 					{
 						node = runtimeParameter.branchNode.getParentNode();
 						runtimeParameter.workingBranchNode = (BranchNode)node;
 					}
-					else if(column.type instanceof LeafNodeType)
+					else if(column.leafNodeType != null)
 					{
-						node = runtimeParameter.branchNode.get((LeafNodeType)column.type);
+						node = runtimeParameter.branchNode.get((LeafNodeType)column.leafNodeType);
 						runtimeParameter.workingBranchNode = runtimeParameter.branchNode;
 					}
 					else
@@ -1631,30 +1200,32 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 						throw new RuntimeException("invalid nodetype settings");
 					}
 					
-					if(column.onInsert != null)
+					runtimeParameter.convertEvent.setNode(node);
+					
+					// trigger
+					
+					if(column.columnNode.getOnInsert() != null)
 					{
-						column.onInsert.accept(node, runtimeParameter.converterProperties);
+						column.columnNode.getOnInsertInstance().accept(runtimeParameter.convertEvent);
 						
-						if(column.childType instanceof BranchNodeType)
+						if(column.branchNodeType != null)
 						{
-							node = runtimeParameter.branchNode.get((BranchNodeType)column.childType);
+							node = runtimeParameter.branchNode.get((BranchNodeType)column.branchNodeType);
 							runtimeParameter.workingBranchNode = (BranchNode)node;
 						}
 					}
-					if(column.onUpsert != null)
+					if(column.columnNode.getOnUpsert() != null)
 					{
-						column.onUpsert.accept(node, runtimeParameter.converterProperties);
-						if(column.childType instanceof BranchNodeType)
+						column.columnNode.getOnUpsertInstance().accept(runtimeParameter.convertEvent);
+						if(column.branchNodeType != null)
 						{
-							node = runtimeParameter.branchNode.get((BranchNodeType)column.childType);
+							node = runtimeParameter.branchNode.get((BranchNodeType)column.branchNodeType);
 							runtimeParameter.workingBranchNode = (BranchNode)node;
 						}
 					}
 					
-					if(column.generateId != null)
-					{
-						column.generateId.accept(node, runtimeParameter.converterProperties);
-					}
+					// set parameter
+					
 					try
 					{
 						column.setter.acceptWithException(runtimeParameter);
@@ -1668,6 +1239,8 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 						throw new RuntimeException(e);
 					}
 					
+					runtimeParameter.convertEvent.setNode(null);
+					
 				}
 				finally 
 				{
@@ -1675,9 +1248,10 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				}
 			}
 			
-			runtimeParameter.converterProperties.clear();
-			
 			runtimeParameter.preparedStatement.executeUpdate();
+			
+			// get autogen key
+			
 			if(this.autoGeneratedRetrieve != null)
 			{
 				try
@@ -1737,11 +1311,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		
 		private void close()
 		{
-			this.nodeType = null;
-			this.type = null;
-			this.domain = null;
-			this.boundedContext = null;
-			this.service = null;
+			this.tableNode = null;
 			this.sql = null;
 			if(this.columns != null)
 			{
@@ -1758,19 +1328,12 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		public PreparedDeleteStatementDefinition(INodeType nodeType) 
 		{
 			super();
-			this.nodeType = nodeType;
-			this.create();
-		}
-		
-		private void create()
-		{
-			this.tableNode = NodeHelper.parseTableNode(this.nodeType);
-			this.sql = "DELETE FROM " + tableNode.getTableName() + " WHERE " + tableNode.getPrimaryKeyName() + " = ? ";
+			this.tableNode = TypedTreeJDBCHelper.parseTableNode(nodeType);
+			this.sql = "DELETE FROM " + tableNode.getTableName() + " WHERE " + tableNode.getPrimaryKeyNode().getColumnName() + " = ? ";
 			
 		}
 		
-		private INodeType nodeType = null;
-		private NodeHelper.TableNode tableNode = null;
+		private TypedTreeJDBCHelper.TableNode tableNode = null;
 		private BranchNodeMetaModel type = null;
 		private String sql = null;
 		
@@ -1779,17 +1342,17 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		{
 			runtimeParameter.preparedStatement = runtimeParameter.getPreparedStatement(this.sql);
 			
-			Object value = runtimeParameter.branchNode.getValue(tableNode.getPrimaryKeyLeafNode());
+			Object value = runtimeParameter.branchNode.getValue(tableNode.getPrimaryKeyNode().getLeafNodeType());
 			
-			if(tableNode.getPrimaryKeyLeafNode().getTypeClass() == String.class)
+			if(tableNode.getPrimaryKeyNode().getLeafNodeType().getTypeClass() == String.class)
 			{
 				runtimeParameter.preparedStatement.setString(1, (String)value);
 			}
-			if(tableNode.getPrimaryKeyLeafNode().getTypeClass() == UUID.class)
+			if(tableNode.getPrimaryKeyNode().getLeafNodeType().getTypeClass() == UUID.class)
 			{
 				runtimeParameter.preparedStatement.setString(1, ((UUID)value).toString());
 			}
-			if(tableNode.getPrimaryKeyLeafNode().getTypeClass() == Long.class)
+			if(tableNode.getPrimaryKeyNode().getLeafNodeType().getTypeClass() == Long.class)
 			{
 				runtimeParameter.preparedStatement.setLong(1, (Long)value);
 			}
@@ -1803,7 +1366,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		
 		private void close()
 		{
-			this.nodeType = null;
+			this.tableNode = null;
 			this.type = null;
 			this.sql = null;
 			this.tableNode = null;
@@ -1816,31 +1379,10 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		public PreparedUpdateStatementDefinition(INodeType nodeType) 
 		{
 			super();
-			this.nodeType = nodeType;
-			this.create();
-		}
-		
-		private void create()
-		{
-			BranchNodeMetaModel defaultInstance = (BranchNodeMetaModel)this.nodeType.getValueDefaultInstance();
+			TableNode tableNode = TypedTreeJDBCHelper.parseTableNode(nodeType, MASK.ALL);
 			
-			SQLTable table = (SQLTable)this.nodeType.getTypeClass().getAnnotation(SQLTable.class);
-			
-			// replaces by referenced field ???
-			
-			SQLReplace[] replaces = (SQLReplace[])this.nodeType.referencedByField().getAnnotationsByType(SQLReplace.class);
-			
-			for(SQLReplace replace : replaces)
+			if(tableNode == null)
 			{
-				for(SQLTable replacedTable : replace.table())
-				{
-					table = replacedTable;
-					break;
-				}
-			}
-			
-			if(table == null)
-			{ 
 				throw new RuntimeException("Annotation SQLTable not found in model " + nodeType.getTypeClass());
 			}
 			
@@ -1850,227 +1392,88 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			
 			int cursorPosititon = 1;
 			
-			LeafNodeType leafNodePrimaryKey = null;
-			SQLColumn sqlColumnPrimaryKey = null;
-			
-			for(LeafNodeType leafNode : defaultInstance.getLeafNodeTypeList())
+			if(tableNode.getPrimaryKeyNode() == null)
 			{
-				SQLColumn sqlColumn = leafNode.referencedByField().getAnnotation(SQLColumn.class);
-				SQLPrimaryKey sqlPrimaryKey = leafNode.referencedByField().getAnnotation(SQLPrimaryKey.class);
-				
-				for(SQLReplace replace : replaces)
-				{
-					if(! leafNode.getNodeName().equals(replace.nodeName()))
-					{
-						continue;
-					}
-					for(SQLColumn replacedColumn : replace.column())
-					{
-						
-						sqlColumn = replacedColumn;
-						break;
-					}
-				}
-				if(sqlColumn == null)
+				throw new RuntimeException("PrimaryKey not found in " + nodeType.getTypeClass());
+			}
+			
+			for(ColumnNode columnNode : tableNode.getColumnList())
+			{
+				if(columnNode.getLeafNodeType() == null)
 				{
 					continue;
 				}
 				
-				if(sqlPrimaryKey != null)
+				if(! columnNode.isUpdatable())
 				{
-					leafNodePrimaryKey = leafNode;
-					sqlColumnPrimaryKey = sqlColumn;
 					continue;
 				}
 				
-				if(! sqlColumn.updatable())
+				if(columnNode.isPrimaryKey())
 				{
 					continue;
 				}
 				
 				if(sqlColumns.length() > 0)
 				{
-					sqlColumns.append(" , ");
+					sqlColumns.append(",");
 				}
 				
-				sqlColumns.append(sqlColumn.name() + " = ? ");
+				sqlColumns.append(columnNode.getColumnName() + " = ? ");
 				
-				this.columns.add(new JDBCSetterDefinition(leafNode, sqlColumn, cursorPosititon++, replaces));
+				this.columns.add(new JDBCSetterDefinition(columnNode, cursorPosititon++));
 			}
 			
-			if(leafNodePrimaryKey == null)
+			for(ColumnNode columnNode : tableNode.getColumnList())
 			{
-				throw new RuntimeException("PrimaryKey not found in " + defaultInstance.getClass());
-			}
-			
-			for(BranchNodeType branchNode : defaultInstance.getBranchNodeTypeList())
-			{
-				SQLColumn sqlColumn = (SQLColumn)branchNode.referencedByField().getAnnotation(SQLColumn.class);
-				SQLReferencedByColumn sqlRefrencedByColumn = (SQLReferencedByColumn)branchNode.referencedByField().getAnnotation(SQLReferencedByColumn.class);
-				for(SQLReplace replace : replaces)
-				{
-					if(! branchNode.getNodeName().equals(replace.nodeName()))
-					{
-						continue;
-					}
-					for(SQLColumn replacedColumn : replace.column())
-					{
-						
-						sqlColumn = replacedColumn;
-						break;
-					}
-					for(SQLReferencedByColumn replacedReferencedByColumn : replace.referencedByColumn())
-					{
-						
-						sqlRefrencedByColumn = replacedReferencedByColumn;
-						break;
-					}
-				}
-				
-				if((sqlColumn == null) || (sqlRefrencedByColumn != null))
+				if(columnNode.getBranchNodeType() == null)
 				{
 					continue;
 				}
 				
-				if(! sqlColumn.updatable())
+				if(! columnNode.isUpdatable())
 				{
 					continue;
 				}
 				
-				JDBCSetterDefinition setColumnDefinition = null;
-				BranchNodeMetaModel childInstance = branchNode.getValueDefaultInstance();
-				for(LeafNodeType childLeafNode : childInstance.getLeafNodeTypeList())
+				
+				if(columnNode.getReferencedPrimaryKey() != null)
 				{
-					SQLColumn sqlColumnChild = (SQLColumn)childLeafNode.referencedByField().getAnnotation(SQLColumn.class);
-					SQLPrimaryKey primaryKey = (SQLPrimaryKey)childLeafNode.referencedByField().getAnnotation(SQLPrimaryKey.class);
-					
-					for(SQLReplace replace : (SQLReplace[])branchNode.referencedByField().getAnnotationsByType(SQLReplace.class))
+					if(sqlColumns.length() > 0)
 					{
-						if(! childLeafNode.getNodeName().equals(replace.nodeName()))
-						{
-							continue;
-						}
-						for(SQLColumn replacedColumn : replace.column())
-						{
+						sqlColumns.append(" , ");
+					}
+					
+					sqlColumns.append(columnNode.getColumnName() + " = ? ");
+					this.columns.add(new JDBCSetterDefinition(columnNode, cursorPosititon++));
+					
+				}
+				
+			}
+			
+			// columns defined by Parent
+			
+			if(tableNode.getReferencedByColumnNode()  != null)
+			{
+				JDBCSetterDefinition setColumnDefinition = new JDBCSetterDefinition(tableNode.getReferencedByColumnNode(), cursorPosititon++);
+				setColumnDefinition.parentType = true;
 							
-							sqlColumn = replacedColumn;
-							break;
-						}
-						for(SQLPrimaryKey replacedPrimaryKey : replace.primaryKey())
-						{
-							
-							primaryKey = replacedPrimaryKey;
-							break;
-						}
-					}
-					
-					if((sqlColumnChild == null) || (primaryKey == null))
-					{
-						continue;
-					}
-					setColumnDefinition = new JDBCSetterDefinition(childLeafNode, sqlColumn, cursorPosititon++, branchNode.referencedByField().getAnnotationsByType(SQLReplace.class));
-					setColumnDefinition.onUpsert = null;
-					setColumnDefinition.onInsert = null;
-					setColumnDefinition.generateId = null;
-					
-					break;
-					
-				}
-				
-				if(setColumnDefinition == null)
-				{
-					throw new RuntimeException("no primary key found in " + branchNode.getTypeClass().getCanonicalName());
-				}
-				
-				Class onInsertClass = sqlColumn.onInsert();
-				if(onInsertClass != SQLColumn.NoConsumer.class)
-				{
-					try
-					{
-						setColumnDefinition.onInsert= (BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>)onInsertClass.newInstance();
-					}
-					catch (Exception e) 
-					{
-						throw new RuntimeException(e);
-					}
-				}
-				
-				Class onUpsertClass = sqlColumn.onUpsert();
-				if(onUpsertClass != SQLColumn.NoConsumer.class)
-				{
-					try
-					{
-						setColumnDefinition.onUpsert = (BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>)onUpsertClass.newInstance();
-					}
-					catch (Exception e) 
-					{
-						throw new RuntimeException(e);
-					}
-				}
-				
-				setColumnDefinition.childType = branchNode;
-				
 				if(sqlColumns.length() > 0)
 				{
-					sqlColumns.append(" , ");
+					sqlColumns.append(",");
 				}
-				
-				sqlColumns.append(sqlColumn.name() + " = ? ");
-				
+				sqlColumns.append(tableNode.getReferencedByColumnNode().getColumnName() + " = ? ");
+					
 				this.columns.add(setColumnDefinition);
 			}
 			
-			 // columns defined by Parent
 			
-			try
-			{
-				BranchNodeMetaModel defaultInstanceParent = (BranchNodeMetaModel)this.nodeType.getParentNodeClass().newInstance();
-				SQLReferencedByColumn referencedByColumn = this.nodeType.referencedByField().getAnnotation(SQLReferencedByColumn.class);
-				//SQLColumn sqlColumn = this.nodeType.referencedByField().getAnnotation(SQLColumn.class);
-				if(referencedByColumn != null)
-				{
-					LeafNodeType<BranchNodeMetaModel, ?>  leafNodePrimaryKeyParent = null;
-					SQLColumn sqlColumnPrimaryKeyParent = null;
-					for(LeafNodeType<BranchNodeMetaModel, ?>  childNodeType : defaultInstanceParent.getLeafNodeTypeList())
-					{
-						SQLColumn sqlColumnParent = childNodeType.referencedByField().getAnnotation(SQLColumn.class);
-						SQLPrimaryKey primaryKey = childNodeType.referencedByField().getAnnotation(SQLPrimaryKey.class);
-						if((primaryKey != null) && (sqlColumnParent != null))
-						{
-							leafNodePrimaryKeyParent = childNodeType;
-							sqlColumnPrimaryKeyParent = sqlColumnParent;
-						}
-					}
-					
-					JDBCSetterDefinition setColumnDefinition = new JDBCSetterDefinition(leafNodePrimaryKeyParent, sqlColumnPrimaryKeyParent, cursorPosititon++, null);
-					setColumnDefinition.onUpsert = null;
-					setColumnDefinition.onInsert = null;
-					setColumnDefinition.generateId = null;
-					setColumnDefinition.parentType = true;
-					
-					if(sqlColumns.length() > 0)
-					{
-						sqlColumns.append("  ,  ");
-					}
-					
-					sqlColumns.append(referencedByColumn.name() + " = ? ");
-					
-					this.columns.add(setColumnDefinition);
-				}
-			}
-			catch (Exception e) 
-			{
-				throw new RuntimeException(e);
-			}
+			this.columns.add(new JDBCSetterDefinition(tableNode.getPrimaryKeyNode(), cursorPosititon++));
 			
-			
-			this.columns.add(new JDBCSetterDefinition(leafNodePrimaryKey, sqlColumnPrimaryKey, cursorPosititon++, null));
-			
-			this.sql = "update " + table.name() + " set " + sqlColumns +  " where " + sqlColumnPrimaryKey.name() + " = ? ";
-			
+			this.sql = "update " + tableNode.getTableName() + " set " + sqlColumns +  " where " + tableNode.getPrimaryKeyNode().getColumnName() + " = ? ";
 		}
 		
-		private INodeType nodeType = null;
+		private TableNode tableNode = null;
 		private BranchNodeMetaModel type = null;
 		private String domain = null;
 		private String boundedContext = null;
@@ -2079,37 +1482,42 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		private List<JDBCSetterDefinition> columns = null;
 		
 		@SuppressWarnings({ "unchecked", "rawtypes" })
-		public void updateNode(RuntimeParameter runtimeParameter) throws SQLException
+		public void updateNode(RuntimeParameter runtimeParameter) throws SQLException, InstantiationException, IllegalAccessException
 		{
 			runtimeParameter.preparedStatement = runtimeParameter.getPreparedStatement(this.sql);
 			
-			runtimeParameter.converterProperties.clear();
-			runtimeParameter.converterProperties.put(Connection.class.getCanonicalName(), runtimeParameter.connection);
-			runtimeParameter.converterProperties.put(PreparedStatement.class.getCanonicalName(), runtimeParameter.preparedStatement);
-			runtimeParameter.converterProperties.put(IRuntimeParameter.class.getCanonicalName(), runtimeParameter);
+			runtimeParameter.convertEvent.setPreparedStatement(runtimeParameter.preparedStatement);
+			runtimeParameter.convertEvent.setPersistNode(runtimeParameter.branchNode);
 			
 			for(JDBCSetterDefinition column : this.columns)
 			{
 				try
 				{
-					runtimeParameter.converterProperties.put(BranchNode.class.getCanonicalName(), runtimeParameter.branchNode);
-					runtimeParameter.converterProperties.put("BRANCH_CHILD",column.childType);
-					runtimeParameter.converterProperties.put("LEAF_CHILD",column.type);
+					runtimeParameter.convertEvent.setColumnNode(column.columnNode);
 					
 					Node node = null;		// TriggerParameter
-					if(column.childType instanceof BranchNodeType)
+					if(column.branchNodeType != null)
 					{
-						node = runtimeParameter.branchNode.get((BranchNodeType)column.childType);// TODO force no autocreate
+						boolean backupAutocreate = runtimeParameter.branchNode.getRootNode().isBranchNodeGetterAutoCreate();
+						if(backupAutocreate)
+						{
+							runtimeParameter.branchNode.getRootNode().setBranchNodeGetterAutoCreate(false);
+						}
+						node = runtimeParameter.branchNode.get((BranchNodeType)column.branchNodeType);
 						runtimeParameter.workingBranchNode = (BranchNode)node;
+						if(backupAutocreate)
+						{
+							runtimeParameter.branchNode.getRootNode().setBranchNodeGetterAutoCreate(true);
+						}
 					}
 					else if(column.parentType)
 					{
 						node = runtimeParameter.branchNode.getParentNode();
 						runtimeParameter.workingBranchNode = (BranchNode)node;
 					}
-					else if(column.type instanceof LeafNodeType)
+					else if(column.leafNodeType != null)
 					{
-						node = runtimeParameter.branchNode.get((LeafNodeType)column.type);
+						node = runtimeParameter.branchNode.get((LeafNodeType)column.leafNodeType);
 						runtimeParameter.workingBranchNode = runtimeParameter.branchNode;
 					}
 					else
@@ -2117,13 +1525,25 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 						throw new RuntimeException("invalid nodetype settings");
 					}
 					
+					runtimeParameter.convertEvent.setNode(node);
 					
-					if(column.onUpsert != null)
+					
+					if(column.columnNode.getOnUpdate() != null)
 					{
-						column.onUpsert.accept(node, runtimeParameter.converterProperties);
-						if(column.childType instanceof BranchNodeType)
+						column.columnNode.getOnUpdateInstance().accept(runtimeParameter.convertEvent);
+						if(column.branchNodeType != null)
 						{
-							node = runtimeParameter.branchNode.get((BranchNodeType)column.childType);
+							node = runtimeParameter.branchNode.get((BranchNodeType)column.branchNodeType);
+							runtimeParameter.workingBranchNode = (BranchNode)node;
+						}
+					}
+					
+					if(column.columnNode.getOnUpsert() != null)
+					{
+						column.columnNode.getOnUpsertInstance().accept(runtimeParameter.convertEvent);
+						if(column.branchNodeType != null)
+						{
+							node = runtimeParameter.branchNode.get((BranchNodeType)column.branchNodeType);
 							runtimeParameter.workingBranchNode = (BranchNode)node;
 						}
 					}
@@ -2139,6 +1559,8 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					{
 						throw new RuntimeException(e);
 					}
+					
+					runtimeParameter.convertEvent.setNode(null);
 				}
 				finally 
 				{
@@ -2146,14 +1568,12 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				}
 			}
 			
-			runtimeParameter.converterProperties.clear();
-			
 			runtimeParameter.preparedStatement.executeUpdate();
 		}
 		
 		private void close()
 		{
-			this.nodeType = null;
+			this.tableNode = null;
 			this.type = null;
 			this.domain = null;
 			this.boundedContext = null;
@@ -2173,64 +1593,16 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		public CheckPersistableIsNewDefinition(INodeType nodeType)
 		{
 			super();
-			this.nodeType = nodeType;
 			this.checks = new ArrayList<ExceptionConsumer<RuntimeParameter>>();
-			this.create();
+			TableNode tableNode = TypedTreeJDBCHelper.parseTableNode(nodeType, MASK.PK_COLUMN);
+			if(tableNode == null)
+			{ 
+				throw new RuntimeException("Annotation SQLTable not found in model " + nodeType.getTypeClass());
+			}
+			checks.add(new CheckPKLeafNode(tableNode.getPrimaryKeyNode()));
 		}
 		
-		private INodeType nodeType = null;
 		private List<ExceptionConsumer<RuntimeParameter>> checks = null;
-		 
-		private void create()
-		{
-			BranchNodeMetaModel defaultInstance = (BranchNodeMetaModel)this.nodeType.getValueDefaultInstance();
-			SQLTable table = (SQLTable)this.nodeType.getTypeClass().getAnnotation(SQLTable.class);
-			SQLReplace[] replaces = (SQLReplace[])this.nodeType.referencedByField().getAnnotationsByType(SQLReplace.class);
-			for(SQLReplace replace : replaces)
-			{
-				for(SQLTable replacedTable : replace.table())
-				{
-					table = replacedTable;
-					break;
-				}
-			}
-			
-			for(LeafNodeType leafNodeType : defaultInstance.getLeafNodeTypeList())
-			{
-				SQLColumn sqlColumn = (SQLColumn)leafNodeType.referencedByField().getAnnotation(SQLColumn.class);
-				SQLPrimaryKey sqlPrimaryKey = (SQLPrimaryKey)leafNodeType.referencedByField().getAnnotation(SQLPrimaryKey.class);
-				
-				for(SQLReplace replace : replaces)
-				{
-					if(! leafNodeType.getNodeName().equals(replace.nodeName()))
-					{
-						continue;
-					}
-					for(SQLColumn replacedColumn : replace.column())
-					{
-						sqlColumn = replacedColumn;
-						break;
-					}
-					for(SQLPrimaryKey replacedPrimaryKey : replace.primaryKey())
-					{
-						sqlPrimaryKey = replacedPrimaryKey;
-						break;
-					}
-				}
-				
-				if(sqlPrimaryKey == null)
-				{
-					continue;
-				}
-				
-				if(sqlColumn == null)
-				{
-					throw new RuntimeException("No annotation SQLColumn found for primary key " + leafNodeType.referencedByField());
-				}
-				
-				checks.add(new CheckPKLeafNode(nodeType, leafNodeType,table, sqlColumn, sqlPrimaryKey));
-			}
-		}
 		
 		private boolean checkIsNew(RuntimeParameter runtimeParameter)
 		{
@@ -2273,25 +1645,24 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				checks.clear();
 			}
 			checks = null;
-			nodeType = null;
 		}
 		
 		private class CheckPKLeafNode implements ExceptionConsumer<RuntimeParameter>, AutoCloseable
 		{
 			private JDBCSetterDefinition columnDefinition = null;
-			private LeafNodeType leafNodeType = null;
+			private ColumnNode columnNode = null;
 			
-			private CheckPKLeafNode(INodeType nodeType,LeafNodeType leafNodeType,SQLTable sqlTable, SQLColumn sqlColumn,SQLPrimaryKey sqlPrimaryKey)
+			private CheckPKLeafNode(ColumnNode columnNode)
 			{
 				super();
-				this.columnDefinition = new JDBCSetterDefinition(leafNodeType,sqlColumn, -1, null);
-				this.leafNodeType = leafNodeType;
+				this.columnDefinition = new JDBCSetterDefinition(columnNode, -1);
+				this.columnNode = columnNode;
 			}
 
 			@Override
 			public void acceptWithException(RuntimeParameter runtimeParameter) 
 			{
-				LeafNode<BranchNodeMetaModel, ?> leafNode = runtimeParameter.branchNode.get(leafNodeType);
+				LeafNode<BranchNodeMetaModel, ?> leafNode = runtimeParameter.branchNode.get(columnNode.getLeafNodeType());
 				if(leafNode.getValue() == null)
 				{
 					runtimeParameter.isNew.setValue(true);
@@ -2307,121 +1678,29 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			public void close() throws Exception
 			{
 				this.columnDefinition = null;
-				this.leafNodeType = null;
+				this.columnNode = null;
 			}
 		}
 	}
 	
 	public class JDBCSetterDefinition
 	{
-		public JDBCSetterDefinition(LeafNodeType childNodeType, SQLColumn sqlColumn, int cursorPosition, SQLReplace[] replacesByParent)
+		public JDBCSetterDefinition(ColumnNode columnNode, int cursorPosition)
 		{
 			super();
 			this.cursorPosition = cursorPosition;
-			this.type = childNodeType;
-			
-			SQLColumnType type = sqlColumn.type();
-			SQLPrimaryKey primaryKey = (SQLPrimaryKey)this.type.referencedByField().getAnnotation(SQLPrimaryKey.class);
-			
-			if(replacesByParent != null)
+			this.columnNode = columnNode;
+			if(columnNode.getReferencedPrimaryKey() != null)
 			{
-				if(primaryKey != null)
-				{
-					for(SQLReplace replace : replacesByParent)
-					{
-						if(! "".equals(replace.nodeName()))
-						{
-							continue;
-						}
-						for(SQLPrimaryKey replacedPrimaryKey : replace.primaryKey())
-						{
-							
-							primaryKey = replacedPrimaryKey;
-							break;
-						}
-					
-					}
-				}
-				for(SQLReplace replace : replacesByParent)
-				{
-					if(! this.type.getNodeName().equals(replace.nodeName()))
-					{
-						continue;
-					}
-					for(SQLPrimaryKey replacedPrimaryKey : replace.primaryKey())
-					{
-						primaryKey = replacedPrimaryKey;
-						break;
-					}
-				}
+				this.leafNodeType = columnNode.getReferencedPrimaryKey().getLeafNodeType();
+				this.branchNodeType = columnNode.getBranchNodeType();
+			}
+			else
+			{
+				this.leafNodeType = columnNode.getLeafNodeType();
 			}
 			
-			
-			if(type == SQLColumnType.AUTO)
-			{
-				if(childNodeType.getTypeClass() == Boolean.class)
-				{
-					type = SQLColumnType.BOOLEAN;
-				}
-				else if(childNodeType.getTypeClass() == Integer.class)
-				{
-					type = SQLColumnType.INTEGER;
-				}
-				else if(childNodeType.getTypeClass() == Long.class)
-				{
-					type = SQLColumnType.BIGINT;
-				}
-				else if(childNodeType.getTypeClass() == Float.class)
-				{
-					type = SQLColumnType.REAL;
-				}
-				else if(childNodeType.getTypeClass() == Double.class)
-				{
-					type = SQLColumnType.DOUBLE;
-				}
-				else if(childNodeType.getTypeClass() == Date.class)
-				{
-					type = SQLColumnType.TIMESTAMP;
-				}
-				else
-				{
-					type = SQLColumnType.VARCHAR;
-				}
-				
-			}
-			Class converterClass = sqlColumn.nodeValue2JDBC();
-			if(converterClass == SQLColumn.NoNode2JDBC.class)
-			{
-				converterClass = null;
-			}
-			
-			Class onInsertClass = sqlColumn.onInsert();
-			if(onInsertClass != SQLColumn.NoConsumer.class)
-			{
-				try
-				{
-					this.onInsert = (BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>)onInsertClass.newInstance();
-				}
-				catch (Exception e) 
-				{
-					throw new RuntimeException(e);
-				}
-			}
-			
-			Class onUpsertClass = sqlColumn.onUpsert();
-			if(onUpsertClass != SQLColumn.NoConsumer.class)
-			{
-				try
-				{
-					this.onUpsert = (BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>)onUpsertClass.newInstance();
-				}
-				catch (Exception e) 
-				{
-					throw new RuntimeException(e);
-				}
-			}
-			
-			// TODO onUpdate
+			SQLColumnType type = columnNode.getSqlType();
 			
 			if((type == SQLColumnType.BOOLEAN))
 			{
@@ -2459,51 +1738,25 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			{
 				this.setter = new LeafNodeStringJDBCSetter();
 			}
-			
-			if(primaryKey != null)
-			{
-				if (this.type.getTypeClass() == UUID.class)
-				{
-					this.generateId = new PrimaryKeyByNewUUID();
-				}
-			}
-			
-			if(converterClass != null)
-			 {
-				 try
-				 {
-					 this.converter = (Function)converterClass.newInstance();
-				 }
-				 catch (Exception e) 
-				 {
-					throw new RuntimeException(e);
-				}
-			 }
 		}
 		
-		private LeafNodeType<? extends BranchNodeMetaModel,?> type;
-		private BranchNodeType<? extends BranchNodeMetaModel,?> childType = null;
+		private ColumnNode columnNode = null;
+		private LeafNodeType<? extends BranchNodeMetaModel,?> leafNodeType;
+		private BranchNodeType<? extends BranchNodeMetaModel,?> branchNodeType = null;
 		private boolean parentType = false;
 		private int cursorPosition;
-		private Function<Object, Object> converter = null;
 		private ExceptionConsumer<RuntimeParameter> setter = null;
 		private AssociationType associationType = null;
-		private BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>> onUpsert = null;
-		private BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>> onInsert = null;
-		private BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>> generateId = null;
 		
 		public INodeType<? extends BranchNodeMetaModel, ?> getType() 
 		{
-			return type;
+			return leafNodeType;
 		}
 		public int getCursorPosition() 
 		{
 			return cursorPosition;
 		}
-		public Function<?, ?> getConverter() 
-		{
-			return converter;
-		}
+		
 		public AssociationType getAssociationType() 
 		{
 			return associationType;
@@ -2512,18 +1765,18 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		private abstract class LeafNodeJDBCSetter implements ExceptionConsumer<RuntimeParameter>
 		{
 			@Override
-			public void acceptWithException(RuntimeParameter runtimeParameter) throws SQLException
+			public void acceptWithException(RuntimeParameter runtimeParameter) throws SQLException, InstantiationException, IllegalAccessException
 			{
 				Object value = null;
-				if(converter != null)
+				if(columnNode.getNode2JDBC() != null)
 				{
 					if(runtimeParameter.workingBranchNode == null)
 					{
-						value = converter.apply(null);
+						value = columnNode.getNode2JDBCInstance().apply(null);
 					}
 					else
 					{
-						value = converter.apply(runtimeParameter.workingBranchNode.getValue((LeafNodeType)JDBCSetterDefinition.this.type));
+						value = columnNode.getNode2JDBCInstance().apply(runtimeParameter.workingBranchNode.getValue((LeafNodeType)JDBCSetterDefinition.this.leafNodeType));
 					}
 				}
 				else
@@ -2535,7 +1788,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					}
 					else
 					{
-						value = runtimeParameter.workingBranchNode.getValue((LeafNodeType)JDBCSetterDefinition.this.type);
+						value = runtimeParameter.workingBranchNode.getValue((LeafNodeType)JDBCSetterDefinition.this.leafNodeType);
 					}
 				}
 				
@@ -2581,6 +1834,15 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				{
 					runtimeParameter.preparedStatement.setBoolean(JDBCSetterDefinition.this.cursorPosition, (Boolean) value);
 				}
+			}
+		}
+		
+		private class LeafNodeUUIDJDBCSetter extends LeafNodeJDBCSetter
+		{
+			@Override
+			public void setValue(RuntimeParameter runtimeParameter, Object value) throws SQLException
+			{
+				runtimeParameter.preparedStatement.setObject(JDBCSetterDefinition.this.cursorPosition, (UUID) value);
 			}
 		}
 		
@@ -2698,62 +1960,27 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		
 		public void close()
 		{
-			this.type = null;
-			this.childType = null;
+			this.leafNodeType = null;
+			this.columnNode = null;
+			this.branchNodeType = null;
 			this.parentType = false;
-			this.converter = null;
 			this.setter = null;
 			this.associationType = null;
-			this.onUpsert = null;
-			this.onInsert = null;
-			this.generateId = null;
 		}
 	}
 	
 	public class JDBCGetterDefinition
 	{
-		public JDBCGetterDefinition(LeafNodeType childNodeType, SQLColumn sqlColumn, int cursorPosition,  BiConsumer<RuntimeParameter, PreparedLoadResultSetDefinition> nodeSetter)
+		public JDBCGetterDefinition(ColumnNode columnNode, int cursorPosition,  BiConsumer<RuntimeParameter, PreparedLoadResultSetDefinition> nodeSetter)
 		{
 			super();
 			this.cursorPosition = cursorPosition;
-			this.type = childNodeType;
+			this.type = columnNode.getLeafNodeType();
 			this.nodeSetter = nodeSetter;
 			
-			SQLColumnType type = sqlColumn.type();
+			SQLColumnType type = columnNode.getSqlType();
 			
-			if(type == SQLColumnType.AUTO)
-			{
-				if(childNodeType.getTypeClass() == Boolean.class)
-				{
-					type = SQLColumnType.BOOLEAN;
-				}
-				else if(childNodeType.getTypeClass() == Integer.class)
-				{
-					type = SQLColumnType.INTEGER;
-				}
-				else if(childNodeType.getTypeClass() == Long.class)
-				{
-					type = SQLColumnType.BIGINT;
-				}
-				else if(childNodeType.getTypeClass() == Float.class)
-				{
-					type = SQLColumnType.REAL;
-				}
-				else if(childNodeType.getTypeClass() == Double.class)
-				{
-					type = SQLColumnType.DOUBLE;
-				}
-				else if(childNodeType.getTypeClass() == Date.class)
-				{
-					type = SQLColumnType.TIMESTAMP;
-				}
-				else
-				{
-					type = SQLColumnType.VARCHAR;
-				}
-				
-			}
-			Class converterClass = sqlColumn.JDBC2NodeValue();
+			Class converterClass = columnNode.getJDBC2Node();
 			if(converterClass == SQLColumn.NoJDBC2Node.class)
 			{
 				converterClass = null;
@@ -2762,6 +1989,10 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			if((type == SQLColumnType.BOOLEAN))
 			{
 				this.getter = new LeafNodeBooleanJDBCGetter(); 
+			}
+			else if((type == SQLColumnType.UUID))
+			{
+				this.getter = new LeafNodeUUIDJDBCGetter(); 
 			}
 			else if((type == SQLColumnType.INTEGER))
 			{
@@ -2881,6 +2112,16 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			}
 		}
 		
+		private class LeafNodeUUIDJDBCGetter extends LeafNodeJDBCGetter
+		{
+			@Override
+			public Object getValue(RuntimeParameter runtimeParameter) throws SQLException
+			{
+				UUID value = (UUID)runtimeParameter.getResultSet().getObject(JDBCGetterDefinition.this.cursorPosition);
+				return runtimeParameter.getResultSet().wasNull() ? null : value;
+			}
+		}
+		
 		private class LeafNodeIntegerJDBCGetter extends LeafNodeJDBCGetter
 		{
 			@Override
@@ -2952,22 +2193,6 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		}
 	}
 	
-	private class PrimaryKeyByNewUUID implements BiConsumer<Node<? extends BranchNodeMetaModel,?>, Map<String,?>>
-	{
-		@Override
-		public void accept(Node<? extends BranchNodeMetaModel, ?> node, Map<String, ?> properties) 
-		{
-			if(node.getNodeType().getTypeClass() == UUID.class)
-			{
-				((LeafNode)node).setValue(UUID.randomUUID());
-			}
-			else
-			{
-				((LeafNode)node).setValue(UUID.randomUUID().toString());
-			}
-		}
-	}
-	
 	public interface IRuntimeParameter
 	{
 		public default PreparedStatement getPreparedStatement(String sql)throws SQLException
@@ -2975,8 +2200,6 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			return getPreparedStatement(sql, false);
 		}
 		public PreparedStatement getPreparedStatement(String sql, boolean returnGeneratedKey)throws SQLException;
-		public PreparedStatement getPreparedStatementWithoutBatch(String sql) throws SQLException;
-		//public ResultSet getResultSet();
 	}
 	
 	private <P extends TypedTreeMetaModel,T extends BranchNodeMetaModel> Function<Object[],Collection<RootBranchNode<P,T>>> getRootNodeFactory(BranchNodeType<P,T> nodeType)
@@ -3000,6 +2223,94 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		finally 
 		{
 			lock.unlock();
+		}
+	}
+	
+	public static class ConvertEvent
+	{
+		protected BranchNode persistNode = null;
+		protected Node node = null;
+		protected ColumnNode columnNode;
+		
+		protected IDBSchemaUtilsDriver schemaUtilDriver = null;
+		protected Connection connection = null;
+		protected PreparedStatement preparedStatement = null;
+		protected IRuntimeParameter  runtimeParameter = null;
+		
+		public BranchNode getPersistNode()
+		{
+			return persistNode;
+		}
+		public Node getNode()
+		{
+			return node;
+		}
+		public IDBSchemaUtilsDriver getSchemaUtilDriver()
+		{
+			return schemaUtilDriver;
+		}
+		public Connection getConnection()
+		{
+			return connection;
+		}
+		public PreparedStatement getPreparedStatement()
+		{
+			return preparedStatement;
+		}
+		public IRuntimeParameter getRuntimeParameter()
+		{
+			return runtimeParameter;
+		}
+		public ColumnNode getColumnNode()
+		{
+			return columnNode;
+		}
+
+		protected static class ConvertEventProvider extends ConvertEvent
+		{
+			protected ConvertEventProvider()
+			{
+				super();
+			}
+			public void setPersistNode(BranchNode persistNode)
+			{
+				super.persistNode = persistNode;
+			}
+			public void setNode(Node node)
+			{
+				super.node = node;
+			}
+			public void setSchemaUtilDriver(IDBSchemaUtilsDriver schemaUtilDriver)
+			{
+				super.schemaUtilDriver = schemaUtilDriver;
+			}
+			public void setConnection(Connection connection)
+			{
+				super.connection = connection;
+			}
+			public void setPreparedStatement(PreparedStatement preparedStatement)
+			{
+				super.preparedStatement = preparedStatement;
+			}
+			public void setRuntimeParameter(IRuntimeParameter runtimeParameter)
+			{
+				super.runtimeParameter = runtimeParameter;
+			}
+			public void setColumnNode(ColumnNode columnNode)
+			{
+				super.columnNode = columnNode;
+			}
+			
+			protected void clear()
+			{
+				super.persistNode = null;
+				super.node = null;
+				super.columnNode = null;
+				super.schemaUtilDriver = null;
+				super.connection = null;
+				super.preparedStatement = null;
+				super.runtimeParameter = null;
+			}
 		}
 	}
 

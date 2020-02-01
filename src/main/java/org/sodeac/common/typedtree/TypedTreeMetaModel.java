@@ -13,12 +13,14 @@ package org.sodeac.common.typedtree;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.sodeac.common.function.ConplierBean;
+import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 /**
  * A typed tree meta model defines all root nodes (trees) of this model.
  * 
@@ -58,8 +60,33 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 	 */
 	public <F extends BranchNodeMetaModel> RootBranchNode<T,F> createRootNode(BranchNodeType<T,F> type)
 	{
-		// TODO validate type
 		return new RootBranchNode(type,getClass());
+	}
+	
+	public <F extends BranchNodeMetaModel> RootBranchNode<T,F> createRootNode(Class<F> clazz)
+	{
+		TypedTreeModel typedTreeModel = clazz.getAnnotation(TypedTreeModel.class);
+		Objects.toString(typedTreeModel, "@TypedTreeModel not defined for " + clazz);
+		if(typedTreeModel.modelClass() != getClass())
+		{
+			throw new IllegalStateException( clazz + " not type of model " + getClass().getCanonicalName());
+		}
+		
+		BranchNodeMetaModel defaultModelInstance = ModelRegistry.getBranchNodeMetaModel(clazz);
+		
+		if(defaultModelInstance.anonymous == null)
+		{
+			try
+			{
+				defaultModelInstance.anonymous = new BranchNodeType<>(getClass(), clazz, BranchNodeMetaModel.class.getDeclaredField("anonymous"));
+			} 
+			catch (NoSuchFieldException | SecurityException e)
+			{
+				throw new RuntimeException(e);
+			} 
+		}
+		
+		return new RootBranchNode(defaultModelInstance.anonymous,getClass());
 	}
 	
 

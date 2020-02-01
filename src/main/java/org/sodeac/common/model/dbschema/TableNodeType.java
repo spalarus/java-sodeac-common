@@ -140,7 +140,7 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(SequenceNodeType.name, sequenceName)
 			.setValue(SequenceNodeType.min, 1L)
 			.setValue(SequenceNodeType.max, Long.MAX_VALUE)
-			.setValue(SequenceNodeType.cycle, true);
+			.setValue(SequenceNodeType.cycle, false);
 		
 		return column;
 	}

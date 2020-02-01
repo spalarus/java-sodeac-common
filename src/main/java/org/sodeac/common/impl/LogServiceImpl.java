@@ -28,7 +28,6 @@ import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sodeac.common.ILogService;
-import org.sodeac.common.ILogService.ILogEventBuilder;
 import org.sodeac.common.function.ExceptionConsumer;
 import org.sodeac.common.jdbc.DBSchemaUtils;
 import org.sodeac.common.jdbc.ParseDBSchemaHandler;
@@ -561,7 +560,7 @@ public class LogServiceImpl implements ILogService
 			try
 			{
 				ParseDBSchemaHandler parseDBSchemaHandler = new ParseDBSchemaHandler("Logging");
-				ModelRegistry.parse(LogEventNodeType.class, parseDBSchemaHandler);
+				ModelRegistry.parse(LoggingTreeModel.class, parseDBSchemaHandler);
 				RootBranchNode<?, DBSchemaNodeType> schemaSpec = parseDBSchemaHandler.fillSchemaSpec(); 
 				schemaSpec.setValue(DBSchemaNodeType.logUpdates, false);
 				
