@@ -19,6 +19,7 @@ import org.junit.runners.MethodSorters;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.sodeac.common.jdbc.DBSchemaUtils;
+import org.sodeac.common.jdbc.Statics;
 import org.sodeac.common.jdbc.TestConnection;
 import org.sodeac.common.model.dbschema.DBSchemaNodeType;
 import org.sodeac.common.model.dbschema.DBSchemaTreeModel;
@@ -61,7 +62,7 @@ public class ColumnTypeBinaryTest
     	{
     		return connectionList;
     	}
-    	return connectionList = Statics.connections(createdSchema);
+    	return connectionList = Statics.connections(createdSchema,"dbschema");
     }
 	
 	public ColumnTypeBinaryTest(Callable<TestConnection> connectionFactory)

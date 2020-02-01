@@ -68,8 +68,6 @@ public class LogServiceImpl implements ILogService
 		this.xmlMarshaller = ModelRegistry.getTypedTreeMetaModel(CoreTreeModel.class).getXMLMarshaller();
 	}
 	
-	private AtomicLong sequencer = new AtomicLong();
-	
 	public LogServiceImpl addLoggerBackend(Consumer<BranchNode<?,LogEventNodeType>> logger)
 	{
 		if(! backendList.contains(logger))
@@ -388,7 +386,6 @@ public class LogServiceImpl implements ILogService
 				.setValue(LogEventNodeType.module, module)
 				.setValue(LogEventNodeType.createClientURI, source)
 				.setValue(LogEventNodeType.format, format)
-				.setValue(LogEventNodeType.sequence, LogServiceImpl.this.sequencer.getAndIncrement())
 				.setValue(LogEventNodeType.timestamp, now)
 				.setValue(LogEventNodeType.date, cal.getTime())
 				.setValue(LogEventNodeType.time, now);
@@ -402,7 +399,7 @@ public class LogServiceImpl implements ILogService
 						.setValue(LogPropertyNodeType.type, propertyBuilder.type.name())
 						.setValue(LogPropertyNodeType.domain, propertyBuilder.domain)
 						.setValue(LogPropertyNodeType.module, propertyBuilder.module)
-						.setValue(LogPropertyNodeType.key, propertyBuilder.key)
+						.setValue(LogPropertyNodeType.key, propertyBuilder.key == null ? "" : propertyBuilder.key)
 						.setValue(LogPropertyNodeType.format, propertyBuilder.format)
 						.setValue(LogPropertyNodeType.value, propertyBuilder.value);
 					

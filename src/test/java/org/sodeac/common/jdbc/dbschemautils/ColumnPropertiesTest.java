@@ -22,6 +22,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.sodeac.common.jdbc.DBSchemaUtils;
 import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
+import org.sodeac.common.jdbc.Statics;
 import org.sodeac.common.jdbc.TestConnection;
 import org.sodeac.common.jdbc.schemax.IDefaultStaticValue;
 import org.sodeac.common.jdbc.DBSchemaUtils.ActionType;
@@ -75,7 +76,7 @@ public class ColumnPropertiesTest
     	{
     		return connectionList;
     	}
-    	return connectionList = Statics.connections(createdSchema);
+    	return connectionList = Statics.connections(createdSchema,"dbschema");
     }
 	
 	public ColumnPropertiesTest(Callable<TestConnection> connectionFactory)

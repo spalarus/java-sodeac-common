@@ -26,7 +26,7 @@ public class Statics
 	
 	// TODO mvn -DmyVariable=someValue for DB Config
 	
-	public static List<Object[]> connections(Map<String,Boolean> createdSchema)
+	public static List<Object[]> connections(Map<String,Boolean> createdSchema, String dbName)
     {
 		final String schemaName = "S_" + TestTools.getSchemaName();
     	return Arrays.asList
@@ -50,7 +50,7 @@ public class Statics
 							Class.forName("org.h2.Driver").newInstance();
 						}
 						catch (Exception e) {}
-						testConnection.connection = DriverManager.getConnection("jdbc:h2:./target/jdbctest", "sa", "sa");
+						testConnection.connection = DriverManager.getConnection("jdbc:h2:./target/" + dbName, "sa", "sa");
 						
 						if(createdSchema.get("H2_" + schemaName) == null)
 						{

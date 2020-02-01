@@ -1,4 +1,5 @@
 /*******************************************************************************
+
  * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -25,6 +26,7 @@ import org.sodeac.common.jdbc.DBSchemaUtils.ActionType;
 import org.sodeac.common.jdbc.DBSchemaUtils.ObjectType;
 import org.sodeac.common.jdbc.DBSchemaUtils.PhaseType;
 import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
+import org.sodeac.common.jdbc.Statics;
 import org.sodeac.common.jdbc.TestConnection;
 import org.sodeac.common.model.dbschema.ColumnNodeType;
 import org.sodeac.common.model.dbschema.DBSchemaNodeType;
@@ -64,7 +66,7 @@ public class ColumnTest
     	{
     		return connectionList;
     	}
-    	return connectionList = Statics.connections(createdSchema);
+    	return connectionList = Statics.connections(createdSchema,"dbschema");
     }
 	
 	public ColumnTest(Callable<TestConnection> connectionFactory)

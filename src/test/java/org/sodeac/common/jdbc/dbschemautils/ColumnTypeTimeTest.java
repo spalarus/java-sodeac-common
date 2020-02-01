@@ -22,6 +22,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.sodeac.common.jdbc.DBSchemaUtils;
 import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
+import org.sodeac.common.jdbc.Statics;
 import org.sodeac.common.jdbc.TestConnection;
 import org.sodeac.common.jdbc.DBSchemaUtils.ActionType;
 import org.sodeac.common.jdbc.DBSchemaUtils.ObjectType;
@@ -77,7 +78,7 @@ public class ColumnTypeTimeTest
     	{
     		return connectionList;
     	}
-    	return connectionList = Statics.connections(createdSchema);
+    	return connectionList = Statics.connections(createdSchema,"dbschema");
     }
 	
 	public ColumnTypeTimeTest(Callable<TestConnection> connectionFactory)

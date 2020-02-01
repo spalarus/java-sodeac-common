@@ -10,20 +10,15 @@
  *******************************************************************************/
 package org.sodeac.common.model;
 
-import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Date;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.UUID;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 
-import org.sodeac.common.jdbc.DBSchemaUtils;
 import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
 import org.sodeac.common.jdbc.TypedTreeJDBCCruder;
 import org.sodeac.common.jdbc.TypedTreeJDBCCruder.ConvertEvent;
@@ -31,12 +26,10 @@ import org.sodeac.common.jdbc.TypedTreeJDBCHelper.TableNode.ColumnNode;
 import org.sodeac.common.jdbc.schemax.IDefaultBySequence;
 import org.sodeac.common.jdbc.schemax.IDefaultCurrentTimestamp;
 import org.sodeac.common.jdbc.schemax.IDefaultStaticValue;
-import org.sodeac.common.misc.Driver;
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.LeafNode;
 import org.sodeac.common.typedtree.LeafNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
-import org.sodeac.common.typedtree.Node;
 import org.sodeac.common.typedtree.annotation.IgnoreIfFalse;
 import org.sodeac.common.typedtree.annotation.IgnoreIfNull;
 import org.sodeac.common.typedtree.annotation.IgnoreIfTrue;
@@ -56,14 +49,14 @@ public class CommonBaseBranchNodeType extends BranchNodeMetaModel
 	@XmlAttribute(name="id")
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,UUID> id;
 	
-	@SQLColumn(name="persist_version_no",type=SQLColumnType.BIGINT,nullable=false,defaultValueExpressionDriver=IDefaultBySequence.class,onUpsert=ValueBySequence.class)
-	@XmlAttribute(name="pversionnumber")
+	@SQLColumn(name="record_version_no",type=SQLColumnType.BIGINT,nullable=false,defaultValueExpressionDriver=IDefaultBySequence.class,onUpsert=ValueBySequence.class)
+	@XmlElement(name="RecordVersionNumber")
 	@SQLSequence
 	@IgnoreIfNull
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,Long> persistVersionNumber;
 	
-	@SQLColumn(name="persist_version_id",type=SQLColumnType.UUID,nullable=false,onUpsert=GenerateUUID.class)
-	@XmlAttribute(name="pversionid")
+	@SQLColumn(name="record_version_id",type=SQLColumnType.UUID,nullable=false,onUpsert=GenerateUUID.class)
+	@XmlElement(name="RecordVersionId")
 	@IgnoreIfNull
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,UUID> persistVersionId;
 	
@@ -72,7 +65,7 @@ public class CommonBaseBranchNodeType extends BranchNodeMetaModel
 	@IgnoreIfNull
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,Date> createTimestamp;
 	
-	@SQLColumn(name="persist_timestamp",type=SQLColumnType.TIMESTAMP,onUpsert=CurrentTimestamp.class)
+	@SQLColumn(name="persist_timestamp",type=SQLColumnType.TIMESTAMP,nullable=false,onUpsert=CurrentTimestamp.class,defaultValueExpressionDriver=IDefaultCurrentTimestamp.class)
 	@XmlElement(name="PersistTimestamp")
 	@IgnoreIfNull
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,Date> persistTimestamp;

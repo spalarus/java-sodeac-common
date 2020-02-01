@@ -18,12 +18,25 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
 
 import javax.sql.DataSource;
 
+import org.junit.After;
+import org.junit.Before;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.MethodSorters;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.sodeac.common.ILogService;
 import org.sodeac.common.function.ConplierBean;
+import org.sodeac.common.jdbc.Statics;
+import org.sodeac.common.jdbc.TestConnection;
 import org.sodeac.common.misc.CloseableCollector;
 import org.sodeac.common.model.logging.LogEventListChunkNodeType;
 import org.sodeac.common.model.logging.LoggingTreeModel;
@@ -31,22 +44,63 @@ import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.XMLMarshaller;
 import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
 
+@RunWith(Parameterized.class)
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class LogServiceTest
 {
+	public static List<Object[]> connectionList = null;
+	public static final Map<String,Boolean> createdSchema = new HashMap<String,Boolean>();
+	
+	@Parameters
+    public static List<Object[]> connections()
+    {
+    	if(connectionList != null)
+    	{
+    		return connectionList;
+    	}
+    	return connectionList = Statics.connections(createdSchema, "logger");
+    }
+	
+	public LogServiceTest(Callable<TestConnection> connectionFactory)
+	{
+		this.testConnectionFactory = connectionFactory;
+	}
+	
+	Callable<TestConnection> testConnectionFactory = null;
+	TestConnection testConnection = null;
+	
+	@Before
+	public void setUp() throws Exception 
+	{
+		this.testConnection = testConnectionFactory.call();
+	}
+	
+	@After
+	public void tearDown()
+	{
+		if(! this.testConnection.enabled)
+		{
+			return;
+		}
+		if(this.testConnection.connection != null)
+		{
+			try
+			{
+				this.testConnection.connection.close();
+			}
+			catch (Exception e) {}
+		}
+	}
+	
 	@Test
 	public void test00001LogServiceDatasoure() throws Exception
 	{
-		File dbFile = new File("./target/logger.mv.db");
-		if(dbFile.exists())
+		if(! testConnection.enabled)
 		{
-			dbFile.delete();
+			return;
 		}
-		org.h2.jdbcx.JdbcDataSource ds = new org.h2.jdbcx.JdbcDataSource();
-		ds.setUrl("jdbc:h2:./target/logger");
-		ds.setUser("sa");
-		ds.setPassword("sa");
 		
-		ConplierBean<DataSource> dataSourceProvider = new ConplierBean<DataSource>(ds);
+		ConplierBean<DataSource> dataSourceProvider = new ConplierBean<DataSource>(testConnection.getDataSource());
 		
 		RootBranchNode<LoggingTreeModel,LogEventListChunkNodeType> chunk = LoggingTreeModel.createLogEventListChunk(2, 1, 0, true);
 		
@@ -56,9 +110,6 @@ public class LogServiceTest
 		logService.error("TEST_MESSAGE_1", new RuntimeException("xxx"));
 		
 		logService.info("TEST_MESSAGE_2");
-		
-		logService.close();
-		
 		
 		try(CloseableCollector closeableCollector = CloseableCollector.newInstance())
 		{
@@ -90,5 +141,7 @@ public class LogServiceTest
 		
 		String xml2 = baos.toString();
 		assertEquals("value should be correct",xml1, xml2);
+		
+		logService.close();
 	}
 }

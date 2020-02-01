@@ -83,7 +83,7 @@ public class TestConnection
 		@Override
 		public Connection getConnection() throws SQLException
 		{
-			return TestConnection.this.connection;
+			return new NonClosableConnection(TestConnection.this.connection);
 		}
 
 		@Override

@@ -29,6 +29,7 @@ import org.sodeac.common.model.dbschema.DBSchemaTreeModel;
 import org.sodeac.common.model.dbschema.TableNodeType;
 import org.sodeac.common.typedtree.BranchNode;
 import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
+import org.sodeac.common.jdbc.Statics;
 import org.sodeac.common.jdbc.TestConnection;
 
 import java.io.IOException;
@@ -60,7 +61,7 @@ public class TablesTest
     	{
     		return connectionList;
     	}
-    	return connectionList = Statics.connections(createdSchema);
+    	return connectionList = Statics.connections(createdSchema,"dbschema");
     }
 	
 	public TablesTest(Callable<TestConnection> connectionFactory)

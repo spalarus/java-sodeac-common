@@ -1204,19 +1204,19 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					
 					// trigger
 					
-					if(column.columnNode.getOnInsert() != null)
+					if(column.columnNode.getOnUpsert() != null)
 					{
-						column.columnNode.getOnInsertInstance().accept(runtimeParameter.convertEvent);
-						
+						column.columnNode.getOnUpsertInstance().accept(runtimeParameter.convertEvent);
 						if(column.branchNodeType != null)
 						{
 							node = runtimeParameter.branchNode.get((BranchNodeType)column.branchNodeType);
 							runtimeParameter.workingBranchNode = (BranchNode)node;
 						}
 					}
-					if(column.columnNode.getOnUpsert() != null)
+					if(column.columnNode.getOnInsert() != null)
 					{
-						column.columnNode.getOnUpsertInstance().accept(runtimeParameter.convertEvent);
+						column.columnNode.getOnInsertInstance().accept(runtimeParameter.convertEvent);
+						
 						if(column.branchNodeType != null)
 						{
 							node = runtimeParameter.branchNode.get((BranchNodeType)column.branchNodeType);
@@ -1346,15 +1346,38 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			
 			if(tableNode.getPrimaryKeyNode().getLeafNodeType().getTypeClass() == String.class)
 			{
-				runtimeParameter.preparedStatement.setString(1, (String)value);
+				if(tableNode.getPrimaryKeyNode().getSqlType() == SQLColumnType.UUID)
+				{
+					runtimeParameter.preparedStatement.setObject(1, UUID.fromString((String)value));
+				}
+				else
+				{
+					runtimeParameter.preparedStatement.setString(1, (String)value);
+				}
 			}
-			if(tableNode.getPrimaryKeyNode().getLeafNodeType().getTypeClass() == UUID.class)
+			else if(tableNode.getPrimaryKeyNode().getLeafNodeType().getTypeClass() == UUID.class)
 			{
-				runtimeParameter.preparedStatement.setString(1, ((UUID)value).toString());
+				if(tableNode.getPrimaryKeyNode().getSqlType() == SQLColumnType.VARCHAR)
+				{
+					runtimeParameter.preparedStatement.setString(1, ((UUID)value).toString());
+				}
+				else if(tableNode.getPrimaryKeyNode().getSqlType() == SQLColumnType.CHAR)
+				{
+					runtimeParameter.preparedStatement.setString(1, ((UUID)value).toString());
+				}
+				else
+				{
+					runtimeParameter.preparedStatement.setObject(1, (UUID)value);
+				}
+				
 			}
-			if(tableNode.getPrimaryKeyNode().getLeafNodeType().getTypeClass() == Long.class)
+			else if(tableNode.getPrimaryKeyNode().getLeafNodeType().getTypeClass() == Long.class)
 			{
 				runtimeParameter.preparedStatement.setLong(1, (Long)value);
+			}
+			else if(tableNode.getPrimaryKeyNode().getLeafNodeType().getTypeClass() == Integer.class)
+			{
+				runtimeParameter.preparedStatement.setLong(1, (Integer)value);
 			}
 			else
 			{
@@ -1527,7 +1550,15 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					
 					runtimeParameter.convertEvent.setNode(node);
 					
-					
+					if(column.columnNode.getOnUpsert() != null)
+					{
+						column.columnNode.getOnUpsertInstance().accept(runtimeParameter.convertEvent);
+						if(column.branchNodeType != null)
+						{
+							node = runtimeParameter.branchNode.get((BranchNodeType)column.branchNodeType);
+							runtimeParameter.workingBranchNode = (BranchNode)node;
+						}
+					}
 					if(column.columnNode.getOnUpdate() != null)
 					{
 						column.columnNode.getOnUpdateInstance().accept(runtimeParameter.convertEvent);
@@ -1538,15 +1569,6 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 						}
 					}
 					
-					if(column.columnNode.getOnUpsert() != null)
-					{
-						column.columnNode.getOnUpsertInstance().accept(runtimeParameter.convertEvent);
-						if(column.branchNodeType != null)
-						{
-							node = runtimeParameter.branchNode.get((BranchNodeType)column.branchNodeType);
-							runtimeParameter.workingBranchNode = (BranchNode)node;
-						}
-					}
 					try
 					{
 						column.setter.acceptWithException(runtimeParameter);
@@ -1705,6 +1727,10 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			if((type == SQLColumnType.BOOLEAN))
 			{
 				this.setter = new LeafNodeBooleanJDBCSetter(); 
+			}
+			else if((type == SQLColumnType.UUID))
+			{
+				this.setter = new LeafNodeUUIDJDBCSetter(); 
 			}
 			else if((type == SQLColumnType.INTEGER))
 			{
