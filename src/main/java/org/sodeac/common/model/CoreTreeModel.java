@@ -19,7 +19,7 @@ import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.Version;
 
 @Domain(name="sodeac.org",module="core")
-@Version(major=0,minor=5)
+@Version(major=0,minor=6)
 public class CoreTreeModel extends TypedTreeMetaModel<CoreTreeModel> 
 {
 	static{ModelRegistry.getTypedTreeMetaModel(CoreTreeModel.class);}

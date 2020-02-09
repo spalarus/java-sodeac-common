@@ -628,9 +628,42 @@ public class XMLMarshaller
 		{
 			try
 			{
+				int attributeCount = readerInput.getReader().getAttributeCount();
+				
+				for(int i = 0; i < attributeCount; i++)
+				{
+					if(readerInput.getReader().getAttributeLocalName(i).equals("null") && "true".equals(readerInput.getReader().getAttributeValue(i)))
+					{
+						readerInput.setValue(null);
+						int openedElement = 1;
+						while(readerInput.getReader().hasNext())
+						{
+							switch (readerInput.getReader().next()) 
+							{
+								case XMLStreamConstants.START_ELEMENT:
+									
+									openedElement++;
+									
+									break;
+									
+								case XMLStreamConstants.END_ELEMENT:
+									
+									openedElement--;
+									if(openedElement == 0)
+									{
+										return;
+									}
+									
+									break;
+							}
+						}
+						
+						return;
+					}
+				}
 				BranchNode child = node.create((BranchNodeType)nodeType);
 				marshaller.defaultSetterUnmarshalling.forEach( d -> d.accept(child));
-				int attributeCount = readerInput.getReader().getAttributeCount();
+				
 				for(int i = 0; i < attributeCount; i++)
 				{
 					String attributeName = readerInput.getReader().getAttributeLocalName(i);

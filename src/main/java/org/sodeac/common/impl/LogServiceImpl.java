@@ -18,8 +18,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -34,6 +34,7 @@ import org.sodeac.common.jdbc.ParseDBSchemaHandler;
 import org.sodeac.common.jdbc.TypedTreeJDBCCruder;
 import org.sodeac.common.jdbc.TypedTreeJDBCCruder.Session;
 import org.sodeac.common.model.CoreTreeModel;
+import org.sodeac.common.model.StacktraceNodeType;
 import org.sodeac.common.model.ThrowableNodeType;
 import org.sodeac.common.model.dbschema.DBSchemaNodeType;
 import org.sodeac.common.model.logging.LogEventNodeType;
@@ -55,6 +56,8 @@ public class LogServiceImpl implements ILogService
 	private volatile String defaultDomain = null;
 	private volatile String defaultSource = null;
 	private volatile String defaultModule = null;
+	private volatile String defaultTask = null;
+	private volatile UUID defaultNode = null;
 	private volatile LogEventType defaultLogEventType = LogEventType.SYSTEM_LOG;
 	private volatile List<Consumer<BranchNode<?,LogEventNodeType>>> backendList = new CopyOnWriteArrayList<Consumer<BranchNode<?,LogEventNodeType>>>();
 	private volatile boolean autoDispose = true;
@@ -118,6 +121,20 @@ public class LogServiceImpl implements ILogService
 	}
 
 	@Override
+	public ILogService setDefaultTask(String task)
+	{
+		this.defaultTask = task;
+		return this;
+	}
+
+	@Override
+	public ILogService setDefaultNode(UUID node)
+	{
+		this.defaultNode = node;
+		return this;
+	}
+
+	@Override
 	public ILogService setDefaultSource(String source) 
 	{
 		this.defaultSource = source;
@@ -152,8 +169,11 @@ public class LogServiceImpl implements ILogService
 	{
 		private String domain = null; 
 		private String module = null; 
+		private UUID node = null;
 		private String source = null;
 		private String format = null;
+		private String task = null;
+		private String uri = null;
 		private LogEventType logEventType = null;
 		private LogLevel logLevel = LogLevel.INFO;
 		private String messageString = null;
@@ -166,6 +186,8 @@ public class LogServiceImpl implements ILogService
 			this.source = LogServiceImpl.this.defaultSource;
 			this.module = LogServiceImpl.this.defaultModule;
 			this.logEventType = LogServiceImpl.this.defaultLogEventType;
+			this.task = LogServiceImpl.this.defaultTask;
+			this.node = LogServiceImpl.this.defaultNode;
 		}
 		
 		private List<LogPropertyBuilder> getProperties()
@@ -214,6 +236,27 @@ public class LogServiceImpl implements ILogService
 		{
 			Objects.nonNull(this.logEventType);
 			this.module = module;
+			return this;
+		}
+
+		@Override
+		public ILogEventBuilder setTask(String task)
+		{
+			this.task = task;
+			return this;
+		}
+
+		@Override
+		public ILogEventBuilder setURI(String uri)
+		{
+			this.uri = uri;
+			return this;
+		}
+
+		@Override
+		public ILogEventBuilder setNode(UUID node)
+		{
+			this.node = node;
 			return this;
 		}
 
@@ -340,6 +383,18 @@ public class LogServiceImpl implements ILogService
 		}
 
 		@Override
+		public ILogEventBuilder addCurrentStacktrace()
+		{
+			StackTraceElement[] fullStacktrace = Thread.currentThread().getStackTrace();
+			StackTraceElement[] stacktrace = new StackTraceElement[fullStacktrace.length - 2];
+			for(int i = 0; i < stacktrace.length; i++)
+			{
+				stacktrace[i] = fullStacktrace[i + 2];
+			}
+			return this.addStacktrace(stacktrace);
+		}
+
+		@Override
 		public ILogService fire() 
 		{
 			Objects.nonNull(this.logEventType);
@@ -384,7 +439,12 @@ public class LogServiceImpl implements ILogService
 				.setValue(LogEventNodeType.logLevelValue, logLevel.getIntValue())
 				.setValue(LogEventNodeType.domain, domain)
 				.setValue(LogEventNodeType.module, module)
+				.setValue(LogEventNodeType.task, task)
+				.setValue(LogEventNodeType.uri, uri)
+				.setValue(LogEventNodeType.createNodeId, this.node)
+				.setValue(LogEventNodeType.persistNodeId, this.node)
 				.setValue(LogEventNodeType.createClientURI, source)
+				.setValue(LogEventNodeType.persistClientURI, source)
 				.setValue(LogEventNodeType.format, format)
 				.setValue(LogEventNodeType.timestamp, now)
 				.setValue(LogEventNodeType.date, cal.getTime())
@@ -421,7 +481,24 @@ public class LogServiceImpl implements ILogService
 						
 						property.setValue(LogPropertyNodeType.originValue, propertyBuilder.throwable);
 					}
-					// TODO stacktrace
+					else if(propertyBuilder.stacktrace != null)
+					{
+						RootBranchNode<CoreTreeModel, StacktraceNodeType> nodeFromStacktrace = ThrowableNodeType.nodeFromStacktrace(propertyBuilder.stacktrace);
+						
+						try
+						{
+							ByteArrayOutputStream baos = new ByteArrayOutputStream();
+							xmlMarshaller.marshal(nodeFromStacktrace, baos,true);
+							property.setValue(LogPropertyNodeType.value,baos.toString());
+							baos = null;
+						}
+						catch (Exception e) 
+						{
+							throw new RuntimeException(e);
+						}
+						
+						property.setValue(LogPropertyNodeType.originValue, propertyBuilder.stacktrace);
+					}
 					
 					propertyBuilder.dispose();
 				}
@@ -548,11 +625,10 @@ public class LogServiceImpl implements ILogService
 	public static class LogServiceDatasourceBackend implements Consumer<BranchNode<?,LogEventNodeType>>, AutoCloseable
 	{
 		private Supplier<DataSource> dataSourceProvider = null;
+		private TypedTreeJDBCCruder cruder = null;
 		
 		public LogServiceDatasourceBackend setDataSource(Supplier<DataSource> dataSourceProvider, String schema) throws SQLException
-		{
-			this.dataSourceProvider = dataSourceProvider;
-			
+		{			
 			Connection connection = dataSourceProvider.get().getConnection();
 			try
 			{
@@ -580,6 +656,10 @@ public class LogServiceImpl implements ILogService
 			{
 				connection.close();
 			}
+			
+			this.dataSourceProvider = dataSourceProvider;
+			this.cruder = TypedTreeJDBCCruder.get();
+			
 			return this;
 		}
 		public void accept(BranchNode<?,LogEventNodeType> logEvent) 
@@ -591,31 +671,26 @@ public class LogServiceImpl implements ILogService
 				return;
 			}
 			
+			if((this.dataSourceProvider == null) && (this.cruder == null))
+			{
+				throw new IllegalStateException("Logger is closed");
+			}
+			
 			try
 			{
-				TypedTreeJDBCCruder cruder = TypedTreeJDBCCruder.get();
+				Session session = cruder.openSession(dataSourceProvider.get());
 				try
 				{
-					Session session = cruder.openSession(dataSourceProvider.get());
-					try
-					{
-						session.persist(logEvent);
-						logEvent.getUnmodifiableNodeList(LogEventNodeType.propertyList).forEach(ExceptionConsumer.wrap(p -> session.persist(p)));
-						
-						session.flush();
-						session.commit();
-					}
-					finally 
-					{
-						session.close();
-					}
+					session.persist(logEvent);
+					logEvent.getUnmodifiableNodeList(LogEventNodeType.propertyList).forEach(ExceptionConsumer.wrap(p -> {session.persist(p); session.persist(p.get(LogPropertyNodeType.correlatedLogEvent));}));
 					
+					session.flush();
+					session.commit();
 				}
 				finally 
 				{
-					cruder.close();
+					session.close();
 				}
-				
 			}
 			catch (Exception e) {e.printStackTrace();}
 			catch (Error e) {e.printStackTrace();}
@@ -634,8 +709,13 @@ public class LogServiceImpl implements ILogService
 		@Override
 		public void close() throws Exception
 		{
-			// TODO Auto-generated method stub
-			
+			try
+			{
+				this.cruder.close();
+			}
+			catch (Exception e) {}
+			this.cruder = null;
+			this.dataSourceProvider = null;
 		}
 	}
 

@@ -11,12 +11,10 @@
 package org.sodeac.common.model;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
 
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.LeafNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
-import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.IgnoreIfFalse;
 import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 
@@ -28,13 +26,13 @@ public class StacktraceElementNodeType extends BranchNodeMetaModel
 	@XmlAttribute(name="class")
 	public static volatile LeafNodeType<StacktraceElementNodeType,String> className;
 	
-	@XmlElement(name="File")
+	@XmlAttribute(name="file")
 	public static volatile LeafNodeType<StacktraceElementNodeType,String> fileName;
 	
 	@XmlAttribute(name="linenumber")
 	public static volatile LeafNodeType<StacktraceElementNodeType,Integer> lineNumber;
 	
-	@XmlElement(name="Methode")
+	@XmlAttribute(name="methodname")
 	public static volatile LeafNodeType<StacktraceElementNodeType,String> methodName;
 	
 	@XmlAttribute(name="native")

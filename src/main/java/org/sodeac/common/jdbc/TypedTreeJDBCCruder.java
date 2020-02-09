@@ -465,6 +465,10 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			{
 				throw new RuntimeException("Session is invalid by thrown exception");
 			}
+			if(node == null)
+			{
+				return node;
+			}
 			boolean valid = false;
 			try
 			{

@@ -34,7 +34,12 @@ public enum LogEventType
 	/**
 	 * business process event
 	 */
-	BUSINESS_EVENT("sdc://identifier.specs/org.sodeac.logging/logitemtype/businessevent");
+	BUSINESS_EVENT("sdc://identifier.specs/org.sodeac.logging/logitemtype/businessevent"),
+	
+	/**
+	 * task
+	 */
+	TASK("sdc://identifier.specs/org.sodeac.logging/logitemtype/task");
 	
 	private LogEventType(String uri)
 	{

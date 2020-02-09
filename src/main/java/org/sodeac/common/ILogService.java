@@ -11,6 +11,7 @@
 package org.sodeac.common;
 
 import java.sql.SQLException;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -29,7 +30,9 @@ public interface ILogService extends AutoCloseable
 	public ILogService setWriteLogLevel(LogLevel logLevel);
 	public ILogService setDefaultDomain(String domain);
 	public ILogService setDefaultModule(String module);
+	public ILogService setDefaultTask(String task);
 	public ILogService setDefaultSource(String source);
+	public ILogService setDefaultNode(UUID node);
 	public ILogService setDefaultLogEventType(LogEventType logEventType);
 	public ILogService setAutoDispose(boolean autoDispose);
 	
@@ -156,8 +159,11 @@ public interface ILogService extends AutoCloseable
 		public ILogEventBuilder setLogEventType(LogEventType logEventType);
 		public ILogEventBuilder setDomain(String domain);
 		public ILogEventBuilder setModule(String module);
+		public ILogEventBuilder setNode(UUID node);
 		public ILogEventBuilder setSource(String source);
 		public ILogEventBuilder setFormat(String format);
+		public ILogEventBuilder setTask(String task);
+		public ILogEventBuilder setURI(String uri);
 		public ILogEventBuilder setMessage(String message);
 		public ILogEventBuilder addProperty(String key, String value);
 		public ILogEventBuilder addProperty(String key, String value, String type);
@@ -167,6 +173,7 @@ public interface ILogService extends AutoCloseable
 		public ILogEventBuilder addComment(String comment, String id, String format);
 		public ILogEventBuilder addThrowable(Throwable throwable);
 		public ILogEventBuilder addStacktrace(StackTraceElement[] stacktrace);
+		public ILogEventBuilder addCurrentStacktrace();
 		public ILogService fire();
 	}
 	

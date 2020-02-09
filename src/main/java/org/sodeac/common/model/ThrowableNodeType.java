@@ -71,6 +71,21 @@ public class ThrowableNodeType extends BranchNodeMetaModel
 	@IgnoreIfFalse
 	public static volatile LeafNodeType<ThrowableNodeType,Boolean> isRuntimeException;
 	
+	public static RootBranchNode<CoreTreeModel,StacktraceNodeType> nodeFromStacktrace(StackTraceElement[] stacktrace)
+	{
+		RootBranchNode<CoreTreeModel,StacktraceNodeType> stacktraceNode = TypedTreeMetaModel.getInstance(CoreTreeModel.class).createRootNode(CoreTreeModel.stacktrace);
+		for(StackTraceElement stackTraceElement :  stacktrace)
+		{
+			stacktraceNode.create(StacktraceNodeType.elements)
+				.setValue(StacktraceElementNodeType.className, stackTraceElement.getClassName())
+				.setValue(StacktraceElementNodeType.fileName, stackTraceElement.getFileName())
+				.setValue(StacktraceElementNodeType.methodName, stackTraceElement.getMethodName())
+				.setValue(StacktraceElementNodeType.lineNumber, stackTraceElement.getLineNumber())
+				.setValue(StacktraceElementNodeType.nativeMethod, stackTraceElement.isNativeMethod());
+		}
+		return stacktraceNode;
+	}
+	
 	public static RootBranchNode<CoreTreeModel,ThrowableNodeType> nodeFromThrowable(Throwable throwable)
 	{
 		if(throwable == null)

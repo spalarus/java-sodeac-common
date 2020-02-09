@@ -2286,6 +2286,10 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		{
 			return this;
 		}
+		if(copyFrom == null)
+		{
+			return null;
+		}
 		for(NodeContainer nodeContainer : this._nodeContainerList)
 		{
 			if(nodeContainer.nodeType instanceof LeafNodeType)
@@ -2299,7 +2303,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 				{
 					remove((BranchNodeType)nodeContainer.nodeType);
 				}
-				else
+				else if((copyChild != null))
 				{
 					this.create((BranchNodeType)nodeContainer.nodeType).copyFrom(copyChild);
 				}

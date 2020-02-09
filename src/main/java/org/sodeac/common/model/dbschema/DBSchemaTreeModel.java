@@ -17,7 +17,7 @@ import org.sodeac.common.typedtree.annotation.Domain;
 import org.sodeac.common.typedtree.annotation.Version;
 
 @Domain(name="sodeac.org",module="dbschema")
-@Version(major=0,minor=5)
+@Version(major=0,minor=6)
 public class DBSchemaTreeModel extends TypedTreeMetaModel<DBSchemaTreeModel> 
 {
 	static{ModelRegistry.getTypedTreeMetaModel(DBSchemaTreeModel.class);}

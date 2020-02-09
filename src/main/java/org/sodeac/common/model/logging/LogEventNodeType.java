@@ -17,7 +17,6 @@ import javax.xml.bind.annotation.XmlElement;
 
 import org.sodeac.common.jdbc.schemax.IDefaultBySequence;
 import org.sodeac.common.model.CommonBaseBranchNodeType;
-import org.sodeac.common.model.CommonBaseBranchNodeType.ValueBySequence;
 import org.sodeac.common.typedtree.BranchNodeListType;
 import org.sodeac.common.typedtree.LeafNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
@@ -38,9 +37,13 @@ public class LogEventNodeType extends CommonBaseBranchNodeType
 {
 	static{ModelRegistry.getBranchNodeMetaModel(LogEventNodeType.class);}
 	
-	@SQLColumn(name="log_type",type=SQLColumnType.VARCHAR, nullable=false, length=128)
+	@SQLColumn(name="log_type",type=SQLColumnType.VARCHAR, nullable=false, length=540)
 	@XmlAttribute(name="type")
 	public static volatile LeafNodeType<LogEventNodeType,String> type;
+	
+	@SQLColumn(name="log_uri",type=SQLColumnType.VARCHAR, length=1080)
+	@XmlAttribute(name="uri")
+	public static volatile LeafNodeType<LogEventNodeType,String> uri;
 	
 	@SQLColumn(name="log_timestamp",type=SQLColumnType.TIMESTAMP, nullable=false)
 	@XmlAttribute(name="timestamp")
@@ -67,22 +70,22 @@ public class LogEventNodeType extends CommonBaseBranchNodeType
 	@XmlElement(name="Sequence")
 	public static volatile LeafNodeType<LogEventNodeType,Long> sequence;
 	
-	@SQLColumn(name="log_domain",type=SQLColumnType.VARCHAR, nullable=true, length=512)
+	@SQLColumn(name="log_domain",type=SQLColumnType.VARCHAR, nullable=true, length=1080)
 	@XmlElement(name="Domain")
 	@IgnoreIfNull
 	public static volatile LeafNodeType<LogEventNodeType,String> domain;
 	
-	@SQLColumn(name="log_module",type=SQLColumnType.VARCHAR, nullable=true, length=512)
+	@SQLColumn(name="log_module",type=SQLColumnType.VARCHAR, nullable=true, length=1080)
 	@XmlElement(name="Module")
 	@IgnoreIfNull
 	public static volatile LeafNodeType<LogEventNodeType,String> module;
 	
-	@SQLColumn(name="log_task",type=SQLColumnType.VARCHAR, nullable=true, length=512)
+	@SQLColumn(name="log_task",type=SQLColumnType.VARCHAR, nullable=true, length=1080)
 	@XmlElement(name="Task")
 	@IgnoreIfNull
 	public static volatile LeafNodeType<LogEventNodeType,String> task;
 	
-	@SQLColumn(name="log_msg_format",type=SQLColumnType.VARCHAR, nullable=true, length=4000)
+	@SQLColumn(name="log_msg_format",type=SQLColumnType.VARCHAR, nullable=true, length=1080)
 	@XmlElement(name="Format")
 	@IgnoreIfNull
 	public static volatile LeafNodeType<LogEventNodeType,String> format;

@@ -15,7 +15,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.HashMap;
@@ -141,6 +140,8 @@ public class LogServiceTest
 		
 		String xml2 = baos.toString();
 		assertEquals("value should be correct",xml1, xml2);
+		
+		logService.newEvent().setMessage("TEST_MESSAGE_3").addCurrentStacktrace().fire();
 		
 		logService.close();
 	}
