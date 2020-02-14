@@ -62,7 +62,7 @@ public class ResultSetParseHelper implements AutoCloseable
 		return this;
 	}
 	// TODO Controller: stopper, skipper, progress 
-	public void parse(PreparedStatement preparedStatement, Object root, int mainPhaseSize) throws Exception
+	public void parse(PreparedStatement preparedStatement, Object root, int mainPhaseSize) throws SQLException
 	{
 		if(mainPhaseSize < 1)
 		{
@@ -300,7 +300,7 @@ public class ResultSetParseHelper implements AutoCloseable
 			this.lastObject = null;
 		}
 		
-		protected Object fetch(ResultSet resultSet, Cursor cursor, boolean isMain) throws Exception
+		protected Object fetch(ResultSet resultSet, Cursor cursor, boolean isMain) throws SQLException
 		{
 			Object currentId = fetchId(configuration.idType, configuration.idColumnName, resultSet);
 			cursor.setId(currentId);
@@ -539,6 +539,23 @@ public class ResultSetParseHelper implements AutoCloseable
 		 * @return builder
 		 */
 		public ResultSetParseHelperBuilder<P,?,M,?> build()
+		{
+			if(currentParsePhase.currentNodeConfiguration.parent != null)
+			{
+				currentParsePhase.currentNodeConfiguration = currentParsePhase.currentNodeConfiguration.parent;
+			}
+			return (ResultSetParseHelperBuilder)this;
+		}
+		
+		/**
+		 * close current configuration object and set parent configuration object as current configuration object.
+		 * 
+		 * @param parentKeyType type of id of parent configuration
+		 * @param parentParentType type of object of parent configuration
+		 * 
+		 * @return
+		 */
+		public <A,Z>ResultSetParseHelperBuilder<P,A,M,Z> build(Class<A> parentKeyType, Class<Z> parentParentType)
 		{
 			if(currentParsePhase.currentNodeConfiguration.parent != null)
 			{
@@ -936,7 +953,7 @@ public class ResultSetParseHelper implements AutoCloseable
 		 * 
 		 * @throws Exception
 		 */
-		public B parse(Cursor<I, M, P> cursor) throws Exception;
+		public B parse(Cursor<I, M, P> cursor) throws SQLException;
 		
 	}
 }

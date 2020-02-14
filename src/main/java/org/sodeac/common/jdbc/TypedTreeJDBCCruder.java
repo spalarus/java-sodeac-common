@@ -459,6 +459,15 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			loadListByReferencedNode(childNodeType, Collections.singleton(node.get(TypedTreeJDBCHelper.parseTableNode(node.getNodeType(), MASK.PK_COLUMN).getPrimaryKeyNode().getLeafNodeType()).getValue() ).toArray(), ids -> Collections.singletonList(node.create(childNodeType))).clear();
 		}
 		
+		public <P extends BranchNodeMetaModel,T extends BranchNodeMetaModel> void loadReferencedChildNode(BranchNode<? extends BranchNodeMetaModel,P> node, BranchNodeType<P, T> childNodeType) throws SQLException
+		{
+			if(node.get(childNodeType) != null)
+			{
+				node.remove(childNodeType);
+			}
+			loadListByReferencedNode(childNodeType, Collections.singleton(node.get(TypedTreeJDBCHelper.parseTableNode(node.getNodeType(), MASK.PK_COLUMN).getPrimaryKeyNode().getLeafNodeType()).getValue() ).toArray(), ids -> Collections.singletonList(node.create(childNodeType))).clear();
+		}
+		
 		public < P extends BranchNodeMetaModel, T extends BranchNodeMetaModel> BranchNode< P,T> persist(BranchNode< P,T> node) throws SQLException, InstantiationException, IllegalAccessException
 		{
 			if(error)
@@ -913,17 +922,15 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				if(this.tableNode.getReferencedByColumnNode() != null)
 				{
 					if
-					(!(
+					(
 						(this.tableNode.getReferencedByColumnNode().getBranchNodeType() == runtimeParameter.searchField) ||
 						(this.tableNode.getReferencedByColumnNode().getBranchNodeListType() == runtimeParameter.searchField)
-					))
+					)
 					{
-						throw new IllegalStateException("ReferencedBy type is an unexpected instance");
+						columnNode = this.tableNode.getReferencedByColumnNode();
 					}
-				
-					columnNode = this.tableNode.getReferencedByColumnNode();
 				}
-				else
+				if(columnNode == null)
 				{
 					for(ColumnNode check : this.tableNode.getColumnList())
 					{
@@ -936,6 +943,11 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 							columnNode = check;
 						}
 					}
+				}
+				
+				if(columnNode == null)
+				{
+					throw new IllegalStateException("unexpected searchfield. node: " +this.tableNode.getNodeType() + " field " + runtimeParameter.searchField);
 				}
 				
 				Objects.requireNonNull(columnNode, "search field not found in searchable fields of " + runtimeParameter.searchField.getParentNodeClass());
@@ -1175,7 +1187,12 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					// select nodes
 					
 					Node node = null;
-					if(column.branchNodeType != null)
+					if(column.parentType)
+					{
+						node = runtimeParameter.branchNode.getParentNode();
+						runtimeParameter.workingBranchNode = (BranchNode)node;
+					}
+					else if(column.branchNodeType != null)
 					{
 						boolean backupAutocreate = runtimeParameter.branchNode.getRootNode().isBranchNodeGetterAutoCreate();
 						if(backupAutocreate)
@@ -1188,11 +1205,6 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 						{
 							runtimeParameter.branchNode.getRootNode().setBranchNodeGetterAutoCreate(true);
 						}
-					}
-					else if(column.parentType)
-					{
-						node = runtimeParameter.branchNode.getParentNode();
-						runtimeParameter.workingBranchNode = (BranchNode)node;
 					}
 					else if(column.leafNodeType != null)
 					{
@@ -1523,7 +1535,12 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					runtimeParameter.convertEvent.setColumnNode(column.columnNode);
 					
 					Node node = null;		// TriggerParameter
-					if(column.branchNodeType != null)
+					if(column.parentType)
+					{
+						node = runtimeParameter.branchNode.getParentNode();
+						runtimeParameter.workingBranchNode = (BranchNode)node;
+					}
+					else if(column.branchNodeType != null)
 					{
 						boolean backupAutocreate = runtimeParameter.branchNode.getRootNode().isBranchNodeGetterAutoCreate();
 						if(backupAutocreate)
@@ -1536,11 +1553,6 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 						{
 							runtimeParameter.branchNode.getRootNode().setBranchNodeGetterAutoCreate(true);
 						}
-					}
-					else if(column.parentType)
-					{
-						node = runtimeParameter.branchNode.getParentNode();
-						runtimeParameter.workingBranchNode = (BranchNode)node;
 					}
 					else if(column.leafNodeType != null)
 					{

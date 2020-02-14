@@ -391,10 +391,18 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 		}
 	}
 	
+	private volatile XMLMarshaller xmlMarshaller = null;
+	
 	public XMLMarshaller getXMLMarshaller()
 	{
-		// TODO Cache
+		XMLMarshaller xmlMarshaller = this.xmlMarshaller;
+		if(xmlMarshaller != null)
+		{
+			return xmlMarshaller;
+		}
 		
-		return XMLMarshaller.getForTreeModel((Class<? extends TypedTreeMetaModel<?>>)this.getClass());
+		xmlMarshaller = XMLMarshaller.getForTreeModel((Class<? extends TypedTreeMetaModel<?>>)this.getClass());
+		this.xmlMarshaller = xmlMarshaller;
+		return xmlMarshaller;
 	}
 }

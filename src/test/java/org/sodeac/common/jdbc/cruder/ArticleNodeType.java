@@ -54,6 +54,16 @@ public class ArticleNodeType extends CommonBaseBranchNodeType
 	@Association(type=AssociationType.AGGREGATION)
 	public static volatile BranchNodeType<ArticleNodeType,ArticleGroupNodeType> group;
 	
+	@SQLColumn(name="article_extension_1_id", nullable=true)
+	@Association(type=AssociationType.COMPOSITION)
+	@SQLUniqueIndex
+	public static volatile BranchNodeType<ArticleNodeType,ArticleExtension1NodeType> extension1;
+	
+	@SQLReferencedByColumn(name="article_id")
+	@Association(type=AssociationType.COMPOSITION)
+	@SQLUniqueIndex
+	public static volatile BranchNodeType<ArticleNodeType,ArticleExtension2NodeType> extension2;
+	
 	@SQLReferencedByColumn(name="article_id")
 	@SQLIndex
 	@Association(type=AssociationType.COMPOSITION)

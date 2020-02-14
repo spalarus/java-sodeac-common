@@ -266,6 +266,17 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	}
 	
 	/**
+	 * Getter for parent node.
+	 * 
+	 * @param parentOfParent parent type of parent node
+	 * @return parent node
+	 */
+	public <X extends BranchNodeMetaModel> BranchNode<X, P> getParentNode(Class<X> parentOfParent)
+	{
+		return (BranchNode)parentNode;
+	}
+	
+	/**
 	 * returns all leaf node types of model
 	 * 
 	 * @return all leaf node types of model
@@ -2319,5 +2330,10 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 			}
 		}
 		return this;
+	}
+	
+	public RootBranchNode<?, T> unwrapRootBranchNode()
+	{
+		return (RootBranchNode) this;
 	}
 }
