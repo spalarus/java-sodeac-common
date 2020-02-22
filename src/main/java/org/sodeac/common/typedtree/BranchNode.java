@@ -1324,7 +1324,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	 * @param node node instance to remove
 	 * @return true, if node successfully removed, otherwise false
 	 */
-	public <X extends BranchNodeMetaModel> boolean remove(BranchNodeListType<T,X> nodeType, BranchNode<P, T> node)
+	public <X extends BranchNodeMetaModel> boolean remove(BranchNodeListType<T,X> nodeType, BranchNode<T,X> node)
 	{
 		if(this.rootNode.isImmutable())
 		{
