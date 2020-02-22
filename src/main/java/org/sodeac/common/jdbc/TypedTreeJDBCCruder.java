@@ -561,6 +561,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			{
 				mainConnection.rollback();
 			}
+			error = false;
 		}
 		
 		protected class RuntimeParameter implements IRuntimeParameter
