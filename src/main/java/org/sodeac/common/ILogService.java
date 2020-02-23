@@ -209,4 +209,11 @@ public interface ILogService extends AutoCloseable
 			new LogServiceImpl.LogServiceDatasourceBackend().setDataSource(dataSourceProvider, schema)
 		);
 	}
+	
+	public static Consumer<BranchNode<?,LogEventNodeType>> createDataSourceBackend(Supplier<DataSource> dataSourceProvider, String schema, boolean schemaCheck) throws SQLException
+	{
+		LogServiceImpl.LogServiceDatasourceBackend backend = new LogServiceImpl.LogServiceDatasourceBackend();
+		backend.setDataSource(dataSourceProvider, schema, schemaCheck);
+		return backend;
+	}
 }

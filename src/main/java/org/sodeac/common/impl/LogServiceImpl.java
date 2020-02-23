@@ -628,33 +628,42 @@ public class LogServiceImpl implements ILogService
 		private TypedTreeJDBCCruder cruder = null;
 		
 		public LogServiceDatasourceBackend setDataSource(Supplier<DataSource> dataSourceProvider, String schema) throws SQLException
+		{
+			return setDataSource(dataSourceProvider, schema, true);
+		}
+		
+		public LogServiceDatasourceBackend setDataSource(Supplier<DataSource> dataSourceProvider, String schema, boolean schemaCheck) throws SQLException
 		{			
 			Connection connection = dataSourceProvider.get().getConnection();
-			try
+			
+			if(schemaCheck)
 			{
-				ParseDBSchemaHandler parseDBSchemaHandler = new ParseDBSchemaHandler("Logging");
-				ModelRegistry.parse(LoggingTreeModel.class, parseDBSchemaHandler);
-				RootBranchNode<?, DBSchemaNodeType> schemaSpec = parseDBSchemaHandler.fillSchemaSpec(); 
-				schemaSpec.setValue(DBSchemaNodeType.logUpdates, false);
-				
-				if((schema != null) && (! schema.isEmpty()))
+				try
 				{
-					schemaSpec.setValue(DBSchemaNodeType.dbmsSchemaName,schema);
+					ParseDBSchemaHandler parseDBSchemaHandler = new ParseDBSchemaHandler("Logging");
+					ModelRegistry.parse(LoggingTreeModel.class, parseDBSchemaHandler);
+					RootBranchNode<?, DBSchemaNodeType> schemaSpec = parseDBSchemaHandler.fillSchemaSpec(); 
+					schemaSpec.setValue(DBSchemaNodeType.logUpdates, false);
+					
+					if((schema != null) && (! schema.isEmpty()))
+					{
+						schemaSpec.setValue(DBSchemaNodeType.dbmsSchemaName,schema);
+					}
+					else
+					{
+						schemaSpec.setValue(DBSchemaNodeType.dbmsSchemaName,connection.getSchema());
+					}
+					
+					connection.setAutoCommit(false);
+					DBSchemaUtils schemaUtils = DBSchemaUtils.get(connection);
+					schemaUtils.adaptSchema(schemaSpec);
+					connection.commit();
+					schemaSpec.dispose();
 				}
-				else
+				finally 
 				{
-					schemaSpec.setValue(DBSchemaNodeType.dbmsSchemaName,connection.getSchema());
+					connection.close();
 				}
-				
-				connection.setAutoCommit(false);
-				DBSchemaUtils schemaUtils = DBSchemaUtils.get(connection);
-				schemaUtils.adaptSchema(schemaSpec);
-				connection.commit();
-				schemaSpec.dispose();
-			}
-			finally 
-			{
-				connection.close();
 			}
 			
 			this.dataSourceProvider = dataSourceProvider;
