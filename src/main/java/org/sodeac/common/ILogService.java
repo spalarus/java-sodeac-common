@@ -216,4 +216,9 @@ public interface ILogService extends AutoCloseable
 		backend.setDataSource(dataSourceProvider, schema, schemaCheck);
 		return backend;
 	}
+	
+	public static Consumer<BranchNode<?,LogEventNodeType>> createSystemLoggerBackend(Class<?> clazz)
+	{
+		return new LogServiceImpl.SystemLogger(clazz);
+	}
 }
