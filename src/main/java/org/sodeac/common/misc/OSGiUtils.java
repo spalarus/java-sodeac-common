@@ -72,6 +72,16 @@ public class OSGiUtils
 		return InternalUtils.loadPackageFileAsString(fileName, packageClass);
 	}
 	
+	public static InputStream loadPackageInputStream(String fileName, Class<?> packageClass) throws IOException
+	{
+		if(! isOSGi())
+		{
+			return null;
+		}
+		
+		return InternalUtils.loadPackageInputStream(fileName, packageClass);
+	}
+	
 	private static class InternalUtils
 	{
 		private static boolean test()
@@ -117,19 +127,10 @@ public class OSGiUtils
 		
 		private static String loadPackageFileAsString(String fileName, Class<?> packageClass) throws IOException
 		{
-			Bundle bundle = FrameworkUtil.getBundle(packageClass);
-			if(bundle == null)
-			{
-				return null;
-			}
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			URL url = bundle.getResource(packageClass.getPackage().getName().replaceAll("\\.", "/") + "/" + fileName);
-			InputStream inputStream = url.openStream();
+			InputStream inputStream = loadPackageInputStream(fileName, packageClass);
 			try
 			{
-				
-				url = null;
-				bundle = null;
 				if(inputStream == null)
 				{
 					return null;
@@ -165,6 +166,17 @@ public class OSGiUtils
 				catch (Exception e) {}
 			}
 			return baos.toString();
+		}
+		
+		private static InputStream loadPackageInputStream(String fileName, Class<?> packageClass) throws IOException
+		{
+			Bundle bundle = FrameworkUtil.getBundle(packageClass);
+			if(bundle == null)
+			{
+				return null;
+			}
+			URL url = bundle.getResource(packageClass.getPackage().getName().replaceAll("\\.", "/") + "/" + fileName);
+			return url.openStream();
 		}
 	}
 	

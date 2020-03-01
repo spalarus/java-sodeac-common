@@ -77,4 +77,25 @@ public class ResourceLoader
 		
 		return byos.toString();
 	}
+	
+	/**
+	 * Load package {@link InputStream} in OSGi or Non-OSGi environment. 
+	 * 
+	 * @param fileName name of string resource
+	 * @param packageClass class represents the package
+	 * @return input stream
+	 * @throws IOException
+	 */
+	public static InputStream loadPackageInputStream(String fileName, Class<?> packageClass) throws IOException
+	{
+		if(OSGiUtils.isOSGi())
+		{
+			InputStream inputStream = OSGiUtils.loadPackageInputStream(fileName,packageClass);
+			if(inputStream != null)
+			{
+				return inputStream;
+			}
+		}
+		return packageClass.getClassLoader().getResourceAsStream(packageClass.getPackage().getName().replaceAll("\\.", "/") + "/" + fileName);
+	}
 }
