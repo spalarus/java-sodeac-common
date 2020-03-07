@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016, 2019 Sebastian Palarus
+ * Copyright (c) 2016, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -42,16 +42,16 @@ public class QuerySegment implements Serializable, IExtensible
 	 * @param expression representative string value query segment
 	 * @param type the type of segment (not required)
 	 * @param name the name of segment
-	 * @param format the format of segment (not required / null, json or string)
+	 * @param coding the format of segment (not required / null, json or string)
 	 * @param value  the value of segment
 	 */
-	public QuerySegment(String expression,String type, String name, String format, String value)
+	public QuerySegment(String expression,String type, String name, String coding, String value)
 	{
 		super();
 		this.expression = expression;
 		this.type = type;
 		this.name = name;
-		this.format = format;
+		this.coding = coding;
 		this.value = value;
 		
 		this.extensionsLock = new ReentrantLock();
@@ -64,7 +64,7 @@ public class QuerySegment implements Serializable, IExtensible
 	private String expression = null;
 	private String type = null;
 	private String name = null;
-	private String format = null;
+	private String coding = null;
 	private String value = null;
 	
 	/**
@@ -189,13 +189,13 @@ public class QuerySegment implements Serializable, IExtensible
 	}
 
 	/**
-	 * getter for format
+	 * getter for coding
 	 * 
 	 * @return
 	 */
-	public String getFormat()
+	public String getCoding()
 	{
-		return format;
+		return coding;
 	}
 
 	/**

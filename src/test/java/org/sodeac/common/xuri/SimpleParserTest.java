@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -414,7 +414,7 @@ public class SimpleParserTest
 		assertEquals("querysegment[x] should contains correct expression","objectClass?one", uri.getQuery().getSubComponentList().get(0).getExpression());
 		assertNull("querysegment[x] should contains correct type", uri.getQuery().getSubComponentList().get(0).getType());
 		assertNull("querysegment[x] should contains correct name", uri.getQuery().getSubComponentList().get(0).getName());
-		assertNull("querysegment[x] should contains correct format", uri.getQuery().getSubComponentList().get(0).getFormat());
+		assertNull("querysegment[x] should contains correct format", uri.getQuery().getSubComponentList().get(0).getCoding());
 		assertEquals("querysegment[x] should contains correct value","objectClass?one", uri.getQuery().getSubComponentList().get(0).getValue());
 		
 		uri = new URI("gopher://gopher.floodgap.com");
@@ -465,12 +465,12 @@ public class SimpleParserTest
 		
 		assertNull("querysegment[x] should contains correct type", uri.getQuery().getSubComponentList().get(0).getType());
 		assertEquals("querysegment[x] should contains correct name", "action",uri.getQuery().getSubComponentList().get(0).getName());
-		assertNull("querysegment[x] should contains correct format", uri.getQuery().getSubComponentList().get(0).getFormat());
+		assertNull("querysegment[x] should contains correct format", uri.getQuery().getSubComponentList().get(0).getCoding());
 		assertEquals("querysegment[x] should contains correct value","submit", uri.getQuery().getSubComponentList().get(0).getValue());
 		
 		assertNull("querysegment[x] should contains correct type", uri.getQuery().getSubComponentList().get(1).getType());
 		assertEquals("querysegment[x] should contains correct name", "pageid",uri.getQuery().getSubComponentList().get(1).getName());
-		assertNull("querysegment[x] should contains correct format", uri.getQuery().getSubComponentList().get(1).getFormat());
+		assertNull("querysegment[x] should contains correct format", uri.getQuery().getSubComponentList().get(1).getCoding());
 		assertEquals("querysegment[x] should contains correct value","86392001", uri.getQuery().getSubComponentList().get(1).getValue());
 		
 		// parse String / JSON
@@ -488,17 +488,17 @@ public class SimpleParserTest
 		
 		assertNull("querysegment[x] should contains correct type", uri.getQuery().getSubComponentList().get(0).getType());
 		assertEquals("querysegment[x] should contains correct name", "action",uri.getQuery().getSubComponentList().get(0).getName());
-		assertNull("querysegment[x] should contains correct format", uri.getQuery().getSubComponentList().get(0).getFormat());
+		assertNull("querysegment[x] should contains correct format", uri.getQuery().getSubComponentList().get(0).getCoding());
 		assertEquals("querysegment[x] should contains correct value","check", uri.getQuery().getSubComponentList().get(0).getValue());
 		
 		assertNull("querysegment[x] should contains correct type", uri.getQuery().getSubComponentList().get(1).getType());
 		assertEquals("querysegment[x] should contains correct name", "test",uri.getQuery().getSubComponentList().get(1).getName());
-		assertEquals("querysegment[x] should contains correct format","string", uri.getQuery().getSubComponentList().get(1).getFormat());
+		assertEquals("querysegment[x] should contains correct format","string", uri.getQuery().getSubComponentList().get(1).getCoding());
 		assertEquals("querysegment[x] should contains correct value","utf8 = &{( formated 'text' \\t # ", uri.getQuery().getSubComponentList().get(1).getValue());
 		
 		assertEquals("querysegment[x] should contains correct type", "org.sodeac.user.User" ,uri.getQuery().getSubComponentList().get(2).getType());
 		assertEquals("querysegment[x] should contains correct name", "user",uri.getQuery().getSubComponentList().get(2).getName());
-		assertEquals("querysegment[x] should contains correct format","json", uri.getQuery().getSubComponentList().get(2).getFormat());
+		assertEquals("querysegment[x] should contains correct format","json", uri.getQuery().getSubComponentList().get(2).getCoding());
 		assertEquals("querysegment[x] should contains correct value",json, uri.getQuery().getSubComponentList().get(2).getValue());
 
 	}
