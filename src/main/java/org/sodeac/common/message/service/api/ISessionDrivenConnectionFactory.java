@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -10,26 +10,10 @@
  *******************************************************************************/
 package org.sodeac.common.message.service.api;
 
-import java.util.Hashtable;
+import org.sodeac.common.xuri.URI;
 
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-
-public class ServiceContext extends InitialContext
+public interface ISessionDrivenConnectionFactory
 {
-	public ServiceContext() throws NamingException
-	{
-		super();
-	}
-
-	public ServiceContext(Hashtable<?, ?> environment) throws NamingException
-	{
-		super(environment);
-	}
-
-	@Override
-	public Object lookup(String name) throws NamingException
-	{
-		return super.lookup(name);
-	}
+	public URI getServiceURI();
+	public void setup(IServiceConnection connection);
 }

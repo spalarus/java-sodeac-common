@@ -44,7 +44,7 @@ public interface IChannel<T>
 	public <P extends IChannelPolicy> Optional<P> getChannelPolicy(Class<P> type);
 	public <P extends IChannelEventProcessor> Optional<P> getChannelEventProcessor(Class<P> type);
 	
-	public IServiceConnection getSession();
+	public IServiceConnection getConnection();
 	
 	public interface IChannelDescription
 	{

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -10,8 +10,12 @@
  *******************************************************************************/
 package org.sodeac.common.message.service.api;
 
-public interface IServiceConnector
+import org.sodeac.common.misc.Driver.IDriver;
+import org.sodeac.common.xuri.URI;
+
+public interface IServiceConnector extends IDriver
 {
-	// BoundenContext
-	// openConnection (BoundedContext / Board)
+	public static final String TYPE_LOCAL = "LOCAL";
+	
+	public IServiceConnection lookup(URI serviceURI);
 }

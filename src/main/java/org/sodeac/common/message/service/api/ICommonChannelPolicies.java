@@ -14,5 +14,7 @@ public interface ICommonChannelPolicies
 		 * dummy method for nicer syntax
 		 */
 		public void messages();
+		
+		// TODO  Force-Sythax-Builder
 	}
 }

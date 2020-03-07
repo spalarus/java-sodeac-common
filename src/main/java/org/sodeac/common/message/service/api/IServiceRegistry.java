@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -10,23 +10,14 @@
  *******************************************************************************/
 package org.sodeac.common.message.service.api;
 
-import java.util.Iterator;
-import java.util.ServiceLoader;
+import java.util.function.Consumer;
 
+import org.sodeac.common.misc.Driver.IDriver;
+import org.sodeac.common.xuri.URI;
 
-public interface IServiceLocator
+public interface IServiceRegistry extends IDriver
 {
-	public static IServiceLocator newInstance()
-	{
-		ServiceLoader<IServiceLocator> serviceLoader = ServiceLoader.load(IServiceLocator.class);
-		Iterator<IServiceLocator> iterator = serviceLoader.iterator();
-		if(iterator.hasNext())
-		{
-			return iterator.next();
-		}
-		return null;
-	}
-	
-	// Domain
-	/*public IServiceSession createSession(String name, Entry<Object, Object> ... contextEntries );*/
+	public void registerLocalService(URI serviceURI, Consumer<IServiceConnection> setup);
+	public void unegisterLocalService(Consumer<IServiceConnection> setup);
+	public IServiceConnection lookupLocalService(URI serviceURI);
 }

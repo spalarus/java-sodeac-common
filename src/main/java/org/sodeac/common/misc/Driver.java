@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -41,6 +41,8 @@ public class Driver
 	
 	public interface IDriver
 	{
+		public static final String TYPE = "TYPE";
+		
 		public static final int APPLICABLE_NONE = -1;
 		public static final int APPLICABLE_FALLBACK = 0;
 		public static final int APPLICABLE_DEFAULT = 10000;
