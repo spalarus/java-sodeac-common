@@ -13,7 +13,7 @@
  <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <jdk.version>1.8</jdk.version>
-    <bundle.version>0.6.0</bundle.version>
+    <bundle.version>0.6.1</bundle.version>
   </properties>
   
   <dependencies>
@@ -67,6 +67,11 @@
       <version>1.7.30</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+	    <groupId>org.glassfish</groupId>
+	    <artifactId>jakarta.json</artifactId>
+	    <version>1.1.6</version>
+	</dependency>
   </dependencies>
   
   <build>
@@ -190,6 +195,8 @@
             	org.slf4j;version="[1.7,2)";resolution:=optional,
             	javax.xml.bind.annotation;version="[2,3)";resolution:=optional,
             	org.postgresql.*;resolution:=optional;version=!,
+            	javax.json;version="[1.1,2)";resolution:=optional,
+            	javax.json.stream;version="[1.1,2)";resolution:=optional,
                 *
             </Import-Package>
           </instructions>

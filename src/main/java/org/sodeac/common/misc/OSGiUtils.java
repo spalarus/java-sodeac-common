@@ -1,9 +1,20 @@
+/*******************************************************************************
+ * Copyright (c) 2019, 2020 Sebastian Palarus
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v20.html
+ *
+ * Contributors:
+ *     Sebastian Palarus - initial API and implementation
+ *******************************************************************************/
 package org.sodeac.common.misc;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -183,6 +194,11 @@ public class OSGiUtils
 	public static <T extends IDriver> T getSingleDriver(Class<T> driverClass, Map<String,Object> properties)
 	{
 		return OSGiDriverRegistry.INSTANCE.getSingleDriver(driverClass, properties);
+	}
+	
+	public static <T extends IDriver> List<T> getDriverList(Class<T> driverClass, Map<String,Object> properties)
+	{
+		return OSGiDriverRegistry.INSTANCE.getDriverList(driverClass, properties);
 	}
 	
 	private static class TesterConfiguration

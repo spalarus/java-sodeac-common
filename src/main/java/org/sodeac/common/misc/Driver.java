@@ -10,9 +10,15 @@
  *******************************************************************************/
 package org.sodeac.common.misc;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.Set;
+
+import org.sodeac.common.misc.Driver.IDriver;
 
 public class Driver
 {
@@ -37,6 +43,34 @@ public class Driver
 			}
 		}
 		return bestDriver;
+	}
+	
+	public static <T extends IDriver> List<T> getDriverList(Class<T> driverClass, Map<String,Object> properties)
+	{
+		if(OSGiUtils.isOSGi())
+		{
+			return OSGiUtils.getDriverList(driverClass, properties);
+		}
+		ServiceLoader<T> serviceLoader = ServiceLoader.load(driverClass);
+		Iterator<T> iterator = serviceLoader.iterator();
+		List<T> list = new ArrayList<T>();
+		Set<String> uniqueIndex = new HashSet<String>();
+		while(iterator.hasNext())
+		{
+			T driverInstance = iterator.next();
+			if(uniqueIndex.contains(driverInstance.getClass().getCanonicalName()))
+			{
+				continue;
+			}
+			int applicableIndex = driverInstance.driverIsApplicableFor(properties);
+			if(applicableIndex > IDriver.APPLICABLE_NONE)
+			{
+				list.add(driverInstance);
+				uniqueIndex.add(driverInstance.getClass().getCanonicalName());
+			}
+		}
+		uniqueIndex.clear();
+		return list;
 	}
 	
 	public interface IDriver

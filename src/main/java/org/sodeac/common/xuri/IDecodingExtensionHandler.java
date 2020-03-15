@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016, 2019 Sebastian Palarus
+ * Copyright (c) 2016, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.sodeac.common.xuri;
 
+import org.sodeac.common.misc.Driver.IDriver;
+
 /**
  * An decoding extension handler decodes a formated string to extension data object of type {@link T} 
  * 
@@ -19,7 +21,7 @@ package org.sodeac.common.xuri;
  *
  * @param <T>
  */
-public interface IDecodingExtensionHandler<T>
+public interface IDecodingExtensionHandler<T> extends IDriver
 {
 	/**
 	 * decodes a string encoded extension to extension object of type {@link T}

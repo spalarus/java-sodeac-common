@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -12,9 +12,12 @@ package org.sodeac.common.xuri;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Map;
+
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+import org.sodeac.common.misc.Driver.IDriver;
 import org.sodeac.common.xuri.ComponentType;
 import org.sodeac.common.xuri.ExtensionHandleObject;
 import org.sodeac.common.xuri.IDecodingExtensionHandler;
@@ -63,6 +66,12 @@ public class ExtensionRegistrationTest
 			public String decodeFromString(String raw)
 			{
 				return raw;
+			}
+
+			@Override
+			public int driverIsApplicableFor(Map<String, Object> properties)
+			{
+				return IDriver.APPLICABLE_DEFAULT;
 			}
 		};		
 		URIParser.addDecodingExtensionHandler(decodingExtension);

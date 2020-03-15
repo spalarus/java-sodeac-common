@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -126,6 +126,25 @@ public class OSGiDriverRegistry
 		}
 	}
 	
+	public <T extends IDriver> List<T> getDriverList(Class<T> driverClass, Map<String,Object> properties)
+	{
+		lock.lock();
+		try
+		{
+			DriverServiceTracker tracker = trackerIndex.get(driverClass);
+			if(tracker == null)
+			{
+				observe(driverClass);
+				tracker = trackerIndex.get(driverClass);
+			}
+			return (List)tracker.getDriverList(properties);
+		}
+		finally 
+		{
+			lock.unlock();
+		}
+	}
+	
 	protected static class DriverServiceTracker extends ServiceTracker
 	{
 		private Class clazz = null;
@@ -204,6 +223,50 @@ public class OSGiDriverRegistry
 					}
 				}
 				return bestDriver;
+			}
+			finally 
+			{
+				lock.unlock();
+			}
+		}
+		
+		public List<Object> getDriverList(Map<String,Object> properties)
+		{
+			if(lock == null)
+			{
+				return null;
+			}
+			lock.lock();
+			try
+			{
+				List<Object> driverList = new ArrayList<Object>();
+				for(List<ServiceReference> serviceReferenceList : this.listsByClassName.values())
+				{
+					if(serviceReferenceList.isEmpty())
+					{
+						continue;
+					}
+					Object driver = null;
+					for(ServiceReference serviceReference : serviceReferenceList)
+					{
+						driver = serviceReference.getBundle().getBundleContext().getService(serviceReference);
+						if(driver != null)
+						{
+							break;
+						}
+					}
+					if(driver == null)
+					{
+						continue;
+					}
+					
+					int applicableIndex = ((IDriver)driver).driverIsApplicableFor(properties);
+					if(applicableIndex > IDriver.APPLICABLE_NONE)
+					{
+						driverList.add(driver);
+					}
+				}
+				return driverList;
 			}
 			finally 
 			{

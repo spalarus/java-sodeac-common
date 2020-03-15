@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016, 2019 Sebastian Palarus
+ * Copyright (c) 2016, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -15,12 +15,11 @@ import java.io.Serializable;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ServiceLoader;
 
-import org.sodeac.common.xuri.ldapfilter.LDAPFilterDecodingHandler;
+import org.sodeac.common.misc.Driver;
 
 /*
  * 
@@ -49,7 +48,6 @@ public final class URIParser implements Serializable
 	
 	private static final int SIZE_CASH_HELPER_OBJECT = 13;
 	
-	@SuppressWarnings("rawtypes")
 	protected static List<IDecodingExtensionHandler<?>> getDecodingExtensionHandler(ComponentType componentType, URI uri)
 	{
 		
@@ -61,16 +59,7 @@ public final class URIParser implements Serializable
 				list = CACHE_ENCODING_EXTENSION;
 				if(CACHE_ENCODING_EXTENSION == null)
 				{
-					list = new ArrayList<IDecodingExtensionHandler<?>>();
-					list.add(LDAPFilterDecodingHandler.getInstance());
-					
-					ServiceLoader<IDecodingExtensionHandler> loader = ServiceLoader.load(IDecodingExtensionHandler.class);
-					Iterator<IDecodingExtensionHandler> iterator = loader.iterator();
-					while(iterator.hasNext())
-					{
-						addDecodingExtensionHandler(iterator.next());
-					}
-					list = Collections.unmodifiableList(list);
+					list = Collections.unmodifiableList((List)Driver.getDriverList(IDecodingExtensionHandler.class, new HashMap<String,Object>()));
 					CACHE_ENCODING_EXTENSION = list;
 				}
 			}

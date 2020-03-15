@@ -12,7 +12,10 @@ package org.sodeac.common.xuri.ldapfilter;
 
 import java.io.Serializable;
 import java.util.LinkedList;
+import java.util.Map;
 
+import org.osgi.service.component.annotations.Component;
+import org.sodeac.common.misc.Driver.IDriver;
 import org.sodeac.common.xuri.ComponentType;
 import org.sodeac.common.xuri.ExtensionHandleObject;
 import org.sodeac.common.xuri.FormatException;
@@ -26,6 +29,7 @@ import org.sodeac.common.xuri.IDecodingExtensionHandler;
  * @version 1.0
  *
  */
+@Component(service=IDecodingExtensionHandler.class,immediate=true)
 public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFilterItem>, Serializable
 {
 	//TODO  implement escaping mechanism from  https://tools.ietf.org/search/rfc4515
@@ -522,5 +526,11 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 	public char[] getCloserCharacters(ComponentType component)
 	{
 		return CLOSER_CHARACTERS;
+	}
+
+	@Override
+	public int driverIsApplicableFor(Map<String, Object> properties)
+	{
+		return IDriver.APPLICABLE_DEFAULT;
 	}
 }
