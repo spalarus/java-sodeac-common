@@ -49,16 +49,12 @@ import org.sodeac.common.typedtree.BranchNodeType;
 import org.sodeac.common.typedtree.INodeType;
 import org.sodeac.common.typedtree.LeafNode;
 import org.sodeac.common.typedtree.LeafNodeType;
-import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.Node;
 import org.sodeac.common.typedtree.TypedTreeMetaModel;
 import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
 import org.sodeac.common.typedtree.annotation.Association.AssociationType;
 import org.sodeac.common.typedtree.annotation.SQLColumn;
 import org.sodeac.common.typedtree.annotation.SQLColumn.SQLColumnType;
-
-import org.sodeac.common.typedtree.annotation.SQLPrimaryKey;
-import org.sodeac.common.typedtree.annotation.SQLReferencedByColumn;
 
 public class TypedTreeJDBCCruder implements AutoCloseable 
 {

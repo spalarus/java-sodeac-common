@@ -12,10 +12,8 @@ package org.sodeac.common.xuri.ldapfilter;
 
 import java.io.Serializable;
 import java.util.LinkedList;
-import java.util.Map;
 
 import org.osgi.service.component.annotations.Component;
-import org.sodeac.common.misc.Driver.IDriver;
 import org.sodeac.common.xuri.ComponentType;
 import org.sodeac.common.xuri.ExtensionHandleObject;
 import org.sodeac.common.xuri.FormatException;
@@ -104,7 +102,7 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 				if(openerCount == 0)
 				{
 					String expression = extensionHandleObject.rawResult.toString();
-					if(expression.startsWith("(") && expression.endsWith(")"))
+					if(expression.trim().startsWith("(") && expression.trim().endsWith(")"))
 					{
 						extensionHandleObject.extension = new LDAPFilterExtension(expression);
 					}
@@ -526,11 +524,5 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 	public char[] getCloserCharacters(ComponentType component)
 	{
 		return CLOSER_CHARACTERS;
-	}
-
-	@Override
-	public int driverIsApplicableFor(Map<String, Object> properties)
-	{
-		return IDriver.APPLICABLE_DEFAULT;
 	}
 }

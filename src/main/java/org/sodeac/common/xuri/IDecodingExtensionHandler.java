@@ -21,7 +21,7 @@ import org.sodeac.common.misc.Driver.IDriver;
  *
  * @param <T>
  */
-public interface IDecodingExtensionHandler<T> extends IDriver
+public interface IDecodingExtensionHandler<T>
 {
 	/**
 	 * decodes a string encoded extension to extension object of type {@link T}

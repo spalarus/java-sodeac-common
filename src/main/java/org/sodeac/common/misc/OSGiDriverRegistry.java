@@ -20,8 +20,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Stack;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiConsumer;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -43,6 +45,8 @@ public class OSGiDriverRegistry
 	protected static OSGiDriverRegistry INSTANCE;
 	private Lock lock;
 	private Map<Class,DriverServiceTracker> trackerIndex = new HashMap<Class, OSGiDriverRegistry.DriverServiceTracker>();
+	
+	// TODO ungetService concept ? is coupled with release driver 
 	
 	public OSGiDriverRegistry()
 	{
@@ -107,6 +111,56 @@ public class OSGiDriverRegistry
 		}
 	}
 	
+	public <T extends IDriver> boolean addDriverUpdateListener(Class<T> driverClass, BiConsumer<T, T> updateListener)
+	{
+		if(lock == null)
+		{
+			return false;
+		}
+		
+		lock.lock();
+		try
+		{
+			DriverServiceTracker tracker = trackerIndex.get(driverClass);
+			if(tracker == null)
+			{
+				observe(driverClass);
+				tracker = trackerIndex.get(driverClass);
+			}
+			tracker.addUpdateListener(updateListener);
+		}
+		finally 
+		{
+			lock.unlock();
+		}
+		return true;
+	}
+	
+	public <T extends IDriver> boolean removeDriverUpdateListener(Class<T> driverClass, BiConsumer<T, T> updateListener)
+	{
+		if(lock == null)
+		{
+			return false;
+		}
+		
+		lock.lock();
+		try
+		{
+			DriverServiceTracker tracker = trackerIndex.get(driverClass);
+			if(tracker == null)
+			{
+				observe(driverClass);
+				tracker = trackerIndex.get(driverClass);
+			}
+			tracker.removeUpdateListener(updateListener);
+		}
+		finally 
+		{
+			lock.unlock();
+		}
+		return true;
+	}
+	
 	public <T extends IDriver> T getSingleDriver(Class<T> driverClass, Map<String,Object> properties)
 	{
 		lock.lock();
@@ -145,10 +199,13 @@ public class OSGiDriverRegistry
 		}
 	}
 	
-	protected static class DriverServiceTracker extends ServiceTracker
+	protected class DriverServiceTracker extends ServiceTracker
 	{
 		private Class clazz = null;
 		private Lock lock = null;
+		
+		private List<BiConsumer<? extends IDriver, ? extends IDriver>> updateListenerList = new ArrayList<>();
+		private Map<String,List<ServiceContainer>> listsByClassName = null;
 		
 		public DriverServiceTracker(BundleContext context, Class clazz, Customizer customizer)
 		{
@@ -156,10 +213,64 @@ public class OSGiDriverRegistry
 			this.clazz = clazz;
 			this.lock = new ReentrantLock();
 			customizer.setTracker(this);
-			this.listsByClassName = new HashMap<String,List<ServiceReference>>();
+			this.listsByClassName = new HashMap<String,List<ServiceContainer>>();
 		}
 		
-		private Map<String,List<ServiceReference>> listsByClassName = null;
+		public void addUpdateListener(BiConsumer<? extends IDriver, ? extends IDriver> updateListener)
+		{
+			if(lock == null)
+			{
+				return;
+			}
+			
+			lock.lock();
+			try
+			{
+				for(BiConsumer<? extends IDriver, ? extends IDriver> check : updateListenerList)
+				{
+					if(check == updateListener)
+					{
+						return;
+					}
+				}
+				this.updateListenerList.add(updateListener);
+			}
+			finally 
+			{
+				lock.unlock();
+			}
+		}
+		
+		public void removeUpdateListener(BiConsumer<? extends IDriver, ? extends IDriver> updateListener)
+		{
+			if(lock == null)
+			{
+				return;
+			}
+			
+			lock.lock();
+			try
+			{
+				Stack<Integer> delete = new Stack<>();
+				int index = 0;
+				for(BiConsumer<? extends IDriver, ? extends IDriver> check : updateListenerList)
+				{
+					if(check == updateListener)
+					{
+						delete.push(index);
+					}
+					index++;
+				}
+				while(! delete.isEmpty())
+				{
+					this.updateListenerList.remove((int)delete.pop());
+				}
+			}
+			finally 
+			{
+				lock.unlock();
+			}
+		}
 		
 		@Override
 		public void close()
@@ -174,6 +285,7 @@ public class OSGiDriverRegistry
 			{
 				listsByClassName.values().forEach(i -> i.clear());
 				listsByClassName.clear();
+				updateListenerList.clear();
 			}
 			finally 
 			{
@@ -195,16 +307,16 @@ public class OSGiDriverRegistry
 			{
 				Object bestDriver = null;
 				int bestIndex = -1;
-				for(List<ServiceReference> serviceReferenceList : this.listsByClassName.values())
+				for(List<ServiceContainer> serviceReferenceList : this.listsByClassName.values())
 				{
 					if(serviceReferenceList.isEmpty())
 					{
 						continue;
 					}
 					Object driver = null;
-					for(ServiceReference serviceReference : serviceReferenceList)
+					for(ServiceContainer container : serviceReferenceList)
 					{
-						driver = serviceReference.getBundle().getBundleContext().getService(serviceReference);
+						driver = container.getService();
 						if(driver != null)
 						{
 							break;
@@ -240,16 +352,16 @@ public class OSGiDriverRegistry
 			try
 			{
 				List<Object> driverList = new ArrayList<Object>();
-				for(List<ServiceReference> serviceReferenceList : this.listsByClassName.values())
+				for(List<ServiceContainer> serviceReferenceList : this.listsByClassName.values())
 				{
 					if(serviceReferenceList.isEmpty())
 					{
 						continue;
 					}
 					Object driver = null;
-					for(ServiceReference serviceReference : serviceReferenceList)
+					for(ServiceContainer container : serviceReferenceList)
 					{
-						driver = serviceReference.getBundle().getBundleContext().getService(serviceReference);
+						driver = container.getService();
 						if(driver != null)
 						{
 							break;
@@ -288,6 +400,10 @@ public class OSGiDriverRegistry
 			{
 				return;
 			}
+			if(reference == null)
+			{
+				return;
+			}
 			if(lock == null)
 			{
 				return;
@@ -295,33 +411,41 @@ public class OSGiDriverRegistry
 			lock.lock();
 			try
 			{
-				List<ServiceReference> list = listsByClassName.get(driver.getClass().getCanonicalName());
+				List<ServiceContainer> list = listsByClassName.get(driver.getClass().getCanonicalName());
 				if(list == null)
 				{
 					list = new ArrayList<>();
 					listsByClassName.put(driver.getClass().getCanonicalName(),list);
 				}
-				for(ServiceReference sr : list)
+				ServiceContainer oldContainer = null;
+				for(ServiceContainer container : list)
 				{
-					if(sr == reference)
+					if(container.getServiceReference() == reference)
 					{
 						return;
 					}
+					if(oldContainer == null)
+					{
+						oldContainer = container;
+					}
 				}
-				list.add(reference);
+				list.add(new ServiceContainer(reference, reference.getBundle().getBundleContext().getService(reference)));
 				
-				Collections.sort(list, Collections.reverseOrder(new Comparator<ServiceReference>()
+				Collections.sort(list, Collections.reverseOrder(new Comparator<ServiceContainer>()
 				{
 
 					@Override
-					public int compare(ServiceReference o1, ServiceReference o2)
+					public int compare(ServiceContainer o1, ServiceContainer o2)
 					{
-						if((o1 == null) || (o2 == null))
+						ServiceReference sr1 = o1.getServiceReference(); 
+						ServiceReference sr2 = o2.getServiceReference();
+						
+						if((sr1 == null) || (sr2 == null))
 						{
 							return 0;
 						}
-						Bundle bundle1 = o1.getBundle();
-						Bundle bundle2 = o2.getBundle();
+						Bundle bundle1 = sr1.getBundle();
+						Bundle bundle2 = sr2.getBundle();
 						if((bundle1 == null) || (bundle2 == null))
 						{
 							return 0;
@@ -335,6 +459,18 @@ public class OSGiDriverRegistry
 						return version1.compareTo(version2);
 					}
 				}));
+				
+				if(oldContainer != list.get(0))
+				{
+					for(BiConsumer updateListener : this.updateListenerList)
+					{
+						try
+						{
+							updateListener.accept(list.get(0).getService(), oldContainer == null ? null : oldContainer.getService());
+						}
+						catch (Exception e) {}
+					}
+				}
 				
 			}
 			finally 
@@ -353,22 +489,40 @@ public class OSGiDriverRegistry
 			try
 			{
 				Set<String> toRemoveLists = new HashSet<>();
-				for(Entry<String,List<ServiceReference>> entry  : listsByClassName.entrySet())
+				for(Entry<String,List<ServiceContainer>> entry  : listsByClassName.entrySet())
 				{
-					List<ServiceReference> list = entry.getValue();
+					List<ServiceContainer> list = entry.getValue();
 					LinkedList<Integer> toRemovePositions = new LinkedList<>();
 					int index = 0;
-					for(ServiceReference serviceReference : list)
+					for(ServiceContainer serviceContainer : list)
 					{
-						if(serviceReference == reference)
+						if(serviceContainer.getServiceReference() == reference)
 						{
 							toRemovePositions.addFirst(index);
 						}
 						index++;
 					}
+					if(toRemovePositions.isEmpty())
+					{
+						continue;
+					}
+					ServiceContainer oldFirstContainer = list.get(0);
 					for(Integer toRemove : toRemovePositions)
 					{
 						list.remove((int)toRemove);
+					}
+					ServiceContainer newFirstContainer = list.isEmpty() ? null : list.get(0);
+					
+					if(newFirstContainer != oldFirstContainer)
+					{
+						for(BiConsumer updateListener : this.updateListenerList)
+						{
+							try
+							{
+								updateListener.accept(newFirstContainer == null ? null : newFirstContainer.getService(), oldFirstContainer.getService());
+							}
+							catch (Exception e) {}
+						}
 					}
 					
 					if(list.isEmpty())
@@ -390,6 +544,28 @@ public class OSGiDriverRegistry
 		protected BundleContext getContext()
 		{
 			return super.context;
+		}
+		
+		private class ServiceContainer
+		{
+			private ServiceContainer(ServiceReference serviceReference, Object service)
+			{
+				super();
+				this.serviceReference = serviceReference;
+				this.service = service;
+			}
+			
+			private ServiceReference serviceReference = null;
+			private Object service = null;
+			
+			public ServiceReference getServiceReference()
+			{
+				return serviceReference;
+			}
+			public Object getService()
+			{
+				return service;
+			}
 		}
 	}
 	

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016, 2020 Sebastian Palarus
+ * Copyright (c) 2016, 2019 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -8,10 +8,12 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.xuri.ldapfilter;
+package org.sodeac.common.xuri.json;
 
 import java.io.Serializable;
 import java.util.Map;
+
+import javax.json.JsonObject;
 
 import org.osgi.service.component.annotations.Component;
 import org.sodeac.common.misc.Driver.IDriver;
@@ -20,28 +22,28 @@ import org.sodeac.common.xuri.IEncodingExtensionHandler;
 import org.sodeac.common.xuri.IExtension;
 
 /**
- * XURI filter extension for ldap filter.
+ * XURI filter extension for json parts
  * 
  * @author Sebastian Palarus
- * @since 1.0
- * @version 1.0
  */
+
 @Component(service=IExtension.class,immediate=true)
-public class LDAPFilterExtension implements IExtension<IFilterItem>, Serializable
+public class JsonExtension implements IExtension<JsonObject>, Serializable
 {
+	
 	/**
 	 * 
 	 */
-	private static final long serialVersionUID = 9054192628876497162L;
+	private static final long serialVersionUID = 6901232768391674155L;
 	
-	public static final String TYPE = "org.sodeac.xuri.ldapfilter";
+	public static final String TYPE = "org.sodeac.xuri.json";
 	
-	public LDAPFilterExtension()
+	public JsonExtension()
 	{
 		super();
 	}
 	
-	public LDAPFilterExtension(String rawString)
+	public JsonExtension(String rawString)
 	{
 		super();
 		this.rawString = rawString;
@@ -61,26 +63,26 @@ public class LDAPFilterExtension implements IExtension<IFilterItem>, Serializabl
 		return TYPE;
 	}
 
-	public IFilterItem decodeFromString(String expression)
+	public JsonObject decodeFromString(String expression)
 	{
-		return LDAPFilterDecodingHandler.getInstance().decodeFromString(expression);
+		return JsonDecodingHandler.getInstance().decodeFromString(expression);
 	}
 
-	public String encodeToString(IFilterItem extensionDataObject)
+	public String encodeToString(JsonObject extensionDataObject)
 	{
-		return LDAPFilterEncodingHandler.getInstance().encodeToString(extensionDataObject);
-	}
-
-	@Override
-	public IDecodingExtensionHandler<IFilterItem> getDecoder()
-	{
-		return LDAPFilterDecodingHandler.getInstance();
+		return JsonEncodingHandler.getInstance().encodeToString(extensionDataObject);
 	}
 
 	@Override
-	public IEncodingExtensionHandler<IFilterItem> getEncoder()
+	public IDecodingExtensionHandler<JsonObject> getDecoder()
 	{
-		return LDAPFilterEncodingHandler.getInstance();
+		return JsonDecodingHandler.getInstance();
+	}
+
+	@Override
+	public IEncodingExtensionHandler<JsonObject> getEncoder()
+	{
+		return JsonEncodingHandler.getInstance();
 	}
 	
 	@Override

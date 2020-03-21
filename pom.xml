@@ -178,9 +178,12 @@
             	org.sodeac.common.model*;version="${bundle.version}",
             	org.sodeac.common.xuri;version="${bundle.version}",
             	org.sodeac.common.xuri.ldapfilter;version="${bundle.version}",
+            	org.sodeac.common.xuri.json;version="${bundle.version}",
             	org.sodeac.common.message;version="${bundle.version}",
             	org.sodeac.common.message.dispatcher.api;version="${bundle.version}",
             	org.sodeac.common.message.service.api;version="${bundle.version}",
+            	org.sodeac.common.local.service.annotation;version="${bundle.version}",
+            	org.sodeac.common.local.service.api;version="${bundle.version}",
             	org.sodeac.common.misc;version="${bundle.version}",
             	org.sodeac.common.jdbc;version="${bundle.version}",
             	org.sodeac.common.jdbc.schemax;version="${bundle.version}"
@@ -188,6 +191,7 @@
             <Private-Package>
             	org.sodeac.common.message.dispatcher.impl,
             	org.sodeac.common.message.service.impl,
+            	org.sodeac.common.local.service.impl,
             	org.sodeac.common.jdbc.impl,
             	org.sodeac.common.impl
             </Private-Package>

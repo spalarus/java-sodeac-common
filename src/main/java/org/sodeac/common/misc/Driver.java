@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 import org.sodeac.common.misc.Driver.IDriver;
 
@@ -45,6 +46,24 @@ public class Driver
 		return bestDriver;
 	}
 	
+	public static  <T extends IDriver> boolean addUpdateListener(Class<T> driverClass, BiConsumer<T, T> updateListener)
+	{
+		if(OSGiUtils.isOSGi())
+		{
+			return OSGiUtils.addDriverUpdateListener(driverClass, updateListener);
+		}
+		return true;
+	}
+	
+	public static <T extends IDriver> boolean  removeUpdateListener(Class<T> driverClass, BiConsumer<T, T> updateListener)
+	{
+		if(OSGiUtils.isOSGi())
+		{
+			return OSGiUtils.removeDriverUpdateListener(driverClass, updateListener);
+		}
+		return true;
+	}
+	
 	public static <T extends IDriver> List<T> getDriverList(Class<T> driverClass, Map<String,Object> properties)
 	{
 		if(OSGiUtils.isOSGi())
@@ -57,17 +76,21 @@ public class Driver
 		Set<String> uniqueIndex = new HashSet<String>();
 		while(iterator.hasNext())
 		{
-			T driverInstance = iterator.next();
-			if(uniqueIndex.contains(driverInstance.getClass().getCanonicalName()))
+			try
 			{
-				continue;
+				T driverInstance = iterator.next();
+				if(uniqueIndex.contains(driverInstance.getClass().getCanonicalName()))
+				{
+					continue;
+				}
+				int applicableIndex = driverInstance.driverIsApplicableFor(properties);
+				if(applicableIndex > IDriver.APPLICABLE_NONE)
+				{
+					list.add(driverInstance);
+					uniqueIndex.add(driverInstance.getClass().getCanonicalName());
+				}
 			}
-			int applicableIndex = driverInstance.driverIsApplicableFor(properties);
-			if(applicableIndex > IDriver.APPLICABLE_NONE)
-			{
-				list.add(driverInstance);
-				uniqueIndex.add(driverInstance.getClass().getCanonicalName());
-			}
+			catch (Exception e) {}
 		}
 		uniqueIndex.clear();
 		return list;

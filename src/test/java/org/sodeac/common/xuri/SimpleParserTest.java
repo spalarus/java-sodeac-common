@@ -235,8 +235,8 @@ public class SimpleParserTest
 		IExtension<IFilterItem> filter1Extension = (IExtension<IFilterItem>)uri.getAuthority().getSubComponentList().get(2).getExtensionList().get(0);
 		IExtension<IFilterItem> filter2Extension = (IExtension<IFilterItem>)uri.getAuthority().getSubComponentList().get(2).getExtensionList().get(1);
 		
-		Attribute filter1 = (Attribute)filter1Extension.decodeFromString(filter1Extension.getExpression());
-		AttributeLinker filter2 = (AttributeLinker)filter2Extension.decodeFromString(filter2Extension.getExpression());
+		Attribute filter1 = (Attribute)filter1Extension.getDecoder().decodeFromString(filter1Extension.getExpression());
+		AttributeLinker filter2 = (AttributeLinker)filter2Extension.getDecoder().decodeFromString(filter2Extension.getExpression());
 		assertEquals("filter1 name should be correct", "id",filter1.getName());
 		assertEquals("filter1 operator should be correct", ComparativeOperator.EQUAL.name(),filter1.getOperator().name());
 		assertEquals("filter1 value should be correct", "default",filter1.getValue());

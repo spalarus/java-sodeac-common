@@ -17,10 +17,12 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
 import org.sodeac.common.misc.Driver.IDriver;
+import org.sodeac.common.misc.OSGiDriverRegistry.DriverServiceTracker;
 
 public class OSGiUtils 
 {
@@ -193,12 +195,40 @@ public class OSGiUtils
 	
 	public static <T extends IDriver> T getSingleDriver(Class<T> driverClass, Map<String,Object> properties)
 	{
+		if(OSGiDriverRegistry.INSTANCE == null)
+		{
+			return null;
+		}
 		return OSGiDriverRegistry.INSTANCE.getSingleDriver(driverClass, properties);
 	}
 	
 	public static <T extends IDriver> List<T> getDriverList(Class<T> driverClass, Map<String,Object> properties)
 	{
+		if(OSGiDriverRegistry.INSTANCE == null)
+		{
+			return null;
+		}
+		
 		return OSGiDriverRegistry.INSTANCE.getDriverList(driverClass, properties);
+	}
+	
+	public static <T extends IDriver> boolean addDriverUpdateListener(Class<T> driverClass, BiConsumer<T, T> updateListener)
+	{
+		if(OSGiDriverRegistry.INSTANCE == null)
+		{
+			return false;
+		}
+		return OSGiDriverRegistry.INSTANCE.addDriverUpdateListener(driverClass, updateListener);
+	}
+	
+	public static <T extends IDriver> boolean removeDriverUpdateListener(Class<T> driverClass, BiConsumer<T, T> updateListener)
+	{
+		if(OSGiDriverRegistry.INSTANCE == null)
+		{
+			return false;
+		}
+		
+		return OSGiDriverRegistry.INSTANCE.removeDriverUpdateListener(driverClass, updateListener);
 	}
 	
 	private static class TesterConfiguration

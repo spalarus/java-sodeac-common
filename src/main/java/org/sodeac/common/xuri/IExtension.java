@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016, 2019 Sebastian Palarus
+ * Copyright (c) 2016, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.sodeac.common.xuri;
 
+import org.sodeac.common.misc.Driver.IDriver;
+
 /**
  * 
  * Interface for extensions to define and handle an expression string
@@ -17,7 +19,7 @@ package org.sodeac.common.xuri;
  * @author Sebastian Palarus
  *
  */
-public interface IExtension<T>
+public interface IExtension<T> extends IDriver
 {
 	/**
 	 * 
@@ -32,18 +34,17 @@ public interface IExtension<T>
 	public String getExpression();
 	
 	/**
-	 * decode expression string to extension data object
+	 * getter for default decoder instance
 	 * 
-	 * @param expression expression string
-	 * @return extension data object
+	 * @return default decoder instance
 	 */
-	public T decodeFromString(String expression);
+	public IDecodingExtensionHandler<T> getDecoder();
+	
 	
 	/**
-	 * encode extension data object to expression string
+	 * getter for default encoder instance
 	 * 
-	 * @param extensionDataObject extension data object
-	 * @return expression string
+	 * @return default encoder instance
 	 */
-	public String encodeToString(T extensionDataObject);
+	public IEncodingExtensionHandler<T> getEncoder();
 }
