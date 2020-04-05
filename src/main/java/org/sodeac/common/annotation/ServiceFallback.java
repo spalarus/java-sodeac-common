@@ -8,16 +8,19 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.message.service.api;
+package org.sodeac.common.annotation;
 
-import java.util.function.Consumer;
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-import org.sodeac.common.misc.Driver.IDriver;
-import org.sodeac.common.xuri.URI;
+import java.lang.annotation.Documented;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
 
-public interface IServiceRegistry extends IDriver
+@Documented
+@Retention(RUNTIME)
+@Target(FIELD)
+public @interface ServiceFallback
 {
-	public void registerLocalService(URI serviceURI, Consumer<IServiceConnection> setup);
-	public void unegisterLocalService(Consumer<IServiceConnection> setup);
-	public IServiceConnection lookupLocalService(URI serviceURI);
+	Class<?> clazz();
 }

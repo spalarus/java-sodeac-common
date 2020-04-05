@@ -19,15 +19,17 @@ import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
-import org.sodeac.common.misc.Driver.IDriver;
-
 public class Driver
 {
 	public static <T extends IDriver> T getSingleDriver(Class<T> driverClass, Map<String,Object> properties)
 	{
 		if(OSGiUtils.isOSGi())
 		{
-			return OSGiUtils.getSingleDriver(driverClass, properties);
+			T driver = OSGiUtils.getSingleDriver(driverClass, properties);
+			if(driver != null)
+			{
+				return driver;
+			}
 		}
 		ServiceLoader<T> serviceLoader = ServiceLoader.load(driverClass);
 		Iterator<T> iterator = serviceLoader.iterator();
@@ -68,7 +70,11 @@ public class Driver
 	{
 		if(OSGiUtils.isOSGi())
 		{
-			return OSGiUtils.getDriverList(driverClass, properties);
+			List<T> driverList = OSGiUtils.getDriverList(driverClass, properties);
+			if(! driverList.isEmpty())
+			{
+				return driverList;
+			}
 		}
 		ServiceLoader<T> serviceLoader = ServiceLoader.load(driverClass);
 		Iterator<T> iterator = serviceLoader.iterator();

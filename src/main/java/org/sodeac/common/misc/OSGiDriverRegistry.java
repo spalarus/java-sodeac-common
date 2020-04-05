@@ -27,6 +27,7 @@ import java.util.function.BiConsumer;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.Version;
 import org.osgi.service.component.ComponentContext;
@@ -35,7 +36,6 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
-import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
 import org.sodeac.common.misc.Driver.IDriver;
 
 @Component(immediate=true,service=OSGiDriverRegistry.class)
@@ -59,8 +59,6 @@ public class OSGiDriverRegistry
 	{
 		this.componentContext = componentContext;
 		OSGiDriverRegistry.INSTANCE = this;
-		
-		observe(IDBSchemaUtilsDriver.class);
 	}
 	
 	@Deactivate
@@ -101,7 +99,7 @@ public class OSGiDriverRegistry
 				return;
 			}
 			
-			DriverServiceTracker driverServiceTracker = new DriverServiceTracker(this.componentContext.getBundleContext(), driverClass, new Customizer());
+			DriverServiceTracker driverServiceTracker = new DriverServiceTracker(this.componentContext.getBundleContext(), driverClass, new Customizer()); // BundleContext of Class?
 			this.trackerIndex.put(driverClass, driverServiceTracker);
 			driverServiceTracker.open(true);
 		}
@@ -429,7 +427,7 @@ public class OSGiDriverRegistry
 						oldContainer = container;
 					}
 				}
-				list.add(new ServiceContainer(reference, reference.getBundle().getBundleContext().getService(reference)));
+				list.add(new ServiceContainer(reference, driver));
 				
 				Collections.sort(list, Collections.reverseOrder(new Comparator<ServiceContainer>()
 				{
@@ -567,6 +565,11 @@ public class OSGiDriverRegistry
 				return service;
 			}
 		}
+
+		public Class getClazz()
+		{
+			return clazz;
+		}
 	}
 	
 	protected static class Customizer implements ServiceTrackerCustomizer
@@ -585,7 +588,9 @@ public class OSGiDriverRegistry
 		@Override
 		public Object addingService(ServiceReference reference)
 		{
-			Object driver = tracker.getContext().getService(reference);
+			
+			//Object driver = tracker.getContext().getService(reference);
+			Object driver = FrameworkUtil.getBundle(tracker.getClazz()).getBundleContext().getService(reference);
 			tracker.addDriver(reference,driver);
 			return driver;
 		}
@@ -597,6 +602,7 @@ public class OSGiDriverRegistry
 		public void removedService(ServiceReference reference, Object service)
 		{
 			tracker.removeDriver(reference,service);
+			FrameworkUtil.getBundle(tracker.getClazz()).getBundleContext().ungetService(reference);
 		}
 		
 	}

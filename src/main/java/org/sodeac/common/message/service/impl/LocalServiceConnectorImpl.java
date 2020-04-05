@@ -5,7 +5,6 @@ import java.util.Map;
 import org.osgi.service.component.annotations.Component;
 import org.sodeac.common.message.service.api.IServiceConnection;
 import org.sodeac.common.message.service.api.IServiceConnector;
-import org.sodeac.common.message.service.api.IServiceRegistry;
 import org.sodeac.common.misc.Driver;
 import org.sodeac.common.misc.Driver.IDriver;
 import org.sodeac.common.xuri.URI;
@@ -13,7 +12,7 @@ import org.sodeac.common.xuri.URI;
 @Component
 public class LocalServiceConnectorImpl implements IServiceConnector
 {
-	private volatile IServiceRegistry serviceRegistry = null;
+	//private volatile IServiceRegistry serviceRegistry = null;
 	
 
 	@Override
@@ -33,7 +32,7 @@ public class LocalServiceConnectorImpl implements IServiceConnector
 	@Override
 	public IServiceConnection lookup(URI serviceURI)
 	{
-		IServiceRegistry serviceRegistry = this.serviceRegistry;
+		/*IServiceRegistry serviceRegistry = this.serviceRegistry;
 		if(serviceRegistry == null)
 		{
 			serviceRegistry = Driver.getSingleDriver(IServiceRegistry.class, null);
@@ -45,8 +44,8 @@ public class LocalServiceConnectorImpl implements IServiceConnector
 			{
 				return null;
 			}
-		}
-		return serviceRegistry.lookupLocalService(serviceURI);
+		}*/
+		return null;
 	}
 
 }

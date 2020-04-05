@@ -6,7 +6,6 @@ import java.util.Map;
 import org.osgi.service.component.annotations.Component;
 import org.sodeac.common.message.service.api.IServiceConnection;
 import org.sodeac.common.message.service.api.IServiceConnector;
-import org.sodeac.common.message.service.api.IServiceRegistry;
 import org.sodeac.common.misc.Driver;
 import org.sodeac.common.misc.Driver.IDriver;
 import org.sodeac.common.xuri.URI;

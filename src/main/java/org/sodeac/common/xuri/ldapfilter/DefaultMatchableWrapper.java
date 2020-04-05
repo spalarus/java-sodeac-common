@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -12,9 +12,11 @@ package org.sodeac.common.xuri.ldapfilter;
 
 import java.util.Objects;
 
+import org.sodeac.common.misc.Version;
+
 /**
  * 
- * Matchable wrapper for strings, booleans and numbers
+ * Matchable wrapper for strings, booleans and numbers ...
  * 
  * @author Sebastian Palarus
  *
@@ -46,7 +48,7 @@ public class DefaultMatchableWrapper implements IMatchable
 			return true;
 		}
 		
-		if(value == null)
+		if(this.value == null)
 		{
 			return false;
 		}
@@ -59,7 +61,10 @@ public class DefaultMatchableWrapper implements IMatchable
 		if((this.value instanceof String) && (operator == ComparativeOperator.EQUAL))
 		{
 			// TODO SubstringFilter
-			return ((String)this.value).equals(valueExpression);
+			if(this.value instanceof String)
+			{
+				return ((String)this.value).equals(valueExpression);
+			}
 		}
 		
 		if(this.value instanceof Comparable)
@@ -78,7 +83,7 @@ public class DefaultMatchableWrapper implements IMatchable
 			{
 				return compareValue >= 0;
 			}
-			throw new RuntimeException("unkown operator " + operator);
+			throw new RuntimeException("unknown operator " + operator);
 		}
 		
 		if((operator == ComparativeOperator.GREATER) || (operator == ComparativeOperator.LESS))
@@ -137,6 +142,11 @@ public class DefaultMatchableWrapper implements IMatchable
 			if(this.value instanceof Double)
 			{
 				return Double.parseDouble(valueExpression);
+			}
+			
+			if(this.value instanceof Version)
+			{
+				return Version.fromString(valueExpression);
 			}
 		}
 		catch(Exception e) {}
