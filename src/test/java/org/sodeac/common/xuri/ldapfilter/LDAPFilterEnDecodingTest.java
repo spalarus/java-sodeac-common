@@ -19,8 +19,8 @@ import java.util.List;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
-import org.sodeac.common.xuri.ldapfilter.Attribute;
-import org.sodeac.common.xuri.ldapfilter.AttributeLinker;
+import org.sodeac.common.xuri.ldapfilter.Criteria;
+import org.sodeac.common.xuri.ldapfilter.CriteriaLinker;
 import org.sodeac.common.xuri.ldapfilter.ComparativeOperator;
 import org.sodeac.common.xuri.ldapfilter.IFilterItem;
 import org.sodeac.common.xuri.ldapfilter.LDAPFilterDecodingHandler;
@@ -33,15 +33,15 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test001SimpleEqualAttribute()
 	{
-		Attribute attribute = new Attribute().setName("a").setOperator(ComparativeOperator.EQUAL).setValue("b");
+		Criteria attribute = new Criteria().setName("a").setOperator(ComparativeOperator.EQUAL).setRawValue("b");
 		String filterExpression = LDAPFilterEncodingHandler.getInstance().encodeToString(attribute);
 		assertEquals("ldapfilterexpression should be correct","(a=b)", filterExpression);
 		
 		IFilterItem filterItem = LDAPFilterDecodingHandler.getInstance().decodeFromString(filterExpression);
 		assertNotNull("parsed ldapfilter should not be null", filterItem);
-		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Attribute);
+		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Criteria);
 		
-		attribute = (Attribute)filterItem;
+		attribute = (Criteria)filterItem;
 		assertEquals("attributename should be correct","a", attribute.getName());
 		assertEquals("attributeoperator should be correct",ComparativeOperator.EQUAL, attribute.getOperator());
 		assertEquals("attributevalue should be correct","b", attribute.getValue());
@@ -51,15 +51,15 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test002SimpleNotEqualAttribute()
 	{
-		Attribute attribute = new Attribute().setName("a").setOperator(ComparativeOperator.EQUAL).setValue("b").setInvert(true);
+		Criteria attribute = new Criteria().setName("a").setOperator(ComparativeOperator.EQUAL).setRawValue("b").setInvert(true);
 		String filterExpression = LDAPFilterEncodingHandler.getInstance().encodeToString(attribute);
 		assertEquals("ldapfilterexpression should be correct","(!(a=b))", filterExpression);
 		
 		IFilterItem filterItem = LDAPFilterDecodingHandler.getInstance().decodeFromString(filterExpression);
 		assertNotNull("parsed ldapfilter should not be null", filterItem);
-		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Attribute);
+		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Criteria);
 		
-		attribute = (Attribute)filterItem;
+		attribute = (Criteria)filterItem;
 		assertEquals("attributename should be correct","a", attribute.getName());
 		assertEquals("attributeoperator should be correct",ComparativeOperator.EQUAL, attribute.getOperator());
 		assertEquals("attributevalue should be correct","b", attribute.getValue());
@@ -69,15 +69,15 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test003SimpleLessAttribute()
 	{
-		Attribute attribute = new Attribute().setName("a").setOperator(ComparativeOperator.LESS).setValue("b");
+		Criteria attribute = new Criteria().setName("a").setOperator(ComparativeOperator.LESS).setRawValue("b");
 		String filterExpression = LDAPFilterEncodingHandler.getInstance().encodeToString(attribute);
 		assertEquals("ldapfilterexpression should be correct","(a<=b)", filterExpression);
 		
 		IFilterItem filterItem = LDAPFilterDecodingHandler.getInstance().decodeFromString(filterExpression);
 		assertNotNull("parsed ldapfilter should not be null", filterItem);
-		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Attribute);
+		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Criteria);
 		
-		attribute = (Attribute)filterItem;
+		attribute = (Criteria)filterItem;
 		assertEquals("attributename should be correct","a", attribute.getName());
 		assertEquals("attributeoperator should be correct",ComparativeOperator.LESS, attribute.getOperator());
 		assertEquals("attributevalue should be correct","b", attribute.getValue());
@@ -87,15 +87,15 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test004SimpleNotLessAttribute()
 	{
-		Attribute attribute = new Attribute().setName("a").setOperator(ComparativeOperator.LESS).setValue("b").setInvert(true);
+		Criteria attribute = new Criteria().setName("a").setOperator(ComparativeOperator.LESS).setRawValue("b").setInvert(true);
 		String filterExpression = LDAPFilterEncodingHandler.getInstance().encodeToString(attribute);
 		assertEquals("ldapfilterexpression should be correct","(!(a<=b))", filterExpression);
 		
 		IFilterItem filterItem = LDAPFilterDecodingHandler.getInstance().decodeFromString(filterExpression);
 		assertNotNull("parsed ldapfilter should not be null", filterItem);
-		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Attribute);
+		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Criteria);
 		
-		attribute = (Attribute)filterItem;
+		attribute = (Criteria)filterItem;
 		assertEquals("attributename should be correct","a", attribute.getName());
 		assertEquals("attributeoperator should be correct",ComparativeOperator.LESS, attribute.getOperator());
 		assertEquals("attributevalue should be correct","b", attribute.getValue());
@@ -105,15 +105,15 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test005SimpleLessAttribute()
 	{
-		Attribute attribute = new Attribute().setName("a").setOperator(ComparativeOperator.GREATER).setValue("b");
+		Criteria attribute = new Criteria().setName("a").setOperator(ComparativeOperator.GREATER).setRawValue("b");
 		String filterExpression = LDAPFilterEncodingHandler.getInstance().encodeToString(attribute);
 		assertEquals("ldapfilterexpression should be correct","(a>=b)", filterExpression);
 		
 		IFilterItem filterItem = LDAPFilterDecodingHandler.getInstance().decodeFromString(filterExpression);
 		assertNotNull("parsed ldapfilter should not be null", filterItem);
-		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Attribute);
+		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Criteria);
 		
-		attribute = (Attribute)filterItem;
+		attribute = (Criteria)filterItem;
 		assertEquals("attributename should be correct","a", attribute.getName());
 		assertEquals("attributeoperator should be correct",ComparativeOperator.GREATER, attribute.getOperator());
 		assertEquals("attributevalue should be correct","b", attribute.getValue());
@@ -123,15 +123,15 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test006SimpleNotLessAttribute()
 	{
-		Attribute attribute = new Attribute().setName("a").setOperator(ComparativeOperator.GREATER).setValue("b").setInvert(true);
+		Criteria attribute = new Criteria().setName("a").setOperator(ComparativeOperator.GREATER).setRawValue("b").setInvert(true);
 		String filterExpression = LDAPFilterEncodingHandler.getInstance().encodeToString(attribute);
 		assertEquals("ldapfilterexpression should be correct","(!(a>=b))", filterExpression);
 		
 		IFilterItem filterItem = LDAPFilterDecodingHandler.getInstance().decodeFromString(filterExpression);
 		assertNotNull("parsed ldapfilter should not be null", filterItem);
-		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Attribute);
+		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Criteria);
 		
-		attribute = (Attribute)filterItem;
+		attribute = (Criteria)filterItem;
 		assertEquals("attributename should be correct","a", attribute.getName());
 		assertEquals("attributeoperator should be correct",ComparativeOperator.GREATER, attribute.getOperator());
 		assertEquals("attributevalue should be correct","b", attribute.getValue());
@@ -141,15 +141,15 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test007SimpleLessAttribute()
 	{
-		Attribute attribute = new Attribute().setName("a").setOperator(ComparativeOperator.APPROX).setValue("b");
+		Criteria attribute = new Criteria().setName("a").setOperator(ComparativeOperator.APPROX).setRawValue("b");
 		String filterExpression = LDAPFilterEncodingHandler.getInstance().encodeToString(attribute);
 		assertEquals("ldapfilterexpression should be correct","(a~=b)", filterExpression);
 		
 		IFilterItem filterItem = LDAPFilterDecodingHandler.getInstance().decodeFromString(filterExpression);
 		assertNotNull("parsed ldapfilter should not be null", filterItem);
-		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Attribute);
+		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Criteria);
 		
-		attribute = (Attribute)filterItem;
+		attribute = (Criteria)filterItem;
 		assertEquals("attributename should be correct","a", attribute.getName());
 		assertEquals("attributeoperator should be correct",ComparativeOperator.APPROX, attribute.getOperator());
 		assertEquals("attributevalue should be correct","b", attribute.getValue());
@@ -159,15 +159,15 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test008SimpleNotLessAttribute()
 	{
-		Attribute attribute = new Attribute().setName("a").setOperator(ComparativeOperator.APPROX).setValue("b").setInvert(true);
+		Criteria attribute = new Criteria().setName("a").setOperator(ComparativeOperator.APPROX).setRawValue("b").setInvert(true);
 		String filterExpression = LDAPFilterEncodingHandler.getInstance().encodeToString(attribute);
 		assertEquals("ldapfilterexpression should be correct","(!(a~=b))", filterExpression);
 		
 		IFilterItem filterItem = LDAPFilterDecodingHandler.getInstance().decodeFromString(filterExpression);
 		assertNotNull("parsed ldapfilter should not be null", filterItem);
-		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Attribute);
+		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Criteria);
 		
-		attribute = (Attribute)filterItem;
+		attribute = (Criteria)filterItem;
 		assertEquals("attributename should be correct","a", attribute.getName());
 		assertEquals("attributeoperator should be correct",ComparativeOperator.APPROX, attribute.getOperator());
 		assertEquals("attributevalue should be correct","b", attribute.getValue());
@@ -177,9 +177,9 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test020SimpleAndLinker()
 	{
-		Attribute attr1 = new Attribute().setName("a").setOperator(ComparativeOperator.EQUAL).setValue("b");
-		Attribute attr2 = new Attribute().setName("x").setOperator(ComparativeOperator.APPROX).setValue("z");
-		AttributeLinker attributeLinker = new AttributeLinker().setOperator(LogicalOperator.AND);
+		Criteria attr1 = new Criteria().setName("a").setOperator(ComparativeOperator.EQUAL).setRawValue("b");
+		Criteria attr2 = new Criteria().setName("x").setOperator(ComparativeOperator.APPROX).setRawValue("z");
+		CriteriaLinker attributeLinker = new CriteriaLinker().setOperator(LogicalOperator.AND);
 		attributeLinker.addItem(attr1);
 		attributeLinker.addItem(attr2);
 		
@@ -188,9 +188,9 @@ public class LDAPFilterEnDecodingTest
 		
 		IFilterItem filterItem = LDAPFilterDecodingHandler.getInstance().decodeFromString(filterExpression);
 		assertNotNull("parsed ldapfilter should not be null", filterItem);
-		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof AttributeLinker);
+		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof CriteriaLinker);
 		
-		attributeLinker = (AttributeLinker)filterItem;
+		attributeLinker = (CriteriaLinker)filterItem;
 		assertEquals("parsed linker should contains correct operator", LogicalOperator.AND, attributeLinker.getOperator());
 		assertEquals("invertflag should be correct", false,attributeLinker.isInvert());
 		
@@ -200,11 +200,11 @@ public class LDAPFilterEnDecodingTest
 		for(int i = 0; i < childs1.size(); i++)
 		{
 			filterItem = childs1.get(i);
-			assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Attribute);
+			assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Criteria);
 			
 			if(i == 0)
 			{
-				attr1 = (Attribute)filterItem;
+				attr1 = (Criteria)filterItem;
 				assertEquals("attributename should be correct","a", attr1.getName());
 				assertEquals("attributeoperator should be correct",ComparativeOperator.EQUAL, attr1.getOperator());
 				assertEquals("attributevalue should be correct","b", attr1.getValue());
@@ -213,7 +213,7 @@ public class LDAPFilterEnDecodingTest
 			
 			if(i == 1)
 			{
-				attr2 = (Attribute)filterItem;
+				attr2 = (Criteria)filterItem;
 				assertEquals("attributename should be correct","x", attr2.getName());
 				assertEquals("attributeoperator should be correct",ComparativeOperator.APPROX, attr2.getOperator());
 				assertEquals("attributevalue should be correct","z", attr2.getValue());
@@ -225,9 +225,9 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test021SimpleAndLinkerNot1()
 	{
-		Attribute attr1 = new Attribute().setName("a").setOperator(ComparativeOperator.EQUAL).setValue("b").setInvert(true);
-		Attribute attr2 = new Attribute().setName("x").setOperator(ComparativeOperator.APPROX).setValue("z");
-		AttributeLinker attributeLinker = new AttributeLinker().setOperator(LogicalOperator.AND);
+		Criteria attr1 = new Criteria().setName("a").setOperator(ComparativeOperator.EQUAL).setRawValue("b").setInvert(true);
+		Criteria attr2 = new Criteria().setName("x").setOperator(ComparativeOperator.APPROX).setRawValue("z");
+		CriteriaLinker attributeLinker = new CriteriaLinker().setOperator(LogicalOperator.AND);
 		attributeLinker.addItem(attr1);
 		attributeLinker.addItem(attr2);
 		
@@ -236,9 +236,9 @@ public class LDAPFilterEnDecodingTest
 		
 		IFilterItem filterItem = LDAPFilterDecodingHandler.getInstance().decodeFromString(filterExpression);
 		assertNotNull("parsed ldapfilter should not be null", filterItem);
-		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof AttributeLinker);
+		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof CriteriaLinker);
 		
-		attributeLinker = (AttributeLinker)filterItem;
+		attributeLinker = (CriteriaLinker)filterItem;
 		assertEquals("parsed linker should contains correct operator", LogicalOperator.AND, attributeLinker.getOperator());
 		assertEquals("invertflag should be correct", false,attributeLinker.isInvert());
 		
@@ -248,11 +248,11 @@ public class LDAPFilterEnDecodingTest
 		for(int i = 0; i < childs1.size(); i++)
 		{
 			filterItem = childs1.get(i);
-			assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Attribute);
+			assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Criteria);
 			
 			if(i == 0)
 			{
-				attr1 = (Attribute)filterItem;
+				attr1 = (Criteria)filterItem;
 				assertEquals("attributename should be correct","a", attr1.getName());
 				assertEquals("attributeoperator should be correct",ComparativeOperator.EQUAL, attr1.getOperator());
 				assertEquals("attributevalue should be correct","b", attr1.getValue());
@@ -261,7 +261,7 @@ public class LDAPFilterEnDecodingTest
 			
 			if(i == 1)
 			{
-				attr2 = (Attribute)filterItem;
+				attr2 = (Criteria)filterItem;
 				assertEquals("attributename should be correct","x", attr2.getName());
 				assertEquals("attributeoperator should be correct",ComparativeOperator.APPROX, attr2.getOperator());
 				assertEquals("attributevalue should be correct","z", attr2.getValue());
@@ -273,9 +273,9 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test022SimpleAndLinkerNot2()
 	{
-		Attribute attr1 = new Attribute().setName("a").setOperator(ComparativeOperator.EQUAL).setValue("b");
-		Attribute attr2 = new Attribute().setName("x").setOperator(ComparativeOperator.APPROX).setValue("z").setInvert(true);
-		AttributeLinker attributeLinker = new AttributeLinker().setOperator(LogicalOperator.AND);
+		Criteria attr1 = new Criteria().setName("a").setOperator(ComparativeOperator.EQUAL).setRawValue("b");
+		Criteria attr2 = new Criteria().setName("x").setOperator(ComparativeOperator.APPROX).setRawValue("z").setInvert(true);
+		CriteriaLinker attributeLinker = new CriteriaLinker().setOperator(LogicalOperator.AND);
 		attributeLinker.addItem(attr1);
 		attributeLinker.addItem(attr2);
 		
@@ -284,9 +284,9 @@ public class LDAPFilterEnDecodingTest
 		
 		IFilterItem filterItem = LDAPFilterDecodingHandler.getInstance().decodeFromString(filterExpression);
 		assertNotNull("parsed ldapfilter should not be null", filterItem);
-		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof AttributeLinker);
+		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof CriteriaLinker);
 		
-		attributeLinker = (AttributeLinker)filterItem;
+		attributeLinker = (CriteriaLinker)filterItem;
 		assertEquals("parsed linker should contains correct operator", LogicalOperator.AND, attributeLinker.getOperator());
 		assertEquals("invertflag should be correct", false,attributeLinker.isInvert());
 		
@@ -296,11 +296,11 @@ public class LDAPFilterEnDecodingTest
 		for(int i = 0; i < childs1.size(); i++)
 		{
 			filterItem = childs1.get(i);
-			assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Attribute);
+			assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Criteria);
 			
 			if(i == 0)
 			{
-				attr1 = (Attribute)filterItem;
+				attr1 = (Criteria)filterItem;
 				assertEquals("attributename should be correct","a", attr1.getName());
 				assertEquals("attributeoperator should be correct",ComparativeOperator.EQUAL, attr1.getOperator());
 				assertEquals("attributevalue should be correct","b", attr1.getValue());
@@ -309,7 +309,7 @@ public class LDAPFilterEnDecodingTest
 			
 			if(i == 1)
 			{
-				attr2 = (Attribute)filterItem;
+				attr2 = (Criteria)filterItem;
 				assertEquals("attributename should be correct","x", attr2.getName());
 				assertEquals("attributeoperator should be correct",ComparativeOperator.APPROX, attr2.getOperator());
 				assertEquals("attributevalue should be correct","z", attr2.getValue());
@@ -321,9 +321,9 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test023SimpleAndLinkerNot3()
 	{
-		Attribute attr1 = new Attribute().setName("a").setOperator(ComparativeOperator.EQUAL).setValue("b").setInvert(true);
-		Attribute attr2 = new Attribute().setName("x").setOperator(ComparativeOperator.APPROX).setValue("z").setInvert(true);
-		AttributeLinker attributeLinker = new AttributeLinker().setOperator(LogicalOperator.AND);
+		Criteria attr1 = new Criteria().setName("a").setOperator(ComparativeOperator.EQUAL).setRawValue("b").setInvert(true);
+		Criteria attr2 = new Criteria().setName("x").setOperator(ComparativeOperator.APPROX).setRawValue("z").setInvert(true);
+		CriteriaLinker attributeLinker = new CriteriaLinker().setOperator(LogicalOperator.AND);
 		attributeLinker.addItem(attr1);
 		attributeLinker.addItem(attr2);
 		
@@ -332,9 +332,9 @@ public class LDAPFilterEnDecodingTest
 		
 		IFilterItem filterItem = LDAPFilterDecodingHandler.getInstance().decodeFromString(filterExpression);
 		assertNotNull("parsed ldapfilter should not be null", filterItem);
-		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof AttributeLinker);
+		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof CriteriaLinker);
 		
-		attributeLinker = (AttributeLinker)filterItem;
+		attributeLinker = (CriteriaLinker)filterItem;
 		assertEquals("parsed linker should contains correct operator", LogicalOperator.AND, attributeLinker.getOperator());
 		assertEquals("invertflag should be correct", false,attributeLinker.isInvert());
 		
@@ -344,11 +344,11 @@ public class LDAPFilterEnDecodingTest
 		for(int i = 0; i < childs1.size(); i++)
 		{
 			filterItem = childs1.get(i);
-			assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Attribute);
+			assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Criteria);
 			
 			if(i == 0)
 			{
-				attr1 = (Attribute)filterItem;
+				attr1 = (Criteria)filterItem;
 				assertEquals("attributename should be correct","a", attr1.getName());
 				assertEquals("attributeoperator should be correct",ComparativeOperator.EQUAL, attr1.getOperator());
 				assertEquals("attributevalue should be correct","b", attr1.getValue());
@@ -357,7 +357,7 @@ public class LDAPFilterEnDecodingTest
 			
 			if(i == 1)
 			{
-				attr2 = (Attribute)filterItem;
+				attr2 = (Criteria)filterItem;
 				assertEquals("attributename should be correct","x", attr2.getName());
 				assertEquals("attributeoperator should be correct",ComparativeOperator.APPROX, attr2.getOperator());
 				assertEquals("attributevalue should be correct","z", attr2.getValue());
@@ -369,9 +369,9 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test024SimpleAndLinkerNot4()
 	{
-		Attribute attr1 = new Attribute().setName("a").setOperator(ComparativeOperator.EQUAL).setValue("b");
-		Attribute attr2 = new Attribute().setName("x").setOperator(ComparativeOperator.APPROX).setValue("z");
-		AttributeLinker attributeLinker = new AttributeLinker().setOperator(LogicalOperator.AND).setInvert(true);
+		Criteria attr1 = new Criteria().setName("a").setOperator(ComparativeOperator.EQUAL).setRawValue("b");
+		Criteria attr2 = new Criteria().setName("x").setOperator(ComparativeOperator.APPROX).setRawValue("z");
+		CriteriaLinker attributeLinker = new CriteriaLinker().setOperator(LogicalOperator.AND).setInvert(true);
 		attributeLinker.addItem(attr1);
 		attributeLinker.addItem(attr2);
 		
@@ -380,9 +380,9 @@ public class LDAPFilterEnDecodingTest
 		
 		IFilterItem filterItem = LDAPFilterDecodingHandler.getInstance().decodeFromString(filterExpression);
 		assertNotNull("parsed ldapfilter should not be null", filterItem);
-		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof AttributeLinker);
+		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof CriteriaLinker);
 		
-		attributeLinker = (AttributeLinker)filterItem;
+		attributeLinker = (CriteriaLinker)filterItem;
 		assertEquals("parsed linker should contains correct operator", LogicalOperator.AND, attributeLinker.getOperator());
 		assertEquals("invertflag should be correct", true,attributeLinker.isInvert());
 		
@@ -392,11 +392,11 @@ public class LDAPFilterEnDecodingTest
 		for(int i = 0; i < childs1.size(); i++)
 		{
 			filterItem = childs1.get(i);
-			assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Attribute);
+			assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Criteria);
 			
 			if(i == 0)
 			{
-				attr1 = (Attribute)filterItem;
+				attr1 = (Criteria)filterItem;
 				assertEquals("attributename should be correct","a", attr1.getName());
 				assertEquals("attributeoperator should be correct",ComparativeOperator.EQUAL, attr1.getOperator());
 				assertEquals("attributevalue should be correct","b", attr1.getValue());
@@ -405,7 +405,7 @@ public class LDAPFilterEnDecodingTest
 			
 			if(i == 1)
 			{
-				attr2 = (Attribute)filterItem;
+				attr2 = (Criteria)filterItem;
 				assertEquals("attributename should be correct","x", attr2.getName());
 				assertEquals("attributeoperator should be correct",ComparativeOperator.APPROX, attr2.getOperator());
 				assertEquals("attributevalue should be correct","z", attr2.getValue());
@@ -417,13 +417,13 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test040Nested1()
 	{
-		Attribute attr1 = new Attribute().setName("a").setOperator(ComparativeOperator.EQUAL).setValue("b");
-		Attribute attr2 = new Attribute().setName("x").setOperator(ComparativeOperator.APPROX).setValue("z");
-		Attribute attr3 = new Attribute().setName("y").setOperator(ComparativeOperator.LESS).setValue("1");
-		AttributeLinker attributeLinkerNested = new AttributeLinker().setOperator(LogicalOperator.AND).setInvert(true);
+		Criteria attr1 = new Criteria().setName("a").setOperator(ComparativeOperator.EQUAL).setRawValue("b");
+		Criteria attr2 = new Criteria().setName("x").setOperator(ComparativeOperator.APPROX).setRawValue("z");
+		Criteria attr3 = new Criteria().setName("y").setOperator(ComparativeOperator.LESS).setRawValue("1");
+		CriteriaLinker attributeLinkerNested = new CriteriaLinker().setOperator(LogicalOperator.AND).setInvert(true);
 		attributeLinkerNested.addItem(attr2);
 		attributeLinkerNested.addItem(attr3);
-		AttributeLinker attributeLinkerRoot = new AttributeLinker().setOperator(LogicalOperator.OR);
+		CriteriaLinker attributeLinkerRoot = new CriteriaLinker().setOperator(LogicalOperator.OR);
 		attributeLinkerRoot.addItem(attr1);
 		attributeLinkerRoot.addItem(attributeLinkerNested);
 		
@@ -432,9 +432,9 @@ public class LDAPFilterEnDecodingTest
 		
 		IFilterItem filterItem = LDAPFilterDecodingHandler.getInstance().decodeFromString(filterExpression);
 		assertNotNull("parsed ldapfilter should not be null", filterItem);
-		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof AttributeLinker);
+		assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof CriteriaLinker);
 		
-		attributeLinkerRoot = (AttributeLinker)filterItem;
+		attributeLinkerRoot = (CriteriaLinker)filterItem;
 		assertEquals("parsed linker should contains correct operator", LogicalOperator.OR, attributeLinkerRoot.getOperator());
 		assertEquals("invertflag should be correct", false,attributeLinkerRoot.isInvert());
 		
@@ -448,8 +448,8 @@ public class LDAPFilterEnDecodingTest
 			
 			if(i == 0)
 			{
-				assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Attribute);
-				attr1 = (Attribute)filterItem;
+				assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Criteria);
+				attr1 = (Criteria)filterItem;
 				assertEquals("attributename should be correct","a", attr1.getName());
 				assertEquals("attributeoperator should be correct",ComparativeOperator.EQUAL, attr1.getOperator());
 				assertEquals("attributevalue should be correct","b", attr1.getValue());
@@ -458,8 +458,8 @@ public class LDAPFilterEnDecodingTest
 			
 			if(i == 1)
 			{
-				assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof AttributeLinker);
-				attributeLinkerNested = (AttributeLinker)filterItem;
+				assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof CriteriaLinker);
+				attributeLinkerNested = (CriteriaLinker)filterItem;
 				assertEquals("parsed linker should contains correct operator", LogicalOperator.AND, attributeLinkerNested.getOperator());
 				assertEquals("invertflag should be correct", true,attributeLinkerNested.isInvert());
 				
@@ -472,8 +472,8 @@ public class LDAPFilterEnDecodingTest
 					
 					if(j == 0)
 					{
-						assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Attribute);
-						attr2 = (Attribute)filterItem;
+						assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Criteria);
+						attr2 = (Criteria)filterItem;
 						assertEquals("attributename should be correct","x", attr2.getName());
 						assertEquals("attributeoperator should be correct",ComparativeOperator.APPROX, attr2.getOperator());
 						assertEquals("attributevalue should be correct","z", attr2.getValue());
@@ -482,8 +482,8 @@ public class LDAPFilterEnDecodingTest
 					
 					if(j == 1)
 					{
-						assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Attribute);
-						attr3 = (Attribute)filterItem;
+						assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Criteria);
+						attr3 = (Criteria)filterItem;
 						assertEquals("attributename should be correct","y", attr3.getName());
 						assertEquals("attributeoperator should be correct",ComparativeOperator.LESS, attr3.getOperator());
 						assertEquals("attributevalue should be correct","1", attr3.getValue());

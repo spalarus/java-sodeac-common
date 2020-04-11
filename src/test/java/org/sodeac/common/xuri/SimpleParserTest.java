@@ -17,8 +17,8 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import org.sodeac.common.xuri.IExtension;
 import org.sodeac.common.xuri.URI;
-import org.sodeac.common.xuri.ldapfilter.Attribute;
-import org.sodeac.common.xuri.ldapfilter.AttributeLinker;
+import org.sodeac.common.xuri.ldapfilter.Criteria;
+import org.sodeac.common.xuri.ldapfilter.CriteriaLinker;
 import org.sodeac.common.xuri.ldapfilter.ComparativeOperator;
 import org.sodeac.common.xuri.ldapfilter.IFilterItem;
 import org.sodeac.common.xuri.ldapfilter.LogicalOperator;
@@ -235,14 +235,14 @@ public class SimpleParserTest
 		IExtension<IFilterItem> filter1Extension = (IExtension<IFilterItem>)uri.getAuthority().getSubComponentList().get(2).getExtensionList().get(0);
 		IExtension<IFilterItem> filter2Extension = (IExtension<IFilterItem>)uri.getAuthority().getSubComponentList().get(2).getExtensionList().get(1);
 		
-		Attribute filter1 = (Attribute)filter1Extension.getDecoder().decodeFromString(filter1Extension.getExpression());
-		AttributeLinker filter2 = (AttributeLinker)filter2Extension.getDecoder().decodeFromString(filter2Extension.getExpression());
+		Criteria filter1 = (Criteria)filter1Extension.getDecoder().decodeFromString(filter1Extension.getExpression());
+		CriteriaLinker filter2 = (CriteriaLinker)filter2Extension.getDecoder().decodeFromString(filter2Extension.getExpression());
 		assertEquals("filter1 name should be correct", "id",filter1.getName());
 		assertEquals("filter1 operator should be correct", ComparativeOperator.EQUAL.name(),filter1.getOperator().name());
 		assertEquals("filter1 value should be correct", "default",filter1.getValue());
 		
-		Attribute filter2a = (Attribute)filter2.getLinkedItemList().get(0);
-		Attribute filter2b = (Attribute)filter2.getLinkedItemList().get(1);
+		Criteria filter2a = (Criteria)filter2.getLinkedItemList().get(0);
+		Criteria filter2b = (Criteria)filter2.getLinkedItemList().get(1);
 		
 		assertEquals("filter2 logical operator should be correct",LogicalOperator.AND.name(), filter2.getOperator().name());
 		

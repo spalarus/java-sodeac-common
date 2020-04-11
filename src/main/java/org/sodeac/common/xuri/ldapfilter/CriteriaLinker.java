@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016, 2019 Sebastian Palarus
+ * Copyright (c) 2016, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -20,14 +20,14 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Attribute linker represents an ldap query and consists of multiple ldap attributes or other attribute linker.
+ * Criteria linker represents an ldap query and consists of multiple ldap criterias or other criteria linker.
  * 
  * @author Sebastian Palarus
  * @since 1.0
  * @version 1.0
  *
  */
-public class AttributeLinker implements IFilterItem, Serializable 
+public class CriteriaLinker implements IFilterItem, Serializable 
 {	
 	/**
 	 * 
@@ -35,9 +35,9 @@ public class AttributeLinker implements IFilterItem, Serializable
 	private static final long serialVersionUID = 3252972156160851293L;
 
 	/**
-	 * constructor of attribute linker
+	 * constructor of criteria linker
 	 */
-	public AttributeLinker()
+	public CriteriaLinker()
 	{
 		super();
 		this.lock = new ReentrantLock();
@@ -45,7 +45,6 @@ public class AttributeLinker implements IFilterItem, Serializable
 	
 	private volatile boolean invert = false;
 	private volatile LogicalOperator operator = LogicalOperator.AND;
-	private volatile AttributeLinker parent = null;
 	private Lock lock = null;
 	
 	private List<IFilterItem> linkedItemList = new ArrayList<IFilterItem>();
@@ -85,18 +84,10 @@ public class AttributeLinker implements IFilterItem, Serializable
 	 * adds new filter item to list
 	 * 
 	 * @param item filter item to add
-	 * @return attribute linker
+	 * @return criteria linker
 	 */
-	public AttributeLinker addItem(IFilterItem item)
+	protected CriteriaLinker addItem(IFilterItem item)
 	{
-		if(item instanceof Attribute)
-		{
-			((Attribute)item).setParent(this);
-		}
-		if(item instanceof AttributeLinker)
-		{
-			((AttributeLinker)item).setParent(this);
-		}
 		lock.lock();
 		try
 		{
@@ -117,27 +108,10 @@ public class AttributeLinker implements IFilterItem, Serializable
 		return invert;
 	}
 
-	@Override
-	public AttributeLinker setInvert(boolean invert) 
+	protected CriteriaLinker setInvert(boolean invert) 
 	{
 		this.invert = invert;
 		return this;
-	}
-	
-	/**
-	 * setter for parent attribute linker
-	 * 
-	 * @param parent parent attribute linker
-	 */
-	protected void setParent(AttributeLinker parent)
-	{
-		this.parent = parent;
-	}
-	
-	@Override
-	public AttributeLinker getParent()
-	{
-		return this.parent;
 	}
 
 	/** 
@@ -155,7 +129,7 @@ public class AttributeLinker implements IFilterItem, Serializable
 	 * @param operator link operator
 	 * @return this
 	 */
-	public AttributeLinker setOperator(LogicalOperator operator) 
+	protected CriteriaLinker setOperator(LogicalOperator operator) 
 	{
 		this.operator = operator;
 		return this;

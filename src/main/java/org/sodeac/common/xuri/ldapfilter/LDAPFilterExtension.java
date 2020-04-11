@@ -88,4 +88,117 @@ public class LDAPFilterExtension implements IExtension<IFilterItem>, Serializabl
 	{
 		return IDriver.APPLICABLE_DEFAULT;
 	}
+	
+	public static String decodeFromHexEscaped(String rawString)
+	{
+		StringBuilder builder = new StringBuilder();
+		
+		int pendingByteSequence = 0;
+		
+		int codePoint = 0;
+		for(int i = 0; i < rawString.length() ; i++)
+		{
+			char c = rawString.charAt(i);
+			if((c == IFilterItem.ESCAPE) && (i + 2 < rawString.length()))
+			{
+				String hexCode = rawString.substring(i+1,i+3);
+				try
+				{
+					int dec = Integer.parseInt(hexCode, 16);
+					if(pendingByteSequence == 0)
+					{
+						if((dec >= 0x00) && (dec < 0x80))
+						{
+							i += 2;
+							builder.append((char)dec);
+							continue;
+						}
+						else if((dec >= 0x80) && (dec < 0xC0))
+						{
+							// invalid
+							builder.append(c);
+							continue;
+						}
+						else if((dec >= 0xC0) && (dec < 0xC2))
+						{
+							// invalid
+							builder.append(c);
+							continue;
+						}
+						else if((dec >= 0xC2) && (dec < 0xE0))
+						{
+							// 2 byte sequence
+							pendingByteSequence = 1;
+							codePoint = 0x80 + ( (dec - 0xC2) * 0x40);
+							i += 2;
+							continue;
+						}
+						else if((dec >= 0xE0) && (dec < 0xF0))
+						{
+							// 3 byte sequence
+							pendingByteSequence = 2;
+							codePoint = (dec - 0xE0) * 0x1000;
+							i += 2;
+							
+							if(dec == 0xE0)
+							{
+								// TODO check second byte is >= a0 ???
+							}
+							
+							if(dec == 0xED)
+							{
+								// TODO check second byte is < a0  ???
+							}
+							
+							continue;
+						}
+						else if((dec >= 0xF0) && (dec < 0xF5))
+						{
+							// 4 byte sequence
+							pendingByteSequence = 3;
+							i += 2;
+							codePoint = ((dec - 0xF0)  * 0x30000) ;
+							continue;
+						}
+						else
+						{
+							// invalid
+							builder.append(c);
+							continue;
+						}
+					}
+					else
+					{
+						
+						if((dec < 0x80) && (dec >= 0xC0))
+						{
+							throw new IllegalStateException("Invalid escape sequence in position " + i);
+						}
+						
+						pendingByteSequence--;
+						codePoint += (dec - 0x80) * ( pendingByteSequence == 0 ? 1  : ( Math.pow(0x40, pendingByteSequence)));
+						
+						if(pendingByteSequence == 0)
+						{
+							builder.append(new String(Character.toChars(codePoint)));
+						}
+						
+						i += 2;
+						continue;
+					}
+				}
+				catch (NumberFormatException e) {}
+				
+			}
+			else
+			{
+				if(pendingByteSequence > 0)
+				{
+					throw new IllegalStateException("expect escape sequence in position " + i);
+				}
+			}
+			builder.append(c);
+		}
+		return builder.toString();
+	}
 }

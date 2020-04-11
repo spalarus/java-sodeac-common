@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016, 2019 Sebastian Palarus
+ * Copyright (c) 2016, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -15,14 +15,14 @@ import java.io.Serializable;
 import java.util.Map;
 
 /**
- * Represents an ldap attribute.
+ * Represents an ldap criteria.
  * 
  * @author Sebastian Palarus
  * @since 1.0
  * @version 1.0
  *
  */
-public class Attribute implements IFilterItem, Serializable
+public class Criteria implements IFilterItem, Serializable
 {
 	/**
 	 * 
@@ -30,9 +30,9 @@ public class Attribute implements IFilterItem, Serializable
 	private static final long serialVersionUID = -5791677902733009628L;
 
 	/**
-	 * constructor of ldap attribute
+	 * constructor of ldap filter critera
 	 */
-	public Attribute()
+	public Criteria()
 	{
 		super();
 	}
@@ -40,13 +40,13 @@ public class Attribute implements IFilterItem, Serializable
 	private boolean invert = false;
 	private String name = null;
 	private ComparativeOperator operator = null;
+	private String rawValue = null;
 	private String value = null;
-	private AttributeLinker parent;
 	
 	/**
-	 * getter for name of ldap attribute
+	 * getter for name of ldap criteria
 	 * 
-	 * @return name of ldap attribute
+	 * @return name of ldap criteria
 	 */
 	public String getName() 
 	{
@@ -54,20 +54,20 @@ public class Attribute implements IFilterItem, Serializable
 	}
 	
 	/**
-	 * setter for name of ldap attribute
+	 * setter for name of ldap criteria
 	 * 
-	 * @param name ldap attribute name
+	 * @param name ldap criteria name
 	 * 
-	 * @return attribute
+	 * @return criteria
 	 */
-	public Attribute setName(String name) 
+	protected Criteria setName(String name) 
 	{
 		this.name = name;
 		return this;
 	}
 	
 	/**
-	 * getter for ldap operator
+	 * getter for ldap criteria operator
 	 * 
 	 * @return operator
 	 */
@@ -77,21 +77,21 @@ public class Attribute implements IFilterItem, Serializable
 	}
 	
 	/**
-	 * setter for ldap operator
+	 * setter for ldap criteria operator
 	 * 
-	 * @param operator ldap attribute operator
+	 * @param operator ldap criteria operator
 	 * @return
 	 */
-	public Attribute setOperator(ComparativeOperator operator) 
+	protected Criteria setOperator(ComparativeOperator operator) 
 	{
 		this.operator = operator;
 		return this;
 	}
 	
 	/**
-	 * getter for value of ldap attribute
+	 * getter for value of ldap criteria
 	 * 
-	 * @return value of ldap attribute
+	 * @return value of ldap criteria
 	 */
 	public String getValue() 
 	{
@@ -99,14 +99,22 @@ public class Attribute implements IFilterItem, Serializable
 	}
 	
 	/**
-	 * setter for value of ldap attribute
+	 * setter for value of ldap criteria
 	 * 
-	 * @param value ldap attribute value
-	 * @return attribute
+	 * @param value ldap criteria value
+	 * @return criteria
 	 */
-	public Attribute setValue(String value) 
+	protected Criteria setRawValue(String rawValue) 
 	{
-		this.value = value;
+		this.rawValue = rawValue;
+		if(this.rawValue.indexOf("\\") < 0)
+		{
+			this.value = this.rawValue;
+		}
+		else
+		{
+			this.value = LDAPFilterExtension.decodeFromHexEscaped(this.rawValue);
+		}
 		return this;
 	}
 	
@@ -116,27 +124,10 @@ public class Attribute implements IFilterItem, Serializable
 		return invert;
 	}
 	
-	@Override
-	public Attribute setInvert(boolean invert) 
+	protected Criteria setInvert(boolean invert) 
 	{
 		this.invert = invert;
 		return this;
-	}
-	
-	@Override
-	public AttributeLinker getParent()
-	{
-		return this.parent;
-	}
-	
-	/**
-	 * setter for parent
-	 * 
-	 * @param parent parent attribute linker
-	 */
-	protected void setParent(AttributeLinker parent)
-	{
-		this.parent = parent;
 	}
 	
 	@Override
@@ -174,7 +165,7 @@ public class Attribute implements IFilterItem, Serializable
 		
 		if(value != null)
 		{
-			stringBuilder.append(value);
+			stringBuilder.append(rawValue);
 		}
 		
 		if(invert)

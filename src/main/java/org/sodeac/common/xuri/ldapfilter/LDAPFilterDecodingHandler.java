@@ -30,8 +30,6 @@ import org.sodeac.common.xuri.IDecodingExtensionHandler;
 @Component(service=IDecodingExtensionHandler.class,immediate=true)
 public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFilterItem>, Serializable
 {
-	//TODO  implement escaping mechanism from  https://tools.ietf.org/search/rfc4515
-	
 	/**
 	 * 
 	 */
@@ -72,25 +70,10 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 	{
 		char c;
 		int openerCount = 0;
-		boolean inEscape = false;
 		
 		for(; extensionHandleObject.position < extensionHandleObject.fullPath.length(); extensionHandleObject.position++)
 		{
 			c = extensionHandleObject.fullPath.charAt(extensionHandleObject.position);
-			
-			if(inEscape)
-			{
-				inEscape = false;
-				extensionHandleObject.rawResult.append(c);
-				continue;
-			}
-			
-			if(c == ESCAPE)
-			{
-				inEscape = true;
-				extensionHandleObject.rawResult.append(c);
-				continue;
-			}
 			
 			if(c == OPENER)
 			{
@@ -143,7 +126,6 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 		
 		StringBuilder sb = new StringBuilder();
 		boolean openMode = true;
-		//boolean inLinkerMode = false;
 		boolean inAttributeMode = false;
 		
 		boolean invert = false;
@@ -188,7 +170,7 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 							{
 								throw new FormatException("unexpected position for " + c + " : " + i + " / no operator");
 							}
-							((Attribute)currentFilter).setValue(sb.toString());
+							((Criteria)currentFilter).setRawValue(sb.toString());
 						}
 						filterItemPath.removeLast();
 						currentFilter = null;
@@ -207,7 +189,7 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 						unclosedChildOpener = unclosedChildOpenerPath.removeLast() - 1;
 					}
 					
-					if(currentFilter instanceof Attribute)
+					if(currentFilter instanceof Criteria)
 					{
 						throw new FormatException("unexpected position for " + c + " : " + i + " / in attribute");
 					}
@@ -215,7 +197,6 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 					openMode = false;
 					inAttributeNameMode = false;
 					inAttributeValueMode = false;
-					// inLinkerMode = currentFilter instanceof AttributeLinker;
 					inAttributeMode = false;
 					
 					break;
@@ -246,8 +227,8 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 							{
 								throw new FormatException("unexpected position for " + c + " : " + i + " / attribute name is empty");
 							}
-							((Attribute)currentFilter).setName(sb.toString());
-							((Attribute)currentFilter).setOperator(ComparativeOperator.LESS);
+							((Criteria)currentFilter).setName(sb.toString());
+							((Criteria)currentFilter).setOperator(ComparativeOperator.LESS);
 							sb.setLength(0);
 							inAttributeNameMode = false;
 							inAttributeValueMode = true;
@@ -283,8 +264,8 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 							{
 								throw new FormatException("unexpected position for " + c + " : " + i + " / attribute name is empty");
 							}
-							((Attribute)currentFilter).setName(sb.toString());
-							((Attribute)currentFilter).setOperator(ComparativeOperator.GREATER);
+							((Criteria)currentFilter).setName(sb.toString());
+							((Criteria)currentFilter).setOperator(ComparativeOperator.GREATER);
 							sb.setLength(0);
 							inAttributeNameMode = false;
 							inAttributeValueMode = true;
@@ -320,8 +301,8 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 							{
 								throw new FormatException("unexpected position for " + c + " : " + i + " / attribute name is empty");
 							}
-							((Attribute)currentFilter).setName(sb.toString());
-							((Attribute)currentFilter).setOperator(ComparativeOperator.APPROX);
+							((Criteria)currentFilter).setName(sb.toString());
+							((Criteria)currentFilter).setOperator(ComparativeOperator.APPROX);
 							sb.setLength(0);
 							inAttributeNameMode = false;
 							inAttributeValueMode = true;
@@ -355,8 +336,8 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 						{
 							throw new FormatException("unexpected position for " + c + " : " + i + " / attribute name is empty");
 						}
-						((Attribute)currentFilter).setName(sb.toString());
-						((Attribute)currentFilter).setOperator(ComparativeOperator.EQUAL);
+						((Criteria)currentFilter).setName(sb.toString());
+						((Criteria)currentFilter).setOperator(ComparativeOperator.EQUAL);
 						sb.setLength(0);
 						inAttributeNameMode = false;
 						inAttributeValueMode = true;
@@ -389,12 +370,25 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 					
 					// add filter
 					previewsFilter = currentFilter;
-					currentFilter = new AttributeLinker();
-					currentFilter.setInvert(invert);
-					((AttributeLinker)currentFilter).setOperator(LogicalOperator.AND);
+					currentFilter = new CriteriaLinker();
+					
+					if(currentFilter instanceof Criteria)
+					{
+						((Criteria)currentFilter).setInvert(invert);
+					}
+					else if(currentFilter instanceof CriteriaLinker)
+					{
+						((CriteriaLinker)currentFilter).setInvert(invert);
+					}
+					else
+					{
+						throw new IllegalStateException("unknown filter item type " + currentFilter.getClass().getCanonicalName());
+					}
+					
+					((CriteriaLinker)currentFilter).setOperator(LogicalOperator.AND);
 					if(previewsFilter != null)
 					{
-						((AttributeLinker)previewsFilter).addItem(currentFilter);
+						((CriteriaLinker)previewsFilter).addItem(currentFilter);
 					}
 					filterItemPath.addLast(currentFilter);
 					unclosedChildOpenerPath.addLast(unclosedChildOpener);
@@ -423,12 +417,23 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 					
 					// add filter
 					previewsFilter = currentFilter;
-					currentFilter = new AttributeLinker();
-					currentFilter.setInvert(invert);
-					((AttributeLinker)currentFilter).setOperator(LogicalOperator.OR);
+					currentFilter = new CriteriaLinker();
+					if(currentFilter instanceof Criteria)
+					{
+						((Criteria)currentFilter).setInvert(invert);
+					}
+					else if(currentFilter instanceof CriteriaLinker)
+					{
+						((CriteriaLinker)currentFilter).setInvert(invert);
+					}
+					else
+					{
+						throw new IllegalStateException("unknown filter item type " + currentFilter.getClass().getCanonicalName());
+					}
+					((CriteriaLinker)currentFilter).setOperator(LogicalOperator.OR);
 					if(previewsFilter != null)
 					{
-						((AttributeLinker)previewsFilter).addItem(currentFilter);
+						((CriteriaLinker)previewsFilter).addItem(currentFilter);
 					}
 					filterItemPath.addLast(currentFilter);
 					unclosedChildOpenerPath.addLast(unclosedChildOpener);
@@ -452,21 +457,32 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 					if(openMode)
 					{
 						previewsFilter = currentFilter;
-						currentFilter = new Attribute();
-						currentFilter.setInvert(invert);
+						currentFilter = new Criteria();
+						if(currentFilter instanceof Criteria)
+						{
+							((Criteria)currentFilter).setInvert(invert);
+						}
+						else if(currentFilter instanceof CriteriaLinker)
+						{
+							((CriteriaLinker)currentFilter).setInvert(invert);
+						}
+						else
+						{
+							throw new IllegalStateException("unknown filter item type " + currentFilter.getClass().getCanonicalName());
+						}
 						filterItemPath.addLast(currentFilter);
 						unclosedChildOpenerPath.addLast(unclosedChildOpener);
 						unclosedChildOpener = 0;
 						
 						if(previewsFilter != null)
 						{
-							if(! (previewsFilter instanceof AttributeLinker))
+							if(! (previewsFilter instanceof CriteriaLinker))
 							{
 								throw new FormatException("parent of attribute must be a linker! pos: " + i);
 							}
 							if(previewsFilter != null)
 							{
-								((AttributeLinker)previewsFilter).addItem(currentFilter);
+								((CriteriaLinker)previewsFilter).addItem(currentFilter);
 							}
 						}
 						
@@ -490,7 +506,6 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 					}
 					else if(inAttributeMode)
 					{
-						// append char
 						sb.append(c);
 					}
 					else
