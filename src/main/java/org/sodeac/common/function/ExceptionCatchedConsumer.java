@@ -13,19 +13,14 @@ package org.sodeac.common.function;
 import java.util.function.Consumer;
 
 /**
- * 
- * @deprecated use {@link ExceptionCatchedConsumer} instead
- * 
- * Extends {@link Consumer} to consume with potentially throws an exception. Throwed exceptions will delegate as {@link RuntimeException}
- * 
+ * Extends {@link Consumer} to consume with potentially throws an exception. Catched exceptions will delegate as {@link RuntimeException}
  * 
  * @author Sebastian Palarus
  *
  * @param <T>
  */
 @FunctionalInterface
-@Deprecated
-public interface ExceptionConsumer<T> extends Consumer<T>
+public interface ExceptionCatchedConsumer<T> extends Consumer<T>
 {
 	@Override
 	default void accept(T t)
@@ -53,7 +48,7 @@ public interface ExceptionConsumer<T> extends Consumer<T>
 	 */
 	public void acceptWithException(T t) throws Exception;
 	
-	public static <T> Consumer<T> wrap(ExceptionConsumer<T> consumer)
+	public static <T> Consumer<T> wrap(ExceptionCatchedConsumer<T> consumer)
 	{
 		return new Consumer<T>()
 		{
