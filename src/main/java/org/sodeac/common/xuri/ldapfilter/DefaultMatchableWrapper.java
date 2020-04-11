@@ -75,18 +75,18 @@ public class DefaultMatchableWrapper implements IMatchable
 			{
 				return compareValue == 0;
 			}
-			if(operator == ComparativeOperator.LESS)
+			if(operator == ComparativeOperator.LTE)
 			{
 				return compareValue <= 0;
 			}
-			if(operator == ComparativeOperator.GREATER)
+			if(operator == ComparativeOperator.GTE)
 			{
 				return compareValue >= 0;
 			}
 			throw new RuntimeException("unknown operator " + operator);
 		}
 		
-		if((operator == ComparativeOperator.GREATER) || (operator == ComparativeOperator.LESS))
+		if((operator == ComparativeOperator.GTE) || (operator == ComparativeOperator.LTE))
 		{
 			throw new RuntimeException("gt and lt requires complarable object! current: " + this.value.getClass());
 		}

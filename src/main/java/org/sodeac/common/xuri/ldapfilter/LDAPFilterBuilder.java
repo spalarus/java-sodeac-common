@@ -144,7 +144,7 @@ public class LDAPFilterBuilder
 			{
 				Linker.this.criteriaLinker.addItem
 				(
-					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.GREATER).setRawValue(criteriaValue).setInvert(false)
+					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.GTE).setRawValue(criteriaValue).setInvert(false)
 				);
 				this.criteriaName = null;
 				return Linker.this;
@@ -155,7 +155,7 @@ public class LDAPFilterBuilder
 			{
 				Linker.this.criteriaLinker.addItem
 				(
-					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.GREATER).setRawValue(criteriaValue).setInvert(true)
+					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.GTE).setRawValue(criteriaValue).setInvert(true)
 				);
 				this.criteriaName = null;
 				return Linker.this;
@@ -166,7 +166,7 @@ public class LDAPFilterBuilder
 			{
 				Linker.this.criteriaLinker.addItem
 				(
-					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.LESS).setRawValue(criteriaValue).setInvert(false)
+					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.LTE).setRawValue(criteriaValue).setInvert(false)
 				);
 				this.criteriaName = null;
 				return Linker.this;
@@ -177,7 +177,7 @@ public class LDAPFilterBuilder
 			{
 				Linker.this.criteriaLinker.addItem
 				(
-					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.LESS).setRawValue(criteriaValue).setInvert(true)
+					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.LTE).setRawValue(criteriaValue).setInvert(true)
 				);
 				this.criteriaName = null;
 				return Linker.this;

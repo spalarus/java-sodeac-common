@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016, 2019 Sebastian Palarus
+ * Copyright (c) 2016, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -26,8 +26,8 @@ import java.util.Set;
 public enum ComparativeOperator 
 {
 	EQUAL		( 1,	"="		),
-	GREATER		( 2,	">="		),
-	LESS		( 3,	"<="		),
+	GTE			( 2,	">="		),
+	LTE			( 3,	"<="		),
 	APPROX		( 4,	"~="		);
 	
 	

@@ -212,7 +212,7 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 						sb.append(c);
 					}
 					break;
-				case IFilterItem.LESS_STARTSEQ:
+				case IFilterItem.LTE_STARTSEQ:
 					
 					if(! inAttributeMode)
 					{
@@ -228,7 +228,7 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 								throw new FormatException("unexpected position for " + c + " : " + i + " / attribute name is empty");
 							}
 							((Criteria)currentFilter).setName(sb.toString());
-							((Criteria)currentFilter).setOperator(ComparativeOperator.LESS);
+							((Criteria)currentFilter).setOperator(ComparativeOperator.LTE);
 							sb.setLength(0);
 							inAttributeNameMode = false;
 							inAttributeValueMode = true;
@@ -249,7 +249,7 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 					}
 				
 					break;
-				case IFilterItem.GREATER_STARTSEQ:
+				case IFilterItem.GTE_STARTSEQ:
 					
 					if(! inAttributeMode)
 					{
@@ -265,7 +265,7 @@ public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFil
 								throw new FormatException("unexpected position for " + c + " : " + i + " / attribute name is empty");
 							}
 							((Criteria)currentFilter).setName(sb.toString());
-							((Criteria)currentFilter).setOperator(ComparativeOperator.GREATER);
+							((Criteria)currentFilter).setOperator(ComparativeOperator.GTE);
 							sb.setLength(0);
 							inAttributeNameMode = false;
 							inAttributeValueMode = true;

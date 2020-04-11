@@ -27,8 +27,8 @@ import org.sodeac.common.message.dispatcher.api.IOnMessageStore;
 import org.sodeac.common.message.dispatcher.api.IOnTaskDone;
 import org.sodeac.common.message.dispatcher.api.IOnTaskError;
 import org.sodeac.common.message.dispatcher.api.IOnTaskTimeout;
-import org.sodeac.common.xuri.ldapfilter.Attribute;
-import org.sodeac.common.xuri.ldapfilter.AttributeLinker;
+import org.sodeac.common.xuri.ldapfilter.Criteria;
+import org.sodeac.common.xuri.ldapfilter.CriteriaLinker;
 import org.sodeac.common.xuri.ldapfilter.IFilterItem;
 import org.sodeac.common.xuri.ldapfilter.LDAPFilterDecodingHandler;
 
@@ -144,13 +144,13 @@ public class ChannelManagerContainer
 					{
 						filter = discoverLDAPItem.removeFirst();
 						
-						if(filter instanceof Attribute) 
+						if(filter instanceof Criteria) 
 						{
-							controllerFilterObjects.attributes.add(((Attribute)filter).getName());
+							controllerFilterObjects.attributes.add(((Criteria)filter).getName());
 						}
-						else if(filter instanceof AttributeLinker)
+						else if(filter instanceof CriteriaLinker)
 						{
-							discoverLDAPItem.addAll(((AttributeLinker)filter).getLinkedItemList());
+							discoverLDAPItem.addAll(((CriteriaLinker)filter).getLinkedItemList());
 						}
 					}
 					

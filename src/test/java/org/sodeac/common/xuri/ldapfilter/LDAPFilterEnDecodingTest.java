@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -69,7 +69,7 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test003SimpleLessAttribute()
 	{
-		Criteria attribute = new Criteria().setName("a").setOperator(ComparativeOperator.LESS).setRawValue("b");
+		Criteria attribute = new Criteria().setName("a").setOperator(ComparativeOperator.LTE).setRawValue("b");
 		String filterExpression = LDAPFilterEncodingHandler.getInstance().encodeToString(attribute);
 		assertEquals("ldapfilterexpression should be correct","(a<=b)", filterExpression);
 		
@@ -79,7 +79,7 @@ public class LDAPFilterEnDecodingTest
 		
 		attribute = (Criteria)filterItem;
 		assertEquals("attributename should be correct","a", attribute.getName());
-		assertEquals("attributeoperator should be correct",ComparativeOperator.LESS, attribute.getOperator());
+		assertEquals("attributeoperator should be correct",ComparativeOperator.LTE, attribute.getOperator());
 		assertEquals("attributevalue should be correct","b", attribute.getValue());
 		assertEquals("invertflag should be correct", false,attribute.isInvert());
 	}
@@ -87,7 +87,7 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test004SimpleNotLessAttribute()
 	{
-		Criteria attribute = new Criteria().setName("a").setOperator(ComparativeOperator.LESS).setRawValue("b").setInvert(true);
+		Criteria attribute = new Criteria().setName("a").setOperator(ComparativeOperator.LTE).setRawValue("b").setInvert(true);
 		String filterExpression = LDAPFilterEncodingHandler.getInstance().encodeToString(attribute);
 		assertEquals("ldapfilterexpression should be correct","(!(a<=b))", filterExpression);
 		
@@ -97,7 +97,7 @@ public class LDAPFilterEnDecodingTest
 		
 		attribute = (Criteria)filterItem;
 		assertEquals("attributename should be correct","a", attribute.getName());
-		assertEquals("attributeoperator should be correct",ComparativeOperator.LESS, attribute.getOperator());
+		assertEquals("attributeoperator should be correct",ComparativeOperator.LTE, attribute.getOperator());
 		assertEquals("attributevalue should be correct","b", attribute.getValue());
 		assertEquals("invertflag should be correct", true,attribute.isInvert());
 	}
@@ -105,7 +105,7 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test005SimpleLessAttribute()
 	{
-		Criteria attribute = new Criteria().setName("a").setOperator(ComparativeOperator.GREATER).setRawValue("b");
+		Criteria attribute = new Criteria().setName("a").setOperator(ComparativeOperator.GTE).setRawValue("b");
 		String filterExpression = LDAPFilterEncodingHandler.getInstance().encodeToString(attribute);
 		assertEquals("ldapfilterexpression should be correct","(a>=b)", filterExpression);
 		
@@ -115,7 +115,7 @@ public class LDAPFilterEnDecodingTest
 		
 		attribute = (Criteria)filterItem;
 		assertEquals("attributename should be correct","a", attribute.getName());
-		assertEquals("attributeoperator should be correct",ComparativeOperator.GREATER, attribute.getOperator());
+		assertEquals("attributeoperator should be correct",ComparativeOperator.GTE, attribute.getOperator());
 		assertEquals("attributevalue should be correct","b", attribute.getValue());
 		assertEquals("invertflag should be correct", false,attribute.isInvert());
 	}
@@ -123,7 +123,7 @@ public class LDAPFilterEnDecodingTest
 	@Test
 	public void test006SimpleNotLessAttribute()
 	{
-		Criteria attribute = new Criteria().setName("a").setOperator(ComparativeOperator.GREATER).setRawValue("b").setInvert(true);
+		Criteria attribute = new Criteria().setName("a").setOperator(ComparativeOperator.GTE).setRawValue("b").setInvert(true);
 		String filterExpression = LDAPFilterEncodingHandler.getInstance().encodeToString(attribute);
 		assertEquals("ldapfilterexpression should be correct","(!(a>=b))", filterExpression);
 		
@@ -133,7 +133,7 @@ public class LDAPFilterEnDecodingTest
 		
 		attribute = (Criteria)filterItem;
 		assertEquals("attributename should be correct","a", attribute.getName());
-		assertEquals("attributeoperator should be correct",ComparativeOperator.GREATER, attribute.getOperator());
+		assertEquals("attributeoperator should be correct",ComparativeOperator.GTE, attribute.getOperator());
 		assertEquals("attributevalue should be correct","b", attribute.getValue());
 		assertEquals("invertflag should be correct", true,attribute.isInvert());
 	}
@@ -419,7 +419,7 @@ public class LDAPFilterEnDecodingTest
 	{
 		Criteria attr1 = new Criteria().setName("a").setOperator(ComparativeOperator.EQUAL).setRawValue("b");
 		Criteria attr2 = new Criteria().setName("x").setOperator(ComparativeOperator.APPROX).setRawValue("z");
-		Criteria attr3 = new Criteria().setName("y").setOperator(ComparativeOperator.LESS).setRawValue("1");
+		Criteria attr3 = new Criteria().setName("y").setOperator(ComparativeOperator.LTE).setRawValue("1");
 		CriteriaLinker attributeLinkerNested = new CriteriaLinker().setOperator(LogicalOperator.AND).setInvert(true);
 		attributeLinkerNested.addItem(attr2);
 		attributeLinkerNested.addItem(attr3);
@@ -485,7 +485,7 @@ public class LDAPFilterEnDecodingTest
 						assertTrue("parsed ldapfilter should be correct filteritem type", filterItem instanceof Criteria);
 						attr3 = (Criteria)filterItem;
 						assertEquals("attributename should be correct","y", attr3.getName());
-						assertEquals("attributeoperator should be correct",ComparativeOperator.LESS, attr3.getOperator());
+						assertEquals("attributeoperator should be correct",ComparativeOperator.LTE, attr3.getOperator());
 						assertEquals("attributevalue should be correct","1", attr3.getValue());
 						assertEquals("invertflag should be correct", false,attr3.isInvert());
 					}

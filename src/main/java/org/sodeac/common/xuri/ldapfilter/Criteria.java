@@ -149,11 +149,11 @@ public class Criteria implements IFilterItem, Serializable
 			{
 				stringBuilder.append("=");
 			}
-			else if(operator == ComparativeOperator.GREATER)
+			else if(operator == ComparativeOperator.GTE)
 			{
 				stringBuilder.append(">=");
 			}
-			else if(operator == ComparativeOperator.LESS)
+			else if(operator == ComparativeOperator.LTE)
 			{
 				stringBuilder.append("<=");
 			}
