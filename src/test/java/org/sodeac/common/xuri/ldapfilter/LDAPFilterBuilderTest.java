@@ -129,4 +129,24 @@ public class LDAPFilterBuilderTest
 			.build().toString()
 		);
 	}
+	
+	@Test
+	public void test004EscapeTest()
+	{
+		Criteria criteria = (Criteria)LDAPFilterBuilder.andLinker().
+			criteriaWithName("A").eq("Please store the file in temp directory ( C:\\Temp )")
+		.build();
+		
+		assertEquals
+		(
+			"value should be correct", "(A=Please store the file in temp directory \\28 C:\\5cTemp \\29)", 
+			criteria.toString()
+		);
+		
+		assertEquals
+		(
+			"value should be correct", "Please store the file in temp directory ( C:\\Temp )",
+			criteria.getValue()
+		);
+	}
 }

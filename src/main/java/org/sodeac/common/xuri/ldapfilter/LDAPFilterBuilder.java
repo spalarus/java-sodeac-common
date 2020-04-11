@@ -100,7 +100,7 @@ public class LDAPFilterBuilder
 			{
 				Linker.this.criteriaLinker.addItem
 				(
-					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.EQUAL).setRawValue(criteriaValue).setInvert(false)
+					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.EQUAL).setRawValue(escape(criteriaValue)).setInvert(false)
 				);
 				this.criteriaName = null;
 				return Linker.this;
@@ -111,7 +111,7 @@ public class LDAPFilterBuilder
 			{
 				Linker.this.criteriaLinker.addItem
 				(
-					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.EQUAL).setRawValue(criteriaValue).setInvert(true)
+					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.EQUAL).setRawValue(escape(criteriaValue)).setInvert(true)
 				);
 				this.criteriaName = null;
 				return Linker.this;
@@ -122,7 +122,7 @@ public class LDAPFilterBuilder
 			{
 				Linker.this.criteriaLinker.addItem
 				(
-					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.APPROX).setRawValue(criteriaValue).setInvert(false)
+					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.APPROX).setRawValue(escape(criteriaValue)).setInvert(false)
 				);
 				this.criteriaName = null;
 				return Linker.this;
@@ -133,7 +133,7 @@ public class LDAPFilterBuilder
 			{
 				Linker.this.criteriaLinker.addItem
 				(
-					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.APPROX).setRawValue(criteriaValue).setInvert(true)
+					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.APPROX).setRawValue(escape(criteriaValue)).setInvert(true)
 				);
 				this.criteriaName = null;
 				return Linker.this;
@@ -144,7 +144,7 @@ public class LDAPFilterBuilder
 			{
 				Linker.this.criteriaLinker.addItem
 				(
-					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.GTE).setRawValue(criteriaValue).setInvert(false)
+					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.GTE).setRawValue(escape(criteriaValue)).setInvert(false)
 				);
 				this.criteriaName = null;
 				return Linker.this;
@@ -155,7 +155,7 @@ public class LDAPFilterBuilder
 			{
 				Linker.this.criteriaLinker.addItem
 				(
-					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.GTE).setRawValue(criteriaValue).setInvert(true)
+					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.GTE).setRawValue(escape(criteriaValue)).setInvert(true)
 				);
 				this.criteriaName = null;
 				return Linker.this;
@@ -166,7 +166,7 @@ public class LDAPFilterBuilder
 			{
 				Linker.this.criteriaLinker.addItem
 				(
-					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.LTE).setRawValue(criteriaValue).setInvert(false)
+					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.LTE).setRawValue(escape(criteriaValue)).setInvert(false)
 				);
 				this.criteriaName = null;
 				return Linker.this;
@@ -177,12 +177,21 @@ public class LDAPFilterBuilder
 			{
 				Linker.this.criteriaLinker.addItem
 				(
-					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.LTE).setRawValue(criteriaValue).setInvert(true)
+					new Criteria().setName(this.criteriaName).setOperator(ComparativeOperator.LTE).setRawValue(escape(criteriaValue)).setInvert(true)
 				);
 				this.criteriaName = null;
 				return Linker.this;
 			}
 			
+			private String escape(String criteriaValue)
+			{
+				if(criteriaValue == null)
+				{
+					return null;
+				}
+				
+				return criteriaValue.replaceAll("\\\\", "\\\\5c").replaceAll("\\(", "\\\\28").replaceAll("\\)", "\\\\29");
+			}
 		}
 
 		@Override
