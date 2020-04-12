@@ -23,6 +23,15 @@ public class Version implements Comparable<Version>
 		super();
 	}
 	
+	public Version(int major)
+	{
+		this(major,0,0);
+	}
+	public Version(int major, int minor)
+	{
+		this(major,minor,0);
+	}
+	
 	public Version(int major, int minor, int service)
 	{
 		super();

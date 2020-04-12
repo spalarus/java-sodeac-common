@@ -18,6 +18,7 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
 import org.sodeac.common.xuri.URI;
+import org.sodeac.common.xuri.ldapfilter.IFilterItem;
 
 public interface IService
 {
@@ -77,6 +78,112 @@ public interface IService
 			
 			public void close(); // no IServiceProvider.get() ... anymore / providers update to another Service
 			public void dispose(); // hard unregister
+		}
+	}
+	
+	public class ServiceSelectorAddress
+	{
+		private ServiceSelectorAddress()
+		{
+			super();
+			this.uriBuilder = new StringBuilder("sdc://serviceselector:"); 
+		}
+		
+		private StringBuilder uriBuilder = null; 
+		
+		public static ServiceSelectorAddress newBuilder()
+		{
+			return new ServiceSelectorAddress();
+		}
+		
+		public SelectorAddressName forDomain(String domain)
+		{
+			uriBuilder.append(domain + "/");
+			return new SelectorAddressName();
+		}
+		
+		public class SelectorAddressName
+		{
+			public SelectorAddressFilter withServiceName(String serviceName)
+			{
+				uriBuilder.append(serviceName);
+				return new SelectorAddressFilter();
+			}
+			
+			public class SelectorAddressFilter
+			{
+				boolean preferencesPathItem = false;
+				
+				public URI build()
+				{
+					return new URI(uriBuilder.toString());
+				}
+				
+				public PreferenceAddressFilter setFilter(IFilterItem filter)
+				{
+					if(filter != null)
+					{
+						uriBuilder.append(filter.toString());
+					}
+					return new PreferenceAddressFilter();
+				}
+				
+				public PreferenceAddressFilter.PreferenceAddressFilterScore scoreThePreferenceFilter(IFilterItem filter)
+				{
+					return new PreferenceAddressFilter().new PreferenceAddressFilterScore(filter);
+				}
+				
+				public class PreferenceAddressFilter
+				{ 
+					public URI build()
+					{
+						return SelectorAddressFilter.this.build();
+					}
+					
+					public PreferenceAddressFilterScore scoreThePreferenceFilter(IFilterItem filter)
+					{
+						return new PreferenceAddressFilterScore(filter);
+					}
+					
+					
+					public class PreferenceAddressFilterScore
+					{
+						private IFilterItem filter = null;
+						
+						private PreferenceAddressFilterScore(IFilterItem filter)
+						{
+							super();
+							this.filter = filter;
+						}
+						
+						public PreferenceAddressFilterScoreSatisfied with(int counts)
+						{
+							return new PreferenceAddressFilterScoreSatisfied(counts);
+						}
+						
+						public class PreferenceAddressFilterScoreSatisfied
+						{
+							private int counts;
+							private PreferenceAddressFilterScoreSatisfied(int counts)
+							{
+								super();
+								this.counts = counts;
+							}
+							
+							public PreferenceAddressFilter points()
+							{
+								if(! preferencesPathItem)
+								{
+									preferencesPathItem = true;
+									uriBuilder.append("/preferences");
+								}
+								uriBuilder.append(Json.createObjectBuilder().add("score", counts).add("filter", filter.toString()).build().toString());
+								return PreferenceAddressFilter.this;
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 	
