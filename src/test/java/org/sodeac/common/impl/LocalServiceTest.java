@@ -1,10 +1,14 @@
 package org.sodeac.common.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+import org.sodeac.common.IService;
+import org.sodeac.common.IService.IServiceRegistry;
 import org.sodeac.common.IService.ServiceRegistrationAddress;
 import org.sodeac.common.IService.ServiceSelectorAddress;
 import org.sodeac.common.misc.Version;
@@ -58,6 +62,12 @@ public class LocalServiceTest
 	@Test
 	public void test00003XXX()
 	{
-		LocalService.getLocalServiceRegistryImpl();
+		IServiceRegistry serviceRegistry1 = LocalService.getLocalServiceRegistryImpl();
+		assertNotNull("value should no be null",serviceRegistry1);
+		
+		IServiceRegistry serviceRegistry2 = LocalService.getServiceProvider(IServiceRegistry.class, IService.URI_SERVICE_LOCATOR_SERVICE_REGISTRY).get();
+		assertNotNull("value should no be null",serviceRegistry2);
+		
+		assertSame("value shuld be correct",serviceRegistry1, serviceRegistry2);
 	}
 }

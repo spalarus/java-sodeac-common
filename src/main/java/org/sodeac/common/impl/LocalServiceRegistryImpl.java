@@ -32,11 +32,16 @@ import org.sodeac.common.IService.ServiceRegistrationAddress;
 import org.sodeac.common.function.ConplierBean;
 import org.sodeac.common.misc.Version;
 import org.sodeac.common.xuri.IExtension;
+import org.sodeac.common.xuri.PathSegment;
 import org.sodeac.common.xuri.URI;
 import org.sodeac.common.xuri.URISyntaxException;
 import org.sodeac.common.xuri.json.JsonExtension;
 import org.sodeac.common.xuri.ldapfilter.DefaultMatchableWrapper;
+import org.sodeac.common.xuri.ldapfilter.IFilterItem;
 import org.sodeac.common.xuri.ldapfilter.IMatchable;
+import org.sodeac.common.xuri.ldapfilter.LDAPFilterDecodingHandler;
+import org.sodeac.common.xuri.ldapfilter.LDAPFilterEncodingHandler;
+import org.sodeac.common.xuri.ldapfilter.LDAPFilterExtension;
 
 public class LocalServiceRegistryImpl implements IServiceRegistry
 {
@@ -68,7 +73,7 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 				instance.registerService
 				(
 					IServiceRegistry.class,
-					ServiceRegistrationAddress.newBuilder().forDomain("sodeac.org").withServiceName("localserviceregistry").andVersion(1, 0, 0).addOption("systemservice", 1.0).build(), 
+					ServiceRegistrationAddress.newBuilder().forDomain("sodeac.org").withServiceName("localserviceregistry").andVersion(1, 0, 0).addOption("systemservice", true).build(), 
 					new ConplierBean<>(instance)
 				);
 				INSTANCE = instance;
@@ -114,7 +119,7 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 		}
 		
 		service.serviceController = serviceController;
-		service.serviceRegistration = new ServiceRegistration();
+		service.serviceRegistration = service.new ServiceRegistration();
 		serviceController.addService(service);
 		
 		return service.serviceRegistration;
@@ -152,7 +157,7 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 			throw new URISyntaxException(serviceAddress.toString(), "domain of service not defined");
 		}
 		
-		if(serviceAddress.getPath().getSubComponentList().size() != 3 )
+		if(serviceAddress.getPath().getSubComponentList().size() == 0 )
 		{
 			throw new URISyntaxException(serviceAddress.toString(), "wrong path size");
 		}
@@ -162,6 +167,45 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 		if(serviceName.isEmpty())
 		{
 			throw new URISyntaxException(serviceAddress.toString(), "name of service not defined");
+		}
+		
+		// Collect HardConstraint
+		
+		List<IFilterItem> filterList = new ArrayList<>();
+		for(IExtension extension  : serviceAddress.getPath().getSubComponentList().get(0).getExtensionList(LDAPFilterExtension.TYPE))
+		{
+			IFilterItem filterItem = (IFilterItem)extension.getDecoder().decodeFromString(extension.getExpression());
+			filterList.add(filterItem);
+		}
+		
+		// Collect SoftConstraint
+		
+		Map<Long,List<IFilterItem>> preferencesList = new HashMap<Long,List<IFilterItem>>();
+		
+		for(int i = 1; i < serviceAddress.getPath().getSubComponentList().size(); i++)
+		{
+			PathSegment pathSegment = serviceAddress.getPath().getSubComponentList().get(i);
+			if(! "preferences".equalsIgnoreCase(pathSegment.getValue()))
+			{
+				continue;
+			}
+			
+			for(IExtension extension  : pathSegment.getExtensionList(JsonExtension.TYPE))
+			{
+				JsonObject jsonObject = (JsonObject)extension.getDecoder().decodeFromString(extension.getExpression());
+				
+				long score = jsonObject.getJsonNumber("score").longValue();
+				IFilterItem filterItem = LDAPFilterDecodingHandler.getInstance().decodeFromString(jsonObject.getString("filter"));
+				
+				List<IFilterItem> preferences = preferencesList.get(score);
+				if(preferences == null)
+				{
+					preferences = new ArrayList<>();
+					preferencesList.put(score,preferences);
+				}
+				
+				preferences.add(filterItem);
+			}
 		}
 		
 		ServiceController serviceController = null;
@@ -192,7 +236,12 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 			lock.unlock();
 		}
 		
-		return null;
+		//RegisteredService registeredService = serviceController.getRegisteredService(filterList, preferencesList);
+		
+		LocalServiceProviderImpl<S> serviceProvider = new LocalServiceProviderImpl<>(serviceController, filterList, preferencesList);
+		serviceController.localServiceProvider.add(serviceProvider);
+		
+		return serviceProvider;
 	}
 	
 	protected class ServiceController
@@ -209,11 +258,107 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 		private List<RegisteredService> serviceList = new ArrayList<>();
 		private List<LocalServiceProviderImpl> localServiceProvider = new ArrayList<>();
 		
+		protected RegisteredService getRegisteredService(List<IFilterItem> filterList, Map<Long,List<IFilterItem>> preferencesList)
+		{
+			List<RegisteredService> copy = null;
+			this.lock.lock();
+			try
+			{
+				
+				if(this.serviceList.isEmpty())
+				{
+					return null;
+				}
+				
+				copy = new ArrayList<>(this.serviceList);
+			}
+			finally 
+			{
+				this.lock.unlock();
+			}
+			
+			long bestScore = Long.MIN_VALUE;
+			RegisteredService bestService = null;
+			
+			for(RegisteredService registeredService : copy)
+			{
+				if(filterList != null)
+				{
+					for(IFilterItem filterItem : filterList)
+					{
+						if(filterItem ==  null)
+						{
+							continue;
+						}
+						
+						if(! filterItem.matches(registeredService.options))
+						{
+							break;
+						}
+					}
+				}
+				
+				long currentScore = 0;
+				
+				if(preferencesList != null)
+				{
+					for(Entry<Long,List<IFilterItem>> preferencesEntry : preferencesList.entrySet())
+					{
+						if(preferencesEntry.getKey() == null)
+						{
+							continue;
+						}
+						if(preferencesEntry.getValue() == null)
+						{
+							continue;
+						}
+						if(preferencesEntry.getValue().isEmpty())
+						{
+							continue;
+						}
+						
+						for(IFilterItem filter : preferencesEntry.getValue())
+						{
+							if(filter.matches(registeredService.options))
+							{
+								currentScore += preferencesEntry.getKey();
+							}
+						}
+					}
+				}
+				
+				if(currentScore > bestScore)
+				{
+					bestService = registeredService;
+					bestScore = currentScore;
+				}
+			}
+			
+			copy.clear();
+			copy = null;
+			
+			return bestService;
+			
+		}
+		
 		private void addService(RegisteredService registeredService)
 		{
 			this.lock.lock();
 			try
 			{
+				for(RegisteredService check : this.serviceList)
+				{
+					if(check == this.serviceList)
+					{
+						return;
+					}
+					
+					if(check.serviceReference == registeredService.serviceReference)
+					{
+						return;
+					}
+				}
+				
 				this.serviceList.add(registeredService);
 			}
 			finally 
@@ -338,21 +483,26 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 		
 		private ServiceRegistration serviceRegistration = null;
 		
-	}
-	
-	protected class ServiceRegistration implements IServiceRegistration
-	{
-
-		@Override
-		public void close()
+		protected <S> S supply()
 		{
-			// TODO Auto-generated method stub
+			return (S)this.serviceReference.get();
 		}
-
-		@Override
-		public void dispose()
+		
+		protected class ServiceRegistration implements IServiceRegistration
 		{
-			// TODO Auto-generated method stub		
+
+			@Override
+			public void close()
+			{
+				// TODO Auto-generated method stub
+			}
+
+			@Override
+			public void dispose()
+			{
+				// TODO Auto-generated method stub		
+			}
 		}
+		
 	}
 }

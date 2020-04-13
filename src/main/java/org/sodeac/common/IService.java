@@ -14,14 +14,27 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import javax.json.Json;
-import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
+import org.sodeac.common.misc.Version;
 import org.sodeac.common.xuri.URI;
 import org.sodeac.common.xuri.ldapfilter.IFilterItem;
+import org.sodeac.common.xuri.ldapfilter.LDAPFilterBuilder;
 
 public interface IService
 {
+	public static URI URI_SERVICE_LOCATOR_SERVICE_REGISTRY = ServiceSelectorAddress.newBuilder() 
+			.forDomain("sodeac.org")
+			.withServiceName("localserviceregistry")
+			.setFilter
+			(
+				LDAPFilterBuilder.andLinker()
+					.criteriaWithName("version").gte(new Version(1).toString())
+					.criteriaWithName("version").notGte(new Version(2).toString())
+				.build()
+			)
+			.build();
+	
 	/**
 	 * Get service provider 
 	 * 
