@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016, 2019 Sebastian Palarus
+ * Copyright (c) 2016, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -36,7 +36,7 @@ public class PathComponent extends AbstractComponent<PathSegment>
 	 *  
 	 * @param absolute path is absolute (starts with / )
 	 */
-	public PathComponent(boolean absolute)
+	protected PathComponent(boolean absolute)
 	{
 		super(ComponentType.PATH);
 		this.absolute = absolute;

@@ -13,7 +13,7 @@ package org.sodeac.common.message.service.api;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface IChannel<T>
+public interface IServiceChannel<T>
 {
 	public enum ChannelType 
 	{
@@ -36,7 +36,7 @@ public interface IChannel<T>
 		STATE
 	}
 	
-	public IChannel<T> close(String reason);
+	public IServiceChannel<T> close(String reason);
 	public boolean isClosed();
 	
 	public IChannelDescription getChannelDescription();
@@ -53,7 +53,7 @@ public interface IChannel<T>
 	
 	public interface IMessageRequest<T>
 	{
-		public IChannel<T> getChannel();
+		public IServiceChannel<T> getChannel();
 	}
 	
 	public interface IMessageReceive<T>
@@ -63,7 +63,7 @@ public interface IChannel<T>
 		public UUID getId();
 		public long getChannelSequence();
 		public long getConversationSequence();
-		public IChannel<T> getChannel();
+		public IServiceChannel<T> getChannel();
 	}
 	
 	public interface IChannelPolicy

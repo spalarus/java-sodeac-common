@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -14,7 +14,7 @@ import java.util.List;
 
 /**
  * 
- * This object inform invoker of {@link IChannel#storeMessageWithResult(Object)} (or related) about store of messages
+ * This object inform invoker of {@link IDispatcherChannel#storeMessageWithResult(Object)} (or related) about store of messages
  * The implementation {@link IOnMessageStore} / {@link IOnQueuedMessageList} has confirm process queued event, if it is in charge of this event type
  * 
  * @author Sebastian Palarus

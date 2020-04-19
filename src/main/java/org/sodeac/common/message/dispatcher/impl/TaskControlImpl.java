@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 
-import org.sodeac.common.message.dispatcher.api.IChannel;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannel;
 import org.sodeac.common.message.dispatcher.api.IPropertyBlock;
 import org.sodeac.common.message.dispatcher.api.ITaskControl;
 
@@ -238,7 +238,7 @@ public class TaskControlImpl implements ITaskControl
 	}
 	
 	/**
-	 * Predicate to test for {@link IChannel#rescheduleTask(String, long, long, long)}
+	 * Predicate to test for {@link IDispatcherChannel#rescheduleTask(String, long, long, long)}
 	 * 
 	 * @author Sebastian Palarus
 	 *
@@ -278,7 +278,7 @@ public class TaskControlImpl implements ITaskControl
 	}
 	
 	/**
-	 * Predicate to test for {@link IChannel#scheduleTask(org.sodeac.messagedispatcher.api.IQueueTask)} ...
+	 * Predicate to test for {@link IDispatcherChannel#scheduleTask(org.sodeac.messagedispatcher.api.IQueueTask)} ...
 	 * 
 	 * @author Sebastian Palarus
 	 *

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -14,33 +14,33 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.sodeac.common.message.dispatcher.api.IChannel;
-import org.sodeac.common.message.dispatcher.api.IChannelTask;
-import org.sodeac.common.message.dispatcher.api.IChannelTaskContext;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannel;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannelTask;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannelTaskContext;
 import org.sodeac.common.message.dispatcher.api.IPropertyBlock;
 import org.sodeac.common.message.dispatcher.api.ITaskControl;
 
-public class ChannelTaskContextImpl implements IChannelTaskContext
+public class ChannelTaskContextImpl implements IDispatcherChannelTaskContext
 {
-	private IChannel queue;
+	private IDispatcherChannel channel;
 	private TaskContainer dueTask;
-	private List<IChannelTask> currentProcessedTaskList;
-	private List<IChannelTask> currentProcessedTaskListWritable;
-	private List<IChannelTask> currentProcessedTaskListReadOnly;
+	private List<IDispatcherChannelTask> currentProcessedTaskList;
+	private List<IDispatcherChannelTask> currentProcessedTaskListWritable;
+	private List<IDispatcherChannelTask> currentProcessedTaskListReadOnly;
 	private List<TaskContainer> dueTaskList;
 	
 	protected ChannelTaskContextImpl(List<TaskContainer> dueTaskList)
 	{
 		super();
 		this.dueTaskList = dueTaskList;
-		currentProcessedTaskListWritable = new ArrayList<IChannelTask>();
+		currentProcessedTaskListWritable = new ArrayList<IDispatcherChannelTask>();
 		currentProcessedTaskListReadOnly = Collections.unmodifiableList(currentProcessedTaskListWritable);
 	}
 	
 	@Override
-	public IChannel getQueue()
+	public IDispatcherChannel getChannel()
 	{
-		return this.queue;
+		return this.channel;
 	}
 
 	@Override
@@ -56,7 +56,7 @@ public class ChannelTaskContextImpl implements IChannelTaskContext
 	}
 
 	@Override
-	public List<IChannelTask> currentProcessedTaskList()
+	public List<IDispatcherChannelTask> currentProcessedTaskList()
 	{
 		if(currentProcessedTaskList == null)
 		{
@@ -70,9 +70,9 @@ public class ChannelTaskContextImpl implements IChannelTaskContext
 		return this.currentProcessedTaskList;
 	}
 
-	public void setQueue(IChannel queue)
+	public void setChannel(IDispatcherChannel channel)
 	{
-		this.queue = queue;
+		this.channel = channel;
 	}
 
 	public void resetCurrentProcessedTaskList()

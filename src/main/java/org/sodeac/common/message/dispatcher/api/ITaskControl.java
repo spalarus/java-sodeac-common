@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -112,7 +112,7 @@ public interface ITaskControl
 	 * A long running task should ask for timeout by invoking isInTimeOut() periodically to clean up and skip continuing. 
 	 * But, if worker is blocked by network operation for example, the guardian can stop worker thread by setting  stopOnTimeoutFlag true. 
 	 * 
-	 * Attention !!! You should be familiar with all things can happens by stopping a thread. You can handle some issues if {@link IChannelTask} implements {@link IOnTaskStop} 
+	 * Attention !!! You should be familiar with all things can happens by stopping a thread. You can handle some issues if {@link IDispatcherChannelTask} implements {@link IOnTaskStop} 
 	 * 
 	 * 
 	 * @param stopOnTimeoutFlag new stopOnTimeoutFlag value

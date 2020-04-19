@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016, 2019 Sebastian Palarus
+ * Copyright (c) 2016, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -14,8 +14,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Subcomponent of URI authority (user, password, host, port ....)
@@ -34,7 +32,6 @@ public class AuthoritySubComponent implements IExtensible, Serializable
 	
 	private List<IExtension<?>> extensions = null;
 	private volatile List<IExtension<?>> extensionsImmutable = null;
-	private Lock extensionsLock = null;
 	private String expression = null;
 	private String value = null;
 	private char prefixDelimiter = ':';
@@ -44,7 +41,6 @@ public class AuthoritySubComponent implements IExtensible, Serializable
 	{
 		super();
 		extensions = new ArrayList<IExtension<?>>();
-		this.extensionsLock = new ReentrantLock();
 		this.expression = expression;
 		this.value = value;
 	}
@@ -106,21 +102,13 @@ public class AuthoritySubComponent implements IExtensible, Serializable
 	 */
 	protected void addExtension(IExtension<?> extension)
 	{
-		this.extensionsLock.lock();
-		try
+		if(this.extensions == null)
 		{
-			if(this.extensions == null)
-			{
-				this.extensions = new ArrayList<IExtension<?>>();
-			}
+			this.extensions = new ArrayList<IExtension<?>>();
+		}
 			
-			this.extensions.add(extension);
-			this.extensionsImmutable = null;
-		}
-		finally 
-		{
-			this.extensionsLock.unlock();
-		}
+		this.extensions.add(extension);
+		this.extensionsImmutable = null;
 	}
 
 	@Override
@@ -148,21 +136,13 @@ public class AuthoritySubComponent implements IExtensible, Serializable
 		List<IExtension<?>> extensionList = extensionsImmutable;
 		if(extensionList == null)
 		{
-			this.extensionsLock.lock();
-			try
+			extensionList = this.extensionsImmutable;
+			if(extensionList != null)
 			{
-				extensionList = this.extensionsImmutable;
-				if(extensionList != null)
-				{
-					return extensionList;
-				}
-				this.extensionsImmutable = Collections.unmodifiableList(this.extensions == null ? new ArrayList<IExtension<?>>() : new ArrayList<IExtension<?>>(this.extensions));
-				extensionList = this.extensionsImmutable;
+				return extensionList;
 			}
-			finally 
-			{
-				this.extensionsLock.unlock();
-			}
+			this.extensionsImmutable = Collections.unmodifiableList(this.extensions == null ? new ArrayList<IExtension<?>>() : new ArrayList<IExtension<?>>(this.extensions));
+			extensionList = this.extensionsImmutable;
 		}
 		return extensionList;
 	}

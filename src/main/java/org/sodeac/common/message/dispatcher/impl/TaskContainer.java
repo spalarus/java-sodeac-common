@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -10,7 +10,7 @@
  *******************************************************************************/
 package org.sodeac.common.message.dispatcher.impl;
 
-import org.sodeac.common.message.dispatcher.api.IChannelTask;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannelTask;
 import org.sodeac.common.message.dispatcher.api.IPropertyBlock;
 
 public class TaskContainer
@@ -20,18 +20,18 @@ public class TaskContainer
 		super();
 	}
 	
-	private IChannelTask task;
+	private IDispatcherChannelTask task;
 	private String id;
 	private IPropertyBlock properties;
 	private TaskControlImpl taskControl;
 	private boolean namedTask = false;
 	private long lastHeartbeat = System.currentTimeMillis();
 	
-	public IChannelTask getTask()
+	public IDispatcherChannelTask getTask()
 	{
 		return task;
 	}
-	public void setTask(IChannelTask task)
+	public void setTask(IDispatcherChannelTask task)
 	{
 		this.task = task;
 	}

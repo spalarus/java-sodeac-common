@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -24,7 +24,7 @@ public interface IMessageDispatcher
 	/**
 	 * queue a message to addressed queue
 	 * 
-	 * @param channelId id of {@link IChannel} 
+	 * @param channelId id of {@link IDispatcherChannel} 
 	 * @param message message to queue
 	 * 
 	 * 
@@ -41,21 +41,21 @@ public interface IMessageDispatcher
 	public IPropertyBlock createPropertyBlock();
 	
 	/**
-	 * request for all {@link IChannel}-IDs
+	 * request for all {@link IDispatcherChannel}-IDs
 	 * 
 	 * @return {@link java.util.List} with queueIds
 	 */
 	public List<String> getChannelIdList();
 	
 	/**
-	 * getter to request for {@link IChannel} with given id
+	 * getter to request for {@link IDispatcherChannel} with given id
 	 * 
 	 * @param channelId  id for queue
-	 * @return instance of {@link IChannel} registered with {@code queueId}
+	 * @return instance of {@link IDispatcherChannel} registered with {@code queueId}
 	 */
-	public IChannel<?> getChannel(String channelId);
+	public IDispatcherChannel<?> getChannel(String channelId);
 	
-	public <T> IChannel<T> getTypedChannel(String channelId, Class<T> messageType);
+	public <T> IDispatcherChannel<T> getTypedChannel(String channelId, Class<T> messageType);
 	
 	/**
 	 * getter for propertyblock of dispatcher
@@ -72,13 +72,13 @@ public interface IMessageDispatcher
 	public String getId();
 	
 	/**
-	 * Remove all workers and clean resources. After disposing the dispatcher is not usable anymore. 
+	 * Remove all workers and clean resources. After shutdown the dispatcher is not usable anymore. 
 	 */
-	public void dispose();
+	public void shutdown();
 	
-	public void registerChannelManager(IChannelManager queueController);
-	public void registerChannelService(IChannelService queueService);
+	public void registerChannelManager(IDispatcherChannelManager channelManager);
+	public void registerChannelService(IDispatcherChannelService channelService);
 	
-	public void unregisterChannelManager(IChannelManager eventController);
-	public void unregisterChannelService(IChannelService queueService);
+	public void unregisterChannelManager(IDispatcherChannelManager channelManager);
+	public void unregisterChannelService(IDispatcherChannelService channelService);
 }

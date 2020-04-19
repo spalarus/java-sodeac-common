@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -21,13 +21,13 @@ import org.sodeac.common.message.MessageHeader;
 import org.sodeac.common.snapdeque.DequeSnapshot;
 
 /**
- * API for channels. {@link IChannel}s are configured by one or more {@link IChannelManager}s. 
- * All collected {@link IMessage}s can be processed by {@link IChannelTask}s.
+ * API for channels. {@link IDispatcherChannel}s are configured by one or more {@link IDispatcherChannelManager}s. 
+ * All collected {@link IMessage}s can be processed by {@link IDispatcherChannelTask}s.
  * 
  * @author Sebastian Palarus
  *
  */
-public interface IChannel<T>
+public interface IDispatcherChannel<T>
 {
 	/**
 	 * getter for channel id
@@ -35,6 +35,13 @@ public interface IChannel<T>
 	 * @return id of channel
 	 */
 	public String getId();
+	
+	/**
+	 * getter for scope name
+	 * 
+	 * @return human readable name of this channel (or null if not defined)
+	 */
+	public String getChannelName();
 	
 	/**
 	 * store a message with default header
@@ -118,7 +125,7 @@ public interface IChannel<T>
 	 * 
 	 * @return true if {@link IMessage} was found and remove, otherwise false
 	 */
-	public boolean removeMessage(String uuid); // TODO UUID
+	public boolean removeMessage(UUID uuid);
 	
 	
 	/**
@@ -196,46 +203,46 @@ public interface IChannel<T>
 	// TODO getTaskList/Index by Predicate
 	
 	/**
-	 * schedule a anonymous {@link IChannelTask} to {@link IChannel}
+	 * schedule a anonymous {@link IDispatcherChannelTask} to {@link IDispatcherChannel}
 	 * 
 	 * equivalent to scheduleTask(null,task, null, -1, -1, -1);
 	 * 
-	 * @param task {@link IChannelTask} to schedule
+	 * @param task {@link IDispatcherChannelTask} to schedule
 	 * 
 	 * @return generated taskid
 	 */
-	public String scheduleTask(IChannelTask task);
+	public String scheduleTask(IDispatcherChannelTask task);
 	
 	/**
-	 * schedule a {@link IChannelTask} to {@link IChannel}.
+	 * schedule a {@link IDispatcherChannelTask} to {@link IDispatcherChannel}.
 	 * 
-	 * @param id registration-id for {@link IChannelTask} to schedule
-	 * @param task {@link IChannelTask} to schedule
+	 * @param id registration-id for {@link IDispatcherChannelTask} to schedule
+	 * @param task {@link IDispatcherChannelTask} to schedule
 	 * 
 	 * @return taskid (generated, if parameter id is null)
 	 */
-	public String scheduleTask(String id,IChannelTask task);
+	public String scheduleTask(String id,IDispatcherChannelTask task);
 	
 	/**
-	 * schedule a {@link IChannelTask} to {@link IChannel}.
+	 * schedule a {@link IDispatcherChannelTask} to {@link IDispatcherChannel}.
 	 * 
-	 * @param id registration-id for {@link IChannelTask} to schedule
-	 * @param task {@link IChannelTask} to schedule
-	 * @param propertyBlock {@link IChannelTask}-properties (factory in {@link IMessageDispatcher})
+	 * @param id registration-id for {@link IDispatcherChannelTask} to schedule
+	 * @param task {@link IDispatcherChannelTask} to schedule
+	 * @param propertyBlock {@link IDispatcherChannelTask}-properties (factory in {@link IMessageDispatcher})
 	 * @param executionTimeStamp execution time millis
 	 * @param timeOutValue timeout value in ms, before notify for timeout
 	 * @param heartBeatTimeOut heartbeat-timeout value in ms, before notify for timeout
 	 * 
 	 * @return taskid (generated, in parameter id is null)
 	 */
-	public String scheduleTask(String id, IChannelTask task, IPropertyBlock propertyBlock, long executionTimeStamp, long timeOutValue, long heartBeatTimeOut );
+	public String scheduleTask(String id, IDispatcherChannelTask task, IPropertyBlock propertyBlock, long executionTimeStamp, long timeOutValue, long heartBeatTimeOut );
 	
 	/**
-	 * schedule a {@link IChannelTask} to {@link IChannel}.
+	 * schedule a {@link IDispatcherChannelTask} to {@link IDispatcherChannel}.
 	 * 
-	 * @param id registration-id for {@link IChannelTask} to schedule
-	 * @param task {@link IChannelTask} to schedule
-	 * @param propertyBlock {@link IChannelTask}-properties (factory in {@link IMessageDispatcher})
+	 * @param id registration-id for {@link IDispatcherChannelTask} to schedule
+	 * @param task {@link IDispatcherChannelTask} to schedule
+	 * @param propertyBlock {@link IDispatcherChannelTask}-properties (factory in {@link IMessageDispatcher})
 	 * @param executionTimeStamp execution time millis
 	 * @param timeOutValue timeout value in ms, before notify for timeout
 	 * @param heartBeatTimeOut heartbeat-timeout value in ms, before notify for timeout
@@ -243,48 +250,48 @@ public interface IChannel<T>
 	 * 
 	 * @return taskid (generated, in parameter id is null)
 	 */
-	public String scheduleTask(String id, IChannelTask task, IPropertyBlock propertyBlock, long executionTimeStamp, long timeOutValue, long heartBeatTimeOut, boolean stopOnTimeOut );
+	public String scheduleTask(String id, IDispatcherChannelTask task, IPropertyBlock propertyBlock, long executionTimeStamp, long timeOutValue, long heartBeatTimeOut, boolean stopOnTimeOut );
 	
 	/**
-	 * reset execution plan for an existing {@link IChannelTask}
+	 * reset execution plan for an existing {@link IDispatcherChannelTask}
 	 * 
 	 * <p>The execution timestamp is ignored if current execution plan requires earlier execution in the future 
 	 * and was requested by trigger, tasks control and periodic service configuration
 	 * 
-	 * @param id registration-id of {@link IChannelTask} in which reset execution plan 
+	 * @param id registration-id of {@link IDispatcherChannelTask} in which reset execution plan 
 	 * @param executionTimeStamp new execution time millis
 	 * @param timeOutValue new timeout value in ms, before notify for timeout
 	 * @param heartBeatTimeOut heartbeat-timeout value in ms, before notify for timeout
-	 * @return affected {@link IChannelTask} or null if not found
+	 * @return affected {@link IDispatcherChannelTask} or null if not found
 	 */
-	public IChannelTask rescheduleTask(String id, long executionTimeStamp, long timeOutValue, long heartBeatTimeOut );
+	public IDispatcherChannelTask rescheduleTask(String id, long executionTimeStamp, long timeOutValue, long heartBeatTimeOut );
 	
 	/**
-	 * returns {@link IChannelTask} scheduled under registration {@code id}
+	 * returns {@link IDispatcherChannelTask} scheduled under registration {@code id}
 	 * 
-	 * @param id registration-id for {@link IChannelTask}
-	 * @return {@link IChannelTask} scheduled under registration {@code id}
+	 * @param id registration-id for {@link IDispatcherChannelTask}
+	 * @return {@link IDispatcherChannelTask} scheduled under registration {@code id}
 	 */
-	public IChannelTask getTask(String id);
+	public IDispatcherChannelTask getTask(String id);
 	
 	/**
-	 * remove{@link IChannelTask} scheduled under registration {@code id}
+	 * remove{@link IDispatcherChannelTask} scheduled under registration {@code id}
 	 * 
-	 * @param id registration-id for {@link IChannelTask} to remove
-	 * @return removed {@link IChannelTask} or null if no scheduled with {@code id} found
+	 * @param id registration-id for {@link IDispatcherChannelTask} to remove
+	 * @return removed {@link IDispatcherChannelTask} or null if no scheduled with {@code id} found
 	 */
-	public IChannelTask removeTask(String id);
+	public IDispatcherChannelTask removeTask(String id);
 	
 	/**
-	 * returns properties of {@link IChannelTask} scheduled under registration {@code id}
+	 * returns properties of {@link IDispatcherChannelTask} scheduled under registration {@code id}
 	 * 
-	 * @param id registration-id for {@link IChannelTask}
-	 * @return properties of {@link IChannelTask} scheduled under registration {@code id}
+	 * @param id registration-id for {@link IDispatcherChannelTask}
+	 * @return properties of {@link IDispatcherChannelTask} scheduled under registration {@code id}
 	 */
 	public IPropertyBlock getTaskPropertyBlock(String id);
 	
 	/**
-	 * Sends a signal. All {@link IChannelManager} manage this {@link IChannel} and implements {@link IOnChannelSignal} will notify asynchronously by queueworker.
+	 * Sends a signal. All {@link IDispatcherChannelManager} manage this {@link IDispatcherChannel} and implements {@link IOnChannelSignal} will notify asynchronously by queueworker.
 	 * 
 	 * @param signal
 	 */
@@ -295,30 +302,35 @@ public interface IChannel<T>
 	 *
 	 * @return global scope
 	 */
-	public IChannel<?> getRootChannel();
+	public IDispatcherChannel<?> getRootChannel();
 	
 	/**
-	 * create {@link ISubChannel} for {@link IChannel}
+	 * getter for parent scope, if exists.
+	 * 
+	 * @return parentChannel or null
+	 */
+	public IDispatcherChannel<?> getParentChannel();
+	
+	/**
+	 * create {@link ISubChannel} for {@link IDispatcherChannel}
 	 * 
 	 * @param scopeId unique id of scope (unique by queue) or null for auto-generation
 	 * @param scopeName human readable name of scope (nullable)
-	 * @param parentScope parent scope to define tree structure for scopes
 	 * @param configurationProperties blue print for configuration propertyblock of new scope (nullable)
 	 * @param stateProperties blue print for state propertyblock of new scope (nullable)
 	 * 
 	 * @return new scope, or null, if scope already exists
 	 */
-	public default ISubChannel<?> createChildScope(UUID scopeId,String scopeName, ISubChannel<?> parentScope, Map<String,Object> configurationProperties, Map<String,Object> stateProperties)
+	public default ISubChannel<?> createChildScope(UUID scopeId,String scopeName, Map<String,Object> configurationProperties, Map<String,Object> stateProperties)
 	{
-		return this.createChildScope(scopeId, scopeName, parentScope, configurationProperties, stateProperties, false, false);
+		return this.createChildScope(scopeId, scopeName, configurationProperties, stateProperties, false, false);
 	}
 	
 	/**
-	 * create {@link ISubChannel} for {@link IChannel}
+	 * create {@link ISubChannel} for {@link IDispatcherChannel}
 	 * 
 	 * @param scopeId unique id of scope (unique by queue) or null for auto-generation
 	 * @param scopeName human readable name of scope (nullable)
-	 * @param parentScope parent scope to define tree structure for scopes
 	 * @param configurationProperties blue print for configuration propertyblock of new scope (nullable)
 	 * @param stateProperties blue print for state propertyblock of new scope (nullable)
 	 * @param adoptContoller keep controller of parent queue
@@ -326,7 +338,7 @@ public interface IChannel<T>
 	 * 
 	 * @return new scope, or null, if scope already exists
 	 */
-	public ISubChannel createChildScope(UUID scopeId,String scopeName, ISubChannel parentScope, Map<String,Object> configurationProperties, Map<String,Object> stateProperties, boolean adoptContoller, boolean adoptServices);
+	public ISubChannel createChildScope(UUID scopeId,String scopeName,Map<String,Object> configurationProperties, Map<String,Object> stateProperties, boolean adoptContoller, boolean adoptServices);
 	
 	/**
 	 * getter for child scope list. The child scopes list is defined by virtual tree structure.

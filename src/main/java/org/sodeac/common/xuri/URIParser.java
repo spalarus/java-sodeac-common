@@ -567,7 +567,7 @@ public final class URIParser implements Serializable
 				{
 					if(workerObject.pathSegment == null)
 					{
-						workerObject.pathSegment = new PathSegment(null,decodeUrl(workerObject.mainStringBuilder.toString()));
+						workerObject.pathSegment = new PathSegment(workerObject.uri.path.getLast(),null,decodeUrl(workerObject.mainStringBuilder.toString()));
 						
 						workerObject.clearStringBuilder();
 					}
@@ -609,7 +609,7 @@ public final class URIParser implements Serializable
 					{
 						workerObject.expression = workerObject.mainStringBuilder.toString();
 						workerObject.value = decodeUrl(workerObject.expression);
-						workerObject.pathSegment = new PathSegment(workerObject.expression,workerObject.value);
+						workerObject.pathSegment = new PathSegment(workerObject.uri.path.getLast(),workerObject.expression,workerObject.value);
 					}
 					workerObject.uri.path.addSubComponent(workerObject.pathSegment);
 					workerObject.clearStringBuilder();
@@ -627,7 +627,7 @@ public final class URIParser implements Serializable
 					{
 						workerObject.expression = workerObject.mainStringBuilder.toString();
 						workerObject.value = decodeUrl(workerObject.expression);
-						workerObject.pathSegment = new PathSegment(workerObject.expression,workerObject.value);
+						workerObject.pathSegment = new PathSegment(workerObject.uri.path.getLast(),workerObject.expression,workerObject.value);
 					}
 					workerObject.uri.path.addSubComponent(workerObject.pathSegment);
 					workerObject.uri.path.setExpression((workerObject.pathIsRelative ? "" : "/") + workerObject.fullPath.substring(workerObject.backup1CurrentPosition, workerObject.currentPosition));
@@ -645,7 +645,7 @@ public final class URIParser implements Serializable
 					{
 						workerObject.expression = workerObject.mainStringBuilder.toString();
 						workerObject.value = decodeUrl(workerObject.expression);
-						workerObject.pathSegment = new PathSegment(workerObject.expression,workerObject.value);
+						workerObject.pathSegment = new PathSegment(workerObject.uri.path.getLast(),workerObject.expression,workerObject.value);
 					}
 					workerObject.uri.path.addSubComponent(workerObject.pathSegment);
 					workerObject.uri.path.setExpression((workerObject.pathIsRelative ? "" : "/") +workerObject.fullPath.substring(workerObject.backup1CurrentPosition, workerObject.currentPosition));
@@ -669,7 +669,7 @@ public final class URIParser implements Serializable
 		{
 			workerObject.expression = workerObject.mainStringBuilder.toString();
 			workerObject.value = decodeUrl(workerObject.expression);
-			workerObject.pathSegment = new PathSegment(workerObject.expression,workerObject.value);
+			workerObject.pathSegment = new PathSegment(workerObject.uri.path.getLast(),workerObject.expression,workerObject.value);
 		}
 		workerObject.uri.path.addSubComponent(workerObject.pathSegment);
 		workerObject.uri.path.setExpression((workerObject.pathIsRelative ? "" : "/") + workerObject.fullPath.substring(workerObject.backup1CurrentPosition, workerObject.currentPosition));

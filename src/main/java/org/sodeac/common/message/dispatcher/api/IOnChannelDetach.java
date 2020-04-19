@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -12,19 +12,19 @@ package org.sodeac.common.message.dispatcher.api;
 
 /**
  * 
- * An extension interface for {@link IChannelManager} to consume notifications if instance of {@link IChannelManager} detach from a {@link IChannel}
+ * An extension interface for {@link IDispatcherChannelManager} to consume notifications if instance of {@link IDispatcherChannelManager} detach from a {@link IDispatcherChannel}
  * 
  * @author Sebastian Palarus
  *
  */
-public interface IOnChannelDetach extends IChannelManager
+public interface IOnChannelDetach extends IDispatcherChannelManager
 {
 	/**
-	 * This is fired, if {@link IChannelManager} detach from a {@link IChannel}
+	 * This is fired, if {@link IDispatcherChannelManager} detach from a {@link IDispatcherChannel}
 	 * <br>
 	 * Attention! This call is not synchronized by worker thread!
 	 * 
-	 * @param channel is detach from {@link IChannelManager}
+	 * @param channel is detach from {@link IDispatcherChannelManager}
 	 */
-	public void onChannelDetach(IChannel channel);
+	public void onChannelDetach(IDispatcherChannel channel);
 }

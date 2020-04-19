@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -35,10 +35,10 @@ import org.slf4j.LoggerFactory;
 import org.sodeac.common.message.dispatcher.api.ChannelComponentUnconfiguredException;
 import org.sodeac.common.message.dispatcher.api.ChannelNotFoundException;
 import org.sodeac.common.message.dispatcher.api.DispatcherChannelSetup;
-import org.sodeac.common.message.dispatcher.api.IChannel;
-import org.sodeac.common.message.dispatcher.api.IChannelManager;
-import org.sodeac.common.message.dispatcher.api.IChannelService;
-import org.sodeac.common.message.dispatcher.api.IChannelTask;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannel;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannelManager;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannelService;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannelTask;
 import org.sodeac.common.message.dispatcher.api.IMessageDispatcher;
 import org.sodeac.common.message.dispatcher.api.IOnChannelDetach;
 import org.sodeac.common.message.dispatcher.api.IOnMessageStoreResult;
@@ -48,8 +48,8 @@ import org.sodeac.common.message.dispatcher.api.IPropertyBlock;
 import org.sodeac.common.message.dispatcher.api.ISubChannel;
 import org.sodeac.common.message.dispatcher.api.DispatcherChannelSetup.BoundedByChannelConfiguration;
 import org.sodeac.common.message.dispatcher.api.DispatcherChannelSetup.BoundedByChannelId;
-import org.sodeac.common.message.dispatcher.api.IChannelManager.IChannelControllerPolicy;
-import org.sodeac.common.message.dispatcher.api.IChannelService.IChannelServicePolicy;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannelManager.IChannelControllerPolicy;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannelService.IChannelServicePolicy;
 import org.sodeac.common.snapdeque.DequeNode;
 import org.sodeac.common.snapdeque.DequeSnapshot;
 import org.sodeac.common.snapdeque.SnapshotableDeque;
@@ -83,8 +83,8 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 	
 	private ConfigurationPropertyBindingRegistry configurationPropertyBindingRegistry = null;
 	
-	private Map<IChannelManager,ChannelManagerContainer> channelManagerIndex = null; 
-	private Map<IChannelService ,ServiceContainer> serviceContainerIndex = null; 
+	private Map<IDispatcherChannelManager,ChannelManagerContainer> channelManagerIndex = null; 
+	private Map<IDispatcherChannelService ,ServiceContainer> serviceContainerIndex = null; 
 	
 	private Logger logger = LoggerFactory.getLogger(MessageDispatcherImpl.class);
 	
@@ -110,8 +110,8 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 		this.managerList = new SnapshotableDeque<ChannelManagerContainer>();
 		this.serviceList = new SnapshotableDeque<ServiceContainer>();
 		
-		this.serviceContainerIndex = new HashMap<IChannelService ,ServiceContainer>();
-		this.channelManagerIndex = new HashMap<IChannelManager,ChannelManagerContainer>();
+		this.serviceContainerIndex = new HashMap<IDispatcherChannelService ,ServiceContainer>();
+		this.channelManagerIndex = new HashMap<IDispatcherChannelManager,ChannelManagerContainer>();
 		
 		this.workerPool = new SnapshotableDeque<ChannelWorker>();
 		
@@ -192,7 +192,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 	}
 
 	@Override
-	public IChannel<?> getChannel(String channelId)
+	public IDispatcherChannel<?> getChannel(String channelId)
 	{
 		this.channelIndexReadLock.lock();
 		try
@@ -208,12 +208,12 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 	
 	@Override
 	@SuppressWarnings("unchecked")
-	public <T> IChannel<T> getTypedChannel(String channelId, Class<T> messageType)
+	public <T> IDispatcherChannel<T> getTypedChannel(String channelId, Class<T> messageType)
 	{
 		this.channelIndexReadLock.lock();
 		try
 		{
-			return (IChannel<T>)this.channelIndex.get(channelId);
+			return (IDispatcherChannel<T>)this.channelIndex.get(channelId);
 		}
 		finally 
 		{
@@ -233,7 +233,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 	
 	
 	@Override
-	public void dispose()
+	public void shutdown()
 	{
 		lifecycleWriteLock.lock();
 	
@@ -322,18 +322,21 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 			this.configurationPropertyBindingRegistry.clear();
 		}
 		catch (Exception e) {}
+		
+		((MessageDispatcherManagerImpl)MessageDispatcherManagerImpl.get()).remove(this.id);
 	}
 	
 	
 	@Override
-	public void registerChannelManager(IChannelManager channelManager)
+	public void registerChannelManager(IDispatcherChannelManager channelManager)
 	{
 		ChannelManagerPolicy channelManagerPolicy = new ChannelManagerPolicy();
 		channelManager.configure(channelManagerPolicy);
 		
 		if(channelManagerPolicy.getConfigurationSet().isEmpty())
 		{
-			throw new ChannelComponentUnconfiguredException(channelManager);
+			return;
+			// throw new ChannelComponentUnconfiguredException(channelManager);
 		}
 		
 		ChannelManagerContainer channelManagerContainer = null;
@@ -478,7 +481,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 					// set in existing channel
 					channel.setManager(channelManagerContainer);
 				}
-				else if((channel == null) && boundedChannelId.isAutoCreateChannel()) // autocreate
+				else if((channel == null) && boundedChannelId.isChannelMaster()) // autocreate
 				{
 					// create a new channel and set into
 					this.channelIndexWriteLock.lock();
@@ -492,7 +495,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 											channelManagerContainer.getChannelManager().getClass().getSimpleName() :
 											boundedChannelId.getName();
 								
-							channel = new ChannelImpl<Object>(boundedChannelId.getChannelId(),this, name,null,null);
+							channel = new ChannelImpl<Object>(boundedChannelId.getChannelId(),this, null, null, name,null,null);
 							this.channelIndex.put(boundedChannelId.getChannelId(),channel);
 								
 							try(DequeSnapshot<ServiceContainer> servicesSnapshot = this.serviceList.createSnapshot())
@@ -523,10 +526,6 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 				for(BoundedByChannelConfiguration boundedByChannelConfiguration : channelManagerContainer.getBoundedByChannelConfigurationList())
 				{
 					if(boundedByChannelConfiguration.getLdapFilter() == null)
-					{
-						continue;
-					}
-					if(boundedByChannelConfiguration.getLdapFilter().isEmpty())
 					{
 						continue;
 					}
@@ -564,7 +563,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 	}
 	
 	@Override
-	public void unregisterChannelManager(IChannelManager channelManager)
+	public void unregisterChannelManager(IDispatcherChannelManager channelManager)
 	{
 		ChannelManagerContainer managerContainer = null;
 		lifecycleReadLock.lock();
@@ -622,7 +621,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 					registeredOnChannelList.add(entry.getValue());
 				}
 				
-				if(entry.getValue().getManagerSize() == 0)
+				if(entry.getValue().isMastered())
 				{
 					if(channelRemoveList == null)
 					{
@@ -697,7 +696,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 		}
 	}
 	
-	public void registerChannelService(IChannelService channelService)
+	public void registerChannelService(IDispatcherChannelService channelService)
 	{
 		ChannelServicePolicy channelServicePolicy = new ChannelServicePolicy();
 		channelService.configure(channelServicePolicy);
@@ -883,7 +882,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 	}
 	
 	@Override
-	public void unregisterChannelService(IChannelService channelService)
+	public void unregisterChannelService(IDispatcherChannelService channelService)
 	{
 		ServiceContainer serviceContainer = null;
 		lifecycleReadLock.lock();
@@ -1040,14 +1039,14 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 		return this.spooledChannelWorkerScheduler.scheduleChannelWorker(channel, wakeUpTime);
 	}
 	
-	protected void executeOnTaskTimeOut(IOnTaskTimeout manager, IChannel<?> channel, IChannelTask task)
+	protected void executeOnTaskTimeOut(IOnTaskTimeout manager, IDispatcherChannel<?> channel, IDispatcherChannelTask task)
 	{
 		try
 		{
-			this.executorService.submit(new Callable<IChannelTask>()
+			this.executorService.submit(new Callable<IDispatcherChannelTask>()
 			{
 				@Override
-				public IChannelTask call()
+				public IDispatcherChannelTask call()
 				{
 					try
 					{
@@ -1061,7 +1060,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 		catch (Exception e) {}
 	}
 	
-	public void executeOnTaskStopExecuter(ChannelWorker worker, IChannelTask task)
+	public void executeOnTaskStopExecuter(ChannelWorker worker, IDispatcherChannelTask task)
 	{
 		this.executorService.execute(new Runnable()
 		{
@@ -1123,14 +1122,14 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 		});
 	}
 	
-	protected void executeOnChannelDetach(IOnChannelDetach onChannelDetach , IChannel<?> channel)
+	protected void executeOnChannelDetach(IOnChannelDetach onChannelDetach , IDispatcherChannel<?> channel)
 	{
 		try
 		{
-			this.executorService.submit(new Callable<IChannel<?>>()
+			this.executorService.submit(new Callable<IDispatcherChannel<?>>()
 			{
 				@Override
-				public IChannel<?> call()
+				public IDispatcherChannel<?> call()
 				{
 					try
 					{

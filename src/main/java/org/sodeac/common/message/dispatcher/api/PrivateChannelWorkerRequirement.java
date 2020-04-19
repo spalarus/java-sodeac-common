@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2019 Sebastian Palarus
+ * Copyright (c) 2018, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -31,7 +31,7 @@ import java.util.Set;
  * </tr>
  * <tr>
  * <td>
- * At least one {@link IChannelComponent} claims to use private worker by {@link PrivateChannelWorkerRequirement#RequirePrivateChannelWorker}
+ * At least one {@link IDispatcherChannelComponent} claims to use private worker by {@link PrivateChannelWorkerRequirement#RequirePrivateChannelWorker}
  * </td>
  * <td>
  * Use private Worker (always)
@@ -39,23 +39,23 @@ import java.util.Set;
  * </tr>
  * <tr>
  * <td>
- * More {@link IChannelComponent}s prefer to use same worker ({@link PrivateChannelWorkerRequirement#PreferPrivateChannelWorker}) then not ({@link PrivateChannelWorkerRequirement#PreferSharedChannelWorker})
+ * More {@link IDispatcherChannelComponent}s prefer to use same worker ({@link PrivateChannelWorkerRequirement#PreferPrivateChannelWorker}) then not ({@link PrivateChannelWorkerRequirement#PreferSharedChannelWorker})
  * </td>
  * <td>
- * Use private Worker (if no {@link IChannelComponent} claims to use private worker by {@link PrivateChannelWorkerRequirement#RequirePrivateChannelWorker})
- * </td>
- * </tr>
- * <tr>
- * <td>
- * More {@link IChannelComponent}s prefer to use shared worker ({@link PrivateChannelWorkerRequirement#PreferSharedChannelWorker}) then not ({@link PrivateChannelWorkerRequirement#PreferPrivateChannelWorker})
- * </td>
- * <td>
- * Use shared Worker (if no {@link IChannelComponent} claims to use private worker by {@link PrivateChannelWorkerRequirement#RequirePrivateChannelWorker})
+ * Use private Worker (if no {@link IDispatcherChannelComponent} claims to use private worker by {@link PrivateChannelWorkerRequirement#RequirePrivateChannelWorker})
  * </td>
  * </tr>
  * <tr>
  * <td>
- * No {@link IChannelComponent}s has a preference or a requirement / all {@link IChannelComponent}s declare {@link PrivateChannelWorkerRequirement#NoPreferenceOrRequirement}
+ * More {@link IDispatcherChannelComponent}s prefer to use shared worker ({@link PrivateChannelWorkerRequirement#PreferSharedChannelWorker}) then not ({@link PrivateChannelWorkerRequirement#PreferPrivateChannelWorker})
+ * </td>
+ * <td>
+ * Use shared Worker (if no {@link IDispatcherChannelComponent} claims to use private worker by {@link PrivateChannelWorkerRequirement#RequirePrivateChannelWorker})
+ * </td>
+ * </tr>
+ * <tr>
+ * <td>
+ * No {@link IDispatcherChannelComponent}s has a preference or a requirement / all {@link IDispatcherChannelComponent}s declare {@link PrivateChannelWorkerRequirement#NoPreferenceOrRequirement}
  * </td>
  * <td>
  * Use shared Worker
@@ -63,7 +63,7 @@ import java.util.Set;
  * </tr>
  * </table>
  * <br>
- * Private worker can be useful, if {@link IChannelComponent} use thread sensitive libraries like Mozilla Rhino. 
+ * Private worker can be useful, if {@link IDispatcherChannelComponent} use thread sensitive libraries like Mozilla Rhino. 
  * 
  * @author Sebastian Palarus
  * @since 1.0

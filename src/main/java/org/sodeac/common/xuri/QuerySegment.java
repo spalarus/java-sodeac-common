@@ -14,8 +14,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -45,7 +43,7 @@ public class QuerySegment implements Serializable, IExtensible
 	 * @param coding the format of segment (not required / null, json or string)
 	 * @param value  the value of segment
 	 */
-	public QuerySegment(String expression,String type, String name, String coding, String value)
+	protected QuerySegment(String expression,String type, String name, String coding, String value)
 	{
 		super();
 		this.expression = expression;
@@ -53,14 +51,11 @@ public class QuerySegment implements Serializable, IExtensible
 		this.name = name;
 		this.coding = coding;
 		this.value = value;
-		
-		this.extensionsLock = new ReentrantLock();
 	}
 	
 	private List<IExtension<?>> extensions = null;
 	private volatile List<IExtension<?>> extensionsImmutable = null;
 	
-	private Lock extensionsLock = null;
 	private String expression = null;
 	private String type = null;
 	private String name = null;
@@ -84,20 +79,12 @@ public class QuerySegment implements Serializable, IExtensible
 	 */
 	protected void addExtension(IExtension<?> extension)
 	{
-		this.extensionsLock.lock();
-		try
+		if(this.extensions == null)
 		{
-			if(this.extensions == null)
-			{
-				this.extensions = new ArrayList<IExtension<?>>();
-			}
-			this.extensions.add(extension);
-			this.extensionsImmutable = null;
+			this.extensions = new ArrayList<IExtension<?>>();
 		}
-		finally 
-		{
-			this.extensionsLock.unlock();
-		}
+		this.extensions.add(extension);
+		this.extensionsImmutable = null;
 	}
 
 	@Override
@@ -125,21 +112,13 @@ public class QuerySegment implements Serializable, IExtensible
 		List<IExtension<?>> extensionList = extensionsImmutable;
 		if(extensionList == null)
 		{
-			this.extensionsLock.lock();
-			try
+			extensionList = this.extensionsImmutable;
+			if(extensionList != null)
 			{
-				extensionList = this.extensionsImmutable;
-				if(extensionList != null)
-				{
-					return extensionList;
-				}
-				this.extensionsImmutable = Collections.unmodifiableList(this.extensions == null ? new ArrayList<IExtension<?>>() : new ArrayList<IExtension<?>>(this.extensions));
-				extensionList = this.extensionsImmutable;
+				return extensionList;
 			}
-			finally 
-			{
-				this.extensionsLock.unlock();
-			}
+			this.extensionsImmutable = Collections.unmodifiableList(this.extensions == null ? new ArrayList<IExtension<?>>() : new ArrayList<IExtension<?>>(this.extensions));
+			extensionList = this.extensionsImmutable;
 		}
 		return extensionList;
 	}

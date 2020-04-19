@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -18,7 +18,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sodeac.common.message.dispatcher.api.DispatcherChannelSetup;
-import org.sodeac.common.message.dispatcher.api.IChannelService;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannelService;
 import org.sodeac.common.xuri.ldapfilter.Criteria;
 import org.sodeac.common.xuri.ldapfilter.CriteriaLinker;
 import org.sodeac.common.xuri.ldapfilter.IFilterItem;
@@ -54,7 +54,7 @@ public class ServiceContainer
 	private List<DispatcherChannelSetup.BoundedByChannelConfiguration> boundedByQueueConfigurationList = null;
 	private DispatcherChannelSetup.ChannelServiceConfiguration serviceConfiguration = null;
 	
-	private volatile IChannelService queueService = null;
+	private volatile IDispatcherChannelService queueService = null;
 	
 	private volatile boolean registered = false;
 	
@@ -72,18 +72,12 @@ public class ServiceContainer
 				{
 					continue;
 				}
-				if(boundedByQueueConfiguration.getLdapFilter().isEmpty())
-				{
-					continue;
-				}
 				ServiceFilterObjects controllerFilterObjects = new ServiceFilterObjects();
 				controllerFilterObjects.bound = boundedByQueueConfiguration;
-				controllerFilterObjects.filterExpression = boundedByQueueConfiguration.getLdapFilter();
+				controllerFilterObjects.filter = boundedByQueueConfiguration.getLdapFilter();
 				
 				try
 				{
-					controllerFilterObjects.filter = LDAPFilterDecodingHandler.getInstance().decodeFromString(controllerFilterObjects.filterExpression);
-					
 					LinkedList<IFilterItem> discoverLDAPItem = new LinkedList<IFilterItem>();
 					IFilterItem filter = LDAPFilterDecodingHandler.getInstance().decodeFromString(controllerFilterObjects.filterExpression);
 					
@@ -125,11 +119,11 @@ public class ServiceContainer
 		}
 	}
 
-	public IChannelService getChannelService()
+	public IDispatcherChannelService getChannelService()
 	{
 		return queueService;
 	}
-	public void setChannelService(IChannelService queueService)
+	public void setChannelService(IDispatcherChannelService queueService)
 	{
 		this.queueService = queueService;
 	}

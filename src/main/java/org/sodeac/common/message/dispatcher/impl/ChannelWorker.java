@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -18,8 +18,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.sodeac.common.message.dispatcher.api.IChannelService;
-import org.sodeac.common.message.dispatcher.api.IChannelWorker;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannelService;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannelWorker;
 import org.sodeac.common.message.dispatcher.api.IMessage;
 import org.sodeac.common.message.dispatcher.api.IOnChannelAttach;
 import org.sodeac.common.message.dispatcher.api.IOnChannelSignal;
@@ -44,7 +44,7 @@ public class ChannelWorker extends Thread
 	private long spoolTimeStamp = 0;
 	
 	private ChannelImpl<?> channel = null;
-	private IChannelWorker workerWrapper = null;
+	private IDispatcherChannelWorker workerWrapper = null;
 	private volatile boolean go = true;
 	protected volatile boolean isUpdateNotified = false;
 	protected volatile boolean isSoftUpdated = false;
@@ -68,7 +68,7 @@ public class ChannelWorker extends Thread
 		this.workerWrapper = new ChannelWorkerWrapper(this);
 		this.dueTaskList = new ArrayList<TaskContainer>();
 		this.context = new ChannelTaskContextImpl(this.dueTaskList);
-		this.context.setQueue(this.channel);
+		this.context.setChannel(this.channel);
 		super.setDaemon(true);
 		super.setName(ChannelWorker.class.getSimpleName() + " " + this.channel.getId());
 	}
@@ -120,8 +120,8 @@ public class ChannelWorker extends Thread
 	public void run()
 	{
 		Set<IOnMessageStoreResult> scheduledResultSet = new HashSet<IOnMessageStoreResult>();
-		DequeSnapshot<? extends IMessage> newEventsSnapshot;
-		DequeSnapshot<? extends IMessage> removedEventsSnapshot;
+		DequeSnapshot<? extends IMessage> newMessagesSnapshot;
+		DequeSnapshot<? extends IMessage> removedMessagesSnapshot;
 		while(go)
 		{
 			
@@ -141,10 +141,10 @@ public class ChannelWorker extends Thread
 				}
 				
 				channel.closeWorkerSnapshots();
-				newEventsSnapshot = channel.getNewScheduledEventsSnaphot();
+				newMessagesSnapshot = channel.getNewScheduledEventsSnaphot();
 				try
 				{
-					if((newEventsSnapshot != null) && (! newEventsSnapshot.isEmpty()))
+					if((newMessagesSnapshot != null) && (! newMessagesSnapshot.isEmpty()))
 					{
 						try
 						{
@@ -153,10 +153,10 @@ public class ChannelWorker extends Thread
 						catch(Exception ex) {}
 						catch(Error ex) {}
 						
-						boolean onPublishEvent = false;
+						boolean onMessageStored = false;
 							
 						scheduledResultSet.clear();
-						for(IMessage<?> event : newEventsSnapshot)
+						for(IMessage<?> event : newMessagesSnapshot)
 						{
 							try
 							{
@@ -165,27 +165,27 @@ public class ChannelWorker extends Thread
 							catch (Exception ie) {}
 						}
 							
-						for(ChannelManagerContainer conf : channel.getControllerContainerList())
+						for(ChannelManagerContainer conf : channel.getManagerContainerList())
 						{
-							if(conf.isImplementingIOnScheduleEvent())
+							if(conf.isImplementingIOnMessageStored())
 							{
-								onPublishEvent = true;
+								onMessageStored = true;
 							}
 						}
-						if(onPublishEvent)
+						if(onMessageStored)
 						{
-							for(MessageImpl<?> event : (DequeSnapshot<MessageImpl<?>>)newEventsSnapshot)
+							for(MessageImpl<?> message : (DequeSnapshot<MessageImpl<?>>)newMessagesSnapshot)
 							{
 								channel.touchLastWorkerAction();
-								for(ChannelManagerContainer conf : channel.getControllerContainerList())
+								for(ChannelManagerContainer conf : channel.getManagerContainerList())
 								{
 									try
 									{
 										if(go)
 										{
-											if(conf.isImplementingIOnScheduleEvent())
+											if(conf.isImplementingIOnMessageStored())
 											{
-												((IOnMessageStore)conf.getChannelManager()).onMessageStore(event);
+												((IOnMessageStore)conf.getChannelManager()).onMessageStore(message);
 											}
 										}
 									}
@@ -193,7 +193,15 @@ public class ChannelWorker extends Thread
 									{
 										try
 										{
-											event.getScheduleResultObject().addError(e);
+											message.getScheduleResultObject().addError(e);
+										}
+										catch (Exception ie) {}		
+									}
+									catch (Error e) 
+									{
+										try
+										{
+											message.getScheduleResultObject().addError(e);
 										}
 										catch (Exception ie) {}		
 									}
@@ -208,7 +216,7 @@ public class ChannelWorker extends Thread
 							}
 							catch (Exception ie) {}										
 						}
-						for(MessageImpl<?> event : (DequeSnapshot<MessageImpl<?>>)newEventsSnapshot)
+						for(MessageImpl<?> event : (DequeSnapshot<MessageImpl<?>>)newMessagesSnapshot)
 						{
 							try
 							{
@@ -220,15 +228,15 @@ public class ChannelWorker extends Thread
 				}
 				finally
 				{
-					if(newEventsSnapshot != null)
+					if(newMessagesSnapshot != null)
 					{
 						try
 						{
-							newEventsSnapshot.close();
+							newMessagesSnapshot.close();
 						}
 						finally 
 						{
-							newEventsSnapshot = null;
+							newMessagesSnapshot = null;
 						}
 						scheduledResultSet.clear();
 					}
@@ -245,10 +253,10 @@ public class ChannelWorker extends Thread
 			
 			try
 			{
-				removedEventsSnapshot = channel.getRemovedEventsSnapshot();
+				removedMessagesSnapshot = channel.getRemovedMessagesSnapshot();
 				try
 				{
-					if((removedEventsSnapshot != null) && (! removedEventsSnapshot.isEmpty()))
+					if((removedMessagesSnapshot != null) && (! removedMessagesSnapshot.isEmpty()))
 					{
 	
 						try
@@ -258,16 +266,16 @@ public class ChannelWorker extends Thread
 						catch(Exception ex) {}
 						catch(Error ex) {}
 						
-						for(MessageImpl event : (DequeSnapshot<MessageImpl>)removedEventsSnapshot)
+						for(MessageImpl event : (DequeSnapshot<MessageImpl>)removedMessagesSnapshot)
 						{
 							channel.touchLastWorkerAction();
-							for(ChannelManagerContainer conf : channel.getControllerContainerList())
+							for(ChannelManagerContainer conf : channel.getManagerContainerList())
 							{
 								try
 								{
 									if(go)
 									{
-										if(conf.isImplementingIOnRemoveEvent())
+										if(conf.isImplementingIOnRemoveMessage())
 										{
 											((IOnMessageRemove)conf.getChannelManager()).onMessageRemove(event);
 										}
@@ -280,15 +288,15 @@ public class ChannelWorker extends Thread
 				}
 				finally 
 				{
-					if(removedEventsSnapshot != null)
+					if(removedMessagesSnapshot != null)
 					{
 						try
 						{
-							removedEventsSnapshot.close();
+							removedMessagesSnapshot.close();
 						}
 						finally 
 						{
-							removedEventsSnapshot = null;
+							removedMessagesSnapshot = null;
 						}
 					}
 				}
@@ -320,13 +328,13 @@ public class ChannelWorker extends Thread
 						for(String signal : signalSnapshot)
 						{
 							channel.touchLastWorkerAction();
-							for(ChannelManagerContainer conf : channel.getControllerContainerList())
+							for(ChannelManagerContainer conf : channel.getManagerContainerList())
 							{
 								try
 								{
 									if(go)
 									{
-										if(conf.isImplementingIOnQueueSignal())
+										if(conf.isImplementingIOnChannelSignal())
 										{
 											((IOnChannelSignal)conf.getChannelManager()).onChannelSignal(channel, signal);
 										}
@@ -420,7 +428,7 @@ public class ChannelWorker extends Thread
 									);
 									dueTask.getTaskControl().preRunPeriodicTask();
 								}
-								else if(dueTask.getTask() instanceof IChannelService)
+								else if(dueTask.getTask() instanceof IDispatcherChannelService)
 								{
 									long periodicRepetitionInterval = -1L;
 									
@@ -503,7 +511,7 @@ public class ChannelWorker extends Thread
 									this.channel.getEventDispatcher().unregisterTimeOut(this.channel,dueTask);
 								}
 								
-								if(! (dueTask.getTask() instanceof IChannelService))
+								if(! (dueTask.getTask() instanceof IDispatcherChannelService))
 								{
 									dueTask.getTaskControl().setDone();
 								}
@@ -516,7 +524,7 @@ public class ChannelWorker extends Thread
 								
 								try
 								{
-									for(ChannelManagerContainer conf : channel.getControllerContainerList())
+									for(ChannelManagerContainer conf : channel.getManagerContainerList())
 									{
 										if(conf.isImplementingIOnTaskError())
 										{
@@ -553,7 +561,7 @@ public class ChannelWorker extends Thread
 									this.channel.getEventDispatcher().unregisterTimeOut(this.channel,dueTask);
 								}
 								
-								if(! (dueTask.getTask() instanceof IChannelService))
+								if(! (dueTask.getTask() instanceof IDispatcherChannelService))
 								{
 									dueTask.getTaskControl().setDone();
 								}
@@ -571,7 +579,7 @@ public class ChannelWorker extends Thread
 								
 								try
 								{
-									for(ChannelManagerContainer conf : channel.getControllerContainerList())
+									for(ChannelManagerContainer conf : channel.getManagerContainerList())
 									{
 										if(conf.isImplementingIOnTaskError())
 										{
@@ -604,10 +612,10 @@ public class ChannelWorker extends Thread
 							
 							try
 							{
-								removedEventsSnapshot = channel.getRemovedEventsSnapshot();
+								removedMessagesSnapshot = channel.getRemovedMessagesSnapshot();
 								try
 								{
-									if((removedEventsSnapshot != null) && (! removedEventsSnapshot.isEmpty()))
+									if((removedMessagesSnapshot != null) && (! removedMessagesSnapshot.isEmpty()))
 									{
 					
 										try
@@ -617,16 +625,16 @@ public class ChannelWorker extends Thread
 										catch(Exception ex) {}
 										catch(Error ex) {}
 										
-										for(MessageImpl event : (DequeSnapshot<MessageImpl>)removedEventsSnapshot)
+										for(MessageImpl event : (DequeSnapshot<MessageImpl>)removedMessagesSnapshot)
 										{
 											channel.touchLastWorkerAction();
-											for(ChannelManagerContainer conf : channel.getControllerContainerList())
+											for(ChannelManagerContainer conf : channel.getManagerContainerList())
 											{
 												try
 												{
 													if(go)
 													{
-														if(conf.isImplementingIOnRemoveEvent())
+														if(conf.isImplementingIOnRemoveMessage())
 														{
 															((IOnMessageRemove)conf.getChannelManager()).onMessageRemove(event);
 														}
@@ -639,15 +647,15 @@ public class ChannelWorker extends Thread
 								}
 								finally 
 								{
-									if(removedEventsSnapshot != null)
+									if(removedMessagesSnapshot != null)
 									{
 										try
 										{
-											removedEventsSnapshot.close();
+											removedMessagesSnapshot.close();
 										}
 										finally 
 										{
-											removedEventsSnapshot = null;
+											removedMessagesSnapshot = null;
 										}
 									}
 								}
@@ -679,13 +687,13 @@ public class ChannelWorker extends Thread
 										for(String signal : signalSnapshot)
 										{
 											channel.touchLastWorkerAction();
-											for(ChannelManagerContainer conf : channel.getControllerContainerList())
+											for(ChannelManagerContainer conf : channel.getManagerContainerList())
 											{
 												try
 												{
 													if(go)
 													{
-														if(conf.isImplementingIOnQueueSignal())
+														if(conf.isImplementingIOnChannelSignal())
 														{
 															((IOnChannelSignal)conf.getChannelManager()).onChannelSignal(channel, signal);
 														}
@@ -726,7 +734,7 @@ public class ChannelWorker extends Thread
 							
 							if(dueTask.getTaskControl().isDone())
 							{
-								for(ChannelManagerContainer conf : channel.getControllerContainerList())
+								for(ChannelManagerContainer conf : channel.getManagerContainerList())
 								{
 									try
 									{
@@ -747,7 +755,7 @@ public class ChannelWorker extends Thread
 					{
 						try
 						{
-							if(! (dueTask.getTask() instanceof IChannelService))
+							if(! (dueTask.getTask() instanceof IDispatcherChannelService))
 							{
 								dueTask.getTaskControl().setDone();
 							}
@@ -957,7 +965,7 @@ public class ChannelWorker extends Thread
 		
 		try
 		{
-			if(timeOutTask.getTask() instanceof IChannelService)
+			if(timeOutTask.getTask() instanceof IDispatcherChannelService)
 			{
 				timeOutTask.getTaskControl().timeOutService();
 			}
@@ -968,7 +976,7 @@ public class ChannelWorker extends Thread
 		}
 		catch (Exception e) {}
 		
-		for(ChannelManagerContainer conf : channel.getControllerContainerList())
+		for(ChannelManagerContainer conf : channel.getManagerContainerList())
 		{
 			try
 			{
@@ -1096,7 +1104,7 @@ public class ChannelWorker extends Thread
 		}
 		
 		this.channel = eventQueue;
-		this.context.setQueue(this.channel);
+		this.context.setChannel(this.channel);
 		if(this.channel == null)
 		{
 			super.setName(ChannelWorker.class.getSimpleName() + " IDLE");
@@ -1129,7 +1137,7 @@ public class ChannelWorker extends Thread
 		this.spoolTimeStamp = spoolTimeStamp;
 	}
 
-	public IChannelWorker getWorkerWrapper()
+	public IDispatcherChannelWorker getWorkerWrapper()
 	{
 		return workerWrapper;
 	}

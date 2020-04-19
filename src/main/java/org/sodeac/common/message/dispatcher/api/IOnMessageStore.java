@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -12,17 +12,21 @@ package org.sodeac.common.message.dispatcher.api;
 
 /**
  * 
- * An extension interface for {@link IChannelManager} to consume a notification if {@link IChannel} has queued an {@link IMessage}
+ * An extension interface for {@link IDispatcherChannelManager} to consume a notification if {@link IDispatcherChannel} has queued an {@link IMessage}. 
+ * <br>
+ * UseCase: (re)plan tasks 
  * 
  * @author Sebastian Palarus
  *
  */
-public interface IOnMessageStore extends IChannelManager
+public interface IOnMessageStore extends IDispatcherChannelManager
 {
 	/**
-	 * This is fired, if {@link IChannel} has queued an {@link IMessage}
+	 * This is fired, if {@link IDispatcherChannel} has queued an {@link IMessage}
 	 * <br>
 	 * invoked and synchronized by queue worker
+	 * <br>
+	 * UseCase: (re)plan tasks 
 	 * 
 	 * @param message new message
 	 */

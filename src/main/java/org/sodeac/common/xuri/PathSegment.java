@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016, 2019 Sebastian Palarus
+ * Copyright (c) 2016, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -14,8 +14,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -39,14 +37,17 @@ public class PathSegment implements Serializable, IExtensible
 	 * @param expression string expression
 	 * @param value segment value
 	 */
-	public PathSegment(String expression, String value)
+	protected PathSegment(PathSegment previews, String expression, String value)
 	{
 		super();
 		this.expression = expression;
 		this.value = value;
 		this.axis = Axis.CHILD;
-		
-		this.extensionsLock = new ReentrantLock();
+		this.previews = previews;
+		if(this.previews != null)
+		{
+			this.previews.next = this;
+		}
 	}
 	
 	/**
@@ -57,21 +58,27 @@ public class PathSegment implements Serializable, IExtensible
 	 * @param value segment value
 	 * @param axis axistype
 	 */
-	public PathSegment(String expression, String value, Axis axis)
+	public PathSegment(PathSegment previews, String expression, String value, Axis axis)
 	{
 		super();
 		this.expression = expression;
 		this.value = value;
 		this.axis = axis;
+		
+		if(this.previews != null)
+		{
+			this.previews.next = this;
+		}
 	}
 
 	private List<IExtension<?>> extensions = null;
 	private volatile List<IExtension<?>> extensionsImmutable = null;
 	
-	private Lock extensionsLock = null;
 	private String expression = null;
 	private String value = null;
 	private Axis axis = null;
+	private PathSegment previews = null;
+	private PathSegment next = null;
 	
 	/**
 	 * setter for expression string
@@ -100,20 +107,12 @@ public class PathSegment implements Serializable, IExtensible
 	 */
 	protected void addExtension(IExtension<?> extension)
 	{
-		this.extensionsLock.lock();
-		try
+		if(this.extensions == null)
 		{
-			if(this.extensions == null)
-			{
-				this.extensions = new ArrayList<IExtension<?>>();
-			}
-			this.extensions.add(extension);
-			this.extensionsImmutable = null;
+			this.extensions = new ArrayList<IExtension<?>>();
 		}
-		finally 
-		{
-			this.extensionsLock.unlock();
-		}
+		this.extensions.add(extension);
+		this.extensionsImmutable = null;
 	}
 
 	@Override
@@ -141,21 +140,13 @@ public class PathSegment implements Serializable, IExtensible
 		List<IExtension<?>> extensionList = extensionsImmutable;
 		if(extensionList == null)
 		{
-			this.extensionsLock.lock();
-			try
+			extensionList = this.extensionsImmutable;
+			if(extensionList != null)
 			{
-				extensionList = this.extensionsImmutable;
-				if(extensionList != null)
-				{
-					return extensionList;
-				}
-				this.extensionsImmutable = Collections.unmodifiableList(this.extensions == null ? new ArrayList<IExtension<?>>() : new ArrayList<IExtension<?>>(this.extensions));
-				extensionList = this.extensionsImmutable;
+				return extensionList;
 			}
-			finally 
-			{
-				this.extensionsLock.unlock();
-			}
+			this.extensionsImmutable = Collections.unmodifiableList(this.extensions == null ? new ArrayList<IExtension<?>>() : new ArrayList<IExtension<?>>(this.extensions));
+			extensionList = this.extensionsImmutable;
 		}
 		return extensionList;
 	}
@@ -193,5 +184,24 @@ public class PathSegment implements Serializable, IExtensible
 	{
 		return value;
 	}
+	
+	/**
+	 * getter for previews path segment
+	 * 
+	 * @return previews path segment
+	 */
+	public PathSegment getPreviews()
+	{
+		return previews;
+	}
 
+	/**
+	 * getter for next path segment
+	 * 
+	 * @return next path segment
+	 */
+	public PathSegment getNext()
+	{
+		return next;
+	}
 }

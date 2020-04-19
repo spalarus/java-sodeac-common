@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -12,20 +12,20 @@ package org.sodeac.common.message.dispatcher.api;
 
 /**
  * 
- * An extension interface for {@link IChannelManager} to consume notifications of finishing a task
+ * An extension interface for {@link IDispatcherChannelManager} to consume notifications of finishing a task
  * 
  * @author Sebastian Palarus
  *
  */
-public interface IOnTaskDone extends IChannelManager
+public interface IOnTaskDone extends IDispatcherChannelManager
 {
 	/**
-	 * This is fired, if {@link IChannelTask} remove a scheduled {@link IMessage}
+	 * This is fired, if {@link IDispatcherChannelTask} remove a scheduled {@link IMessage}
 	 * <br>
 	 * invoked and synchronized by queue worker
 	 * 
-	 * @param channel  queue of task finished {@link IChannelTask}
-	 * @param task finished {@link IChannelTask}
+	 * @param channel  queue of task finished {@link IDispatcherChannelTask}
+	 * @param task finished {@link IDispatcherChannelTask}
 	 */
-	public void onTaskDone(IChannel channel,IChannelTask task);
+	public void onTaskDone(IDispatcherChannel channel,IDispatcherChannelTask task);
 }

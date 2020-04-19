@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -12,12 +12,12 @@ package org.sodeac.common.message.dispatcher.api;
 
 /**
  * 
- * An extension interface for {@link IChannelManager} to consume channel signals
+ * An extension interface for {@link IDispatcherChannelManager} to consume channel signals
  * 
  * @author Sebastian Palarus
  *
  */
-public interface IOnChannelSignal extends IChannelManager
+public interface IOnChannelSignal extends IDispatcherChannelManager
 {
 	/**
 	 * consume channel signals
@@ -28,5 +28,5 @@ public interface IOnChannelSignal extends IChannelManager
 	 * @param channel parent queue
 	 * @param signal fired signal
 	 */
-	public void onChannelSignal(IChannel channel, String signal);
+	public void onChannelSignal(IDispatcherChannel channel, String signal);
 }

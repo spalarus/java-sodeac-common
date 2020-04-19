@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2019 Sebastian Palarus
+ * Copyright (c) 2018, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -13,8 +13,8 @@ package org.sodeac.common.message.dispatcher.api;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
-public interface IFeatureConfigurableController extends 
-						IChannelManager,
+public interface IFeatureConfigurableManager extends 
+						IDispatcherChannelManager,
 						IOnTaskDone,
 						IOnTaskError,
 						IOnTaskTimeout,
@@ -32,32 +32,32 @@ public interface IFeatureConfigurableController extends
 	
 	public default boolean implementsOnChannelSignal()
 	{
-		return implementsControllerMethod("onChannelSignal", Void.TYPE, IChannel.class, String.class);
+		return implementsControllerMethod("onChannelSignal", Void.TYPE, IDispatcherChannel.class, String.class);
 	}
 	
 	public default boolean implementsOnChannelDetach()
 	{
-		return implementsControllerMethod("onChannelDetach", Void.TYPE, IChannel.class);
+		return implementsControllerMethod("onChannelDetach", Void.TYPE, IDispatcherChannel.class);
 	}
 	
 	public default boolean implementsOnChannelAttach()
 	{
-		return implementsControllerMethod("onChannelAttach", Void.TYPE, IChannel.class);
+		return implementsControllerMethod("onChannelAttach", Void.TYPE, IDispatcherChannel.class);
 	}
 	
 	public default boolean implementsOnTaskError()
 	{
-		return implementsControllerMethod("onTaskError", Void.TYPE, IChannel.class, IChannelTask.class, Throwable.class);
+		return implementsControllerMethod("onTaskError", Void.TYPE, IDispatcherChannel.class, IDispatcherChannelTask.class, Throwable.class);
 	}
 	
 	public default boolean implementsOnTaskDone()
 	{
-		return implementsControllerMethod("onTaskDone", Void.TYPE, IChannel.class, IChannelTask.class);
+		return implementsControllerMethod("onTaskDone", Void.TYPE, IDispatcherChannel.class, IDispatcherChannelTask.class);
 	}
 	
 	public default boolean implementsOnTaskTimeout()
 	{
-		return implementsControllerMethod("onTaskTimeout", Void.TYPE, IChannel.class, IChannelTask.class);
+		return implementsControllerMethod("onTaskTimeout", Void.TYPE, IDispatcherChannel.class, IDispatcherChannelTask.class);
 	}
 
 	public default boolean implementsOnMessageRemove()
@@ -69,22 +69,22 @@ public interface IFeatureConfigurableController extends
 	default <T> void onMessageStore(IMessage<T> message){}
 
 	@Override
-	default void onChannelSignal(IChannel channel, String signal){}
+	default void onChannelSignal(IDispatcherChannel channel, String signal){}
 
 	@Override
-	default void onChannelDetach(IChannel channel){}
+	default void onChannelDetach(IDispatcherChannel channel){}
 
 	@Override
-	default void onChannelAttach(IChannel channel){}
+	default void onChannelAttach(IDispatcherChannel channel){}
 
 	@Override
-	default void onTaskError(IChannel channel, IChannelTask task, Throwable throwable){}
+	default void onTaskError(IDispatcherChannel channel, IDispatcherChannelTask task, Throwable throwable){}
 
 	@Override
-	default void onTaskDone(IChannel channel,IChannelTask task){}
+	default void onTaskDone(IDispatcherChannel channel,IDispatcherChannelTask task){}
 
 	@Override
-	default void onTaskTimeout(IChannel channel, IChannelTask task){}
+	default void onTaskTimeout(IDispatcherChannel channel, IDispatcherChannelTask task){}
 
 	@Override
 	default <T> void onMessageRemove(IMessage<T> message) {};

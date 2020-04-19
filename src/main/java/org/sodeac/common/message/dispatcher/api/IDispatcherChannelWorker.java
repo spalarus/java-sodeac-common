@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -10,12 +10,24 @@
  *******************************************************************************/
 package org.sodeac.common.message.dispatcher.api;
 
-
 /**
- * Channel components are services bounded to any number of {@link IChannel}s.
+ * wrapper object for worker thread 
  * 
- * @author Sebastian Palarus *
+ * @author Sebastian Palarus
+ *
  */
-public interface IChannelComponent
+public interface IDispatcherChannelWorker
 {
+
+	/**
+	 * invoke {@link java.lang.Thread#interrupt()}  on worker thread
+	 */
+	public void interrupt();
+	
+	/**
+	 * get {@link IDispatcherChannel} for which the worker works
+	 * 
+	 * @return queue for which the worker works
+	 */
+	public IDispatcherChannel getChannel();
 }

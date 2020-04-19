@@ -1,6 +1,6 @@
 package org.sodeac.common.message.service.api;
 
-import org.sodeac.common.message.service.api.IChannel.IChannelPolicy;
+import org.sodeac.common.message.service.api.IServiceChannel.IChannelPolicy;
 
 public interface ICommonChannelPolicies
 {

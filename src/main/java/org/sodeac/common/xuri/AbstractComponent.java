@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016, 2019 Sebastian Palarus
+ * Copyright (c) 2016, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -14,8 +14,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -47,12 +45,12 @@ public abstract class AbstractComponent<T>  implements IComponent<T>, Serializab
 		super();
 		this.componentType = componentType;
 		this.subComponents = new ArrayList<T>();
-		this.subComponentsLock = new ReentrantLock();
 	}
 	
 	private List<T> subComponents = null;
 	private volatile List<T> subComponentsImmutable = null;
-	private Lock subComponentsLock = null;
+	private volatile T first =  null;
+	private volatile T last = null;
 	
 	/**
 	 * Adds a subcomponent. For example: A path component (Component) should add pathsegment subcomponents
@@ -62,16 +60,13 @@ public abstract class AbstractComponent<T>  implements IComponent<T>, Serializab
 	 */
 	protected AbstractComponent<T> addSubComponent(T subComponent)
 	{
-		this.subComponentsLock.lock();
-		try
+		this.subComponents.add(subComponent);
+		this.subComponentsImmutable = null;
+		if(this.first == null)
 		{
-			this.subComponents.add(subComponent);
-			this.subComponentsImmutable = null;
+			this.first = subComponent;
 		}
-		finally 
-		{
-			this.subComponentsLock.unlock();
-		}
+		this.last = subComponent;
 		return this;
 	}
 	
@@ -85,21 +80,13 @@ public abstract class AbstractComponent<T>  implements IComponent<T>, Serializab
 		List<T> subComponentList = this.subComponentsImmutable;
 		if(subComponentList == null)
 		{
-			this.subComponentsLock.lock();
-			try
+			subComponentList = this.subComponentsImmutable;
+			if(subComponentList != null)
 			{
-				subComponentList = this.subComponentsImmutable;
-				if(subComponentList != null)
-				{
-					return subComponentList;
-				}
-				this.subComponentsImmutable = Collections.unmodifiableList(new ArrayList<T>(this.subComponents));
-				subComponentList = this.subComponentsImmutable;
+				return subComponentList;
 			}
-			finally 
-			{
-				this.subComponentsLock.unlock();
-			}
+			this.subComponentsImmutable = Collections.unmodifiableList(new ArrayList<T>(this.subComponents));
+			subComponentList = this.subComponentsImmutable;
 		}
 		return subComponentList;
 	}
@@ -132,5 +119,25 @@ public abstract class AbstractComponent<T>  implements IComponent<T>, Serializab
 	protected void setExpression(String expression)
 	{
 		this.expression = expression;
+	}
+
+	/**
+	 * getter for first subcomponent
+	 * 
+	 * @return first subcomponent
+	 */
+	public T getFirst()
+	{
+		return first;
+	}
+
+	/**
+	 * getter for last subcomponent
+	 * 
+	 * @return last subcomponent
+	 */
+	public T getLast()
+	{
+		return last;
 	}
 }

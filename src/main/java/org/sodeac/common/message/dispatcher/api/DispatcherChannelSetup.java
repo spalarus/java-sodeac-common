@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2019 Sebastian Palarus
+ * Copyright (c) 2018, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -11,6 +11,8 @@
 package org.sodeac.common.message.dispatcher.api;
 
 import java.io.Serializable;
+
+import org.sodeac.common.xuri.ldapfilter.IFilterItem;
 
 public abstract class DispatcherChannelSetup implements Serializable
 {
@@ -24,7 +26,7 @@ public abstract class DispatcherChannelSetup implements Serializable
 	 * 
 	 * @return array of allowed scope
 	 */
-	public abstract Class<? extends IChannelComponent>[] getScopes();
+	public abstract Class<? extends IDispatcherChannelComponent>[] getScopes();
 	public abstract DispatcherChannelSetup copy(); 
 	
 	private DispatcherChannelSetup()
@@ -34,9 +36,8 @@ public abstract class DispatcherChannelSetup implements Serializable
 	
 	private String dispatcherId = null;
 	private String name =  null;
-	private Long maxMessageSize = null;
+	private Long channelCapacity = null;
 	private PrivateChannelWorkerRequirement privateChannelWorkerRequirement = PrivateChannelWorkerRequirement.NoPreferenceOrRequirement;
-	private boolean optional = false;
 	
 	/**
 	 * getter for dispatcherId
@@ -88,20 +89,20 @@ public abstract class DispatcherChannelSetup implements Serializable
 	 * 
 	 * @return max channel size or null, if property not set
 	 */
-	protected Long getMaxMessageSize() 
+	protected Long getChannelCapacity() 
 	{
-		return maxMessageSize;
+		return channelCapacity;
 	}
 	
 	/**
 	 * setter for max channel size
 	 * 
-	 * @param maxMessageSize max size of messages 
+	 * @param channelCapacity max size of stored messages 
 	 * @return channel component configuration
 	 */
-	protected DispatcherChannelSetup setMaxMessageSize(Long maxMessageSize) 
+	protected DispatcherChannelSetup setChannelCapacity(Long channelCapacity) 
 	{
-		this.maxMessageSize = maxMessageSize;
+		this.channelCapacity = channelCapacity;
 		return this;
 	}
 		
@@ -126,31 +127,9 @@ public abstract class DispatcherChannelSetup implements Serializable
 		this.privateChannelWorkerRequirement = privateChannelWorkerRequirement;
 		return this;
 	}
-	
-	/**
-	 * getter for optional flag
-	 * 
-	 * @return true, if setup item is processed by setup provider, otherwise false
-	 */
-	public boolean isOptional() 
-	{
-		return optional;
-	}
-	
-	/**
-	 * setter for optional flag
-	 * 
-	 * @param optional defines that the setup item has to be processed by setup provider, or not
-	 * @return channel component configuration
-	 */
-	public DispatcherChannelSetup setOptional(boolean optional) 
-	{
-		this.optional = optional;
-		return this;
-	}
 
 	/**
-	 * Configuration to bind a {@link IChannelComponent} (a {@link IChannelManager} or a {@link IChannelService}) to the {@link IChannel} 
+	 * Configuration to bind a {@link IDispatcherChannelComponent} (a {@link IDispatcherChannelManager} or a {@link IDispatcherChannelService}) to the {@link IDispatcherChannel} 
 	 * with specified channelId managed by {@link IMessageDispatcher} with specified id. 
 	 * 
 	 * 
@@ -165,10 +144,10 @@ public abstract class DispatcherChannelSetup implements Serializable
 		private static final long serialVersionUID = 6587259399825230943L;
 		
 		private String channelId;
-		private boolean autoCreateChannel = true;
+		private boolean channelMaster = true;
 		
 		/**
-		 * Constructor to  bind a {@link IChannelComponent} to the {@link IChannel} with specified channelId.
+		 * Constructor to  bind a {@link IDispatcherChannelComponent} to the {@link IDispatcherChannel} with specified channelId.
 		 * 
 		 * @param channelId id of channel
 		 */
@@ -201,33 +180,32 @@ public abstract class DispatcherChannelSetup implements Serializable
 		}
 
 		/**
-		 * setter for auto create channel mode
+		 * setter for channel master mode
 		 * 
-		 * @param autoCreateChannel if true, dispatcher creates automatically a channel with {@code channelId} if it still does not exist
+		 * @param channelMaster if true, dispatcher creates automatically a channel with {@code channelId} if it still does not exist
 		 * @return channel component configuration
 		 */
-		public BoundedByChannelId setAutoCreateChannel(boolean autoCreateChannel)
+		public BoundedByChannelId setChannelMaster(boolean channelMaster)
 		{
-			this.autoCreateChannel = autoCreateChannel;
+			this.channelMaster = channelMaster;
 			return this;
 		}
 		
-
 		/**
-		 * getter for auto create channel mode
+		 * getter for auto channel master mode
 		 * 
 		 * @return true, if channel should automatically create, if not exists. return false, if not
 		 */
-		public boolean isAutoCreateChannel()
+		public boolean isChannelMaster()
 		{
-			return autoCreateChannel;
+			return channelMaster;
 		}
 
 		@SuppressWarnings("unchecked")
 		@Override
-		public Class<? extends IChannelComponent>[] getScopes()
+		public Class<? extends IDispatcherChannelComponent>[] getScopes()
 		{
-			return new Class[] {IChannelManager.class,IChannelService.class};
+			return new Class[] {IDispatcherChannelManager.class,IDispatcherChannelService.class};
 		}
 
 		@Override
@@ -237,9 +215,9 @@ public abstract class DispatcherChannelSetup implements Serializable
 		}
 
 		@Override
-		protected BoundedByChannelId setMaxMessageSize(Long maxMessageSize) 
+		protected BoundedByChannelId setChannelCapacity(Long channelCapacity) 
 		{
-			return (BoundedByChannelId)super.setMaxMessageSize(maxMessageSize);
+			return (BoundedByChannelId)super.setChannelCapacity(channelCapacity);
 		}
 
 		@Override
@@ -255,9 +233,9 @@ public abstract class DispatcherChannelSetup implements Serializable
 		}
 
 		@Override
-		protected Long getMaxMessageSize() 
+		protected Long getChannelCapacity() 
 		{
-			return super.getMaxMessageSize();
+			return super.getChannelCapacity();
 		}
 
 		@Override
@@ -272,16 +250,16 @@ public abstract class DispatcherChannelSetup implements Serializable
 			return new BoundedByChannelId(this.channelId)
 					.setDispatcherId(super.dispatcherId)
 					.setName(super.name)
-					.setAutoCreateChannel(this.autoCreateChannel)
+					.setChannelMaster(this.channelMaster)
 					.setPrivateChannelWorkerRequirement(super.privateChannelWorkerRequirement)
-					.setMaxMessageSize(super.maxMessageSize);
+					.setChannelCapacity(super.channelCapacity);
 		}
 		
 		
 	}
 	
 	/**
-	 * Configuration to bind a {@link IChannelComponent} (a {@link IChannelManager} or a {@link IChannelService}) to existing {@link IChannel}s 
+	 * Configuration to bind a {@link IDispatcherChannelComponent} (a {@link IDispatcherChannelManager} or a {@link IDispatcherChannelService}) to existing {@link IDispatcherChannel}s 
 	 * whose properties match a ldapfilter.
 	 * 
 	 * @author Sebastian Palarus
@@ -295,13 +273,13 @@ public abstract class DispatcherChannelSetup implements Serializable
 		 */
 		private static final long serialVersionUID = 7663354400942715419L;
 		
-		private String ldapFilter;
+		private IFilterItem ldapFilter;
 		
 		/**
-		 * Constructor to  bind a {@link IChannelComponent} to existing {@link IChannel}s whose properties match the specified ldap-filter.
+		 * Constructor to  bind a {@link IDispatcherChannelComponent} to existing {@link IDispatcherChannel}s whose properties match the specified ldap-filter.
 		 * 
 		 */
-		public BoundedByChannelConfiguration(String ldapFilter)
+		public BoundedByChannelConfiguration(IFilterItem ldapFilter)
 		{
 			super();
 			this.ldapFilter = ldapFilter;
@@ -312,16 +290,16 @@ public abstract class DispatcherChannelSetup implements Serializable
 		 * 
 		 * @return ldap filter
 		 */
-		public String getLdapFilter()
+		public IFilterItem getLdapFilter()
 		{
 			return ldapFilter;
 		}
 		
 		@SuppressWarnings("unchecked")
 		@Override
-		public Class<? extends IChannelComponent>[] getScopes()
+		public Class<? extends IDispatcherChannelComponent>[] getScopes()
 		{
-			return new Class[] {IChannelManager.class,IChannelService.class};
+			return new Class[] {IDispatcherChannelManager.class,IDispatcherChannelService.class};
 		}
 		
 		@Override
@@ -331,9 +309,9 @@ public abstract class DispatcherChannelSetup implements Serializable
 		}
 
 		@Override
-		protected BoundedByChannelConfiguration setMaxMessageSize(Long maxMessageSize) 
+		protected BoundedByChannelConfiguration setChannelCapacity(Long channelCapacity) 
 		{
-			return (BoundedByChannelConfiguration)super.setMaxMessageSize(maxMessageSize);
+			return (BoundedByChannelConfiguration)super.setChannelCapacity(channelCapacity);
 		}
 
 		@Override
@@ -361,9 +339,9 @@ public abstract class DispatcherChannelSetup implements Serializable
 		}
 
 		@Override
-		protected Long getMaxMessageSize() 
+		protected Long getChannelCapacity() 
 		{
-			return super.getMaxMessageSize();
+			return super.getChannelCapacity();
 		}
 
 		@Override
@@ -379,7 +357,7 @@ public abstract class DispatcherChannelSetup implements Serializable
 					.setDispatcherId(super.dispatcherId)
 					.setName(super.name)
 					.setPrivateChannelWorkerRequirement(super.privateChannelWorkerRequirement)
-					.setMaxMessageSize(super.maxMessageSize);
+					.setChannelCapacity(super.channelCapacity);
 		}
 	}
 	
@@ -517,9 +495,9 @@ public abstract class DispatcherChannelSetup implements Serializable
 		}
 		
 		@Override
-		protected ChannelServiceConfiguration setMaxMessageSize(Long maxMessageSize) 
+		protected ChannelServiceConfiguration setChannelCapacity(Long channelCapacity) 
 		{
-			return (ChannelServiceConfiguration)super.setMaxMessageSize(maxMessageSize);
+			return (ChannelServiceConfiguration)super.setChannelCapacity(channelCapacity);
 		}
 
 		@Override
@@ -529,9 +507,9 @@ public abstract class DispatcherChannelSetup implements Serializable
 		}
 
 		@Override
-		protected Long getMaxMessageSize() 
+		protected Long getChannelCapacity() 
 		{
-			return super.getMaxMessageSize();
+			return super.getChannelCapacity();
 		}
 
 		@Override
@@ -553,9 +531,9 @@ public abstract class DispatcherChannelSetup implements Serializable
 
 		@SuppressWarnings("unchecked")
 		@Override
-		public Class<? extends IChannelComponent>[] getScopes()
+		public Class<? extends IDispatcherChannelComponent>[] getScopes()
 		{
-			return new Class[] {IChannelService.class};
+			return new Class[] {IDispatcherChannelService.class};
 		}
 		
 		@Override

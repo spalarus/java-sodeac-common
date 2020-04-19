@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.sodeac.common.message.MessageHeader;
-import org.sodeac.common.message.dispatcher.api.IChannel;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannel;
 import org.sodeac.common.message.dispatcher.api.IMessage;
 import org.sodeac.common.message.dispatcher.api.IOnMessageStoreResult;
 import org.sodeac.common.message.dispatcher.api.IPropertyBlock;
@@ -152,7 +152,7 @@ public class MessageImpl<T> implements IMessage<T>
 	}
 
 	@Override
-	public IChannel getChannel()
+	public IDispatcherChannel getChannel()
 	{
 		return this.channel;
 	}

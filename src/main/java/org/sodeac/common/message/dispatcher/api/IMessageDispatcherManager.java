@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -10,20 +10,17 @@
  *******************************************************************************/
 package org.sodeac.common.message.dispatcher.api;
 
-/**
- * 
- * An extension interface for various objects to provide unformatted description of object
- * 
- * @author Sebastian Palarus
- *
- */
-public interface IDescriptionProvider
+import org.sodeac.common.message.dispatcher.impl.MessageDispatcherManagerImpl;
+
+
+public interface IMessageDispatcherManager 
 {
-	// TODO remove
-	/**
-	 * getter for description of object
-	 * 
-	 * @return description
-	 */
-	public String getDescription();
+	public static IMessageDispatcherManager get()
+	{
+		return MessageDispatcherManagerImpl.get();
+	}
+	
+	public IMessageDispatcher createDispatcher(String id);
+	public IMessageDispatcher getOrCreateDispatcher(String id);
+	public IMessageDispatcher getDispatcher(String id);
 }

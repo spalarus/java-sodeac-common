@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -84,23 +84,23 @@ public interface IPropertyBlock
 	 * typed getter for registered property with associated {@code key}
 	 * 
 	 * @param key the key whose associated property is to be returned
-	 * @param resultClass the type of property
 	 * @param propertySupplierIfNotExists factory to create property value if not exists , and store with specified key 
 	 * 
 	 * @return the property with specified key
 	 */
-	public default <T> T getPropertyOrSupply(String key, Class<T> resultClass, Supplier<T> propertySupplierIfNotExists)
+	public default <T> T getPropertyOrSupply(String key, Supplier<T> propertySupplierIfNotExists)
 	{
 		ConplierBean<T> valueContainer = new ConplierBean<T>();
 		
 		computeProcedure(new IPropertyBlockAtomicProcedure()
 		{
+			@SuppressWarnings("unchecked")
 			@Override
 			public void accept(IPropertyBlock propertyBlock)
 			{
 				if(propertyBlock.containsKey(key))
 				{
-					valueContainer.accept(propertyBlock.getProperty(key,resultClass));
+					valueContainer.accept((T)propertyBlock.getProperty(key,Object.class));
 				}
 				else
 				{
@@ -204,7 +204,7 @@ public interface IPropertyBlock
 	 */
 	public default <T> T getAdapter(Class<T> adapterClass, Supplier<T> adapterFactoryIfNotExists)
 	{
-		return getPropertyOrSupply(adapterClass.getCanonicalName(), adapterClass, adapterFactoryIfNotExists);
+		return getPropertyOrSupply(adapterClass.getCanonicalName(), adapterFactoryIfNotExists);
 	}
 	
 	/**

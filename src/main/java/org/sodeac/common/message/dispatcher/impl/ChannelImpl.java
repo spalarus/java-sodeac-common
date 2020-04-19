@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -13,12 +13,10 @@ package org.sodeac.common.message.dispatcher.impl;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -31,9 +29,9 @@ import java.util.function.Consumer;
 import org.sodeac.common.message.MessageHeader;
 import org.sodeac.common.message.dispatcher.api.ChannelIsFullException;
 import org.sodeac.common.message.dispatcher.api.DispatcherChannelSetup;
-import org.sodeac.common.message.dispatcher.api.IChannel;
-import org.sodeac.common.message.dispatcher.api.IChannelService;
-import org.sodeac.common.message.dispatcher.api.IChannelTask;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannel;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannelService;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannelTask;
 import org.sodeac.common.message.dispatcher.api.IMessage;
 import org.sodeac.common.message.dispatcher.api.IMessageDispatcher;
 import org.sodeac.common.message.dispatcher.api.IOnChannelAttach;
@@ -50,15 +48,27 @@ import org.sodeac.common.snapdeque.DequeNode;
 import org.sodeac.common.snapdeque.DequeSnapshot;
 import org.sodeac.common.snapdeque.SnapshotableDeque;
 
-public class ChannelImpl<T> implements IChannel<T>
+public class ChannelImpl<T> implements IDispatcherChannel<T>
 {	
-	protected ChannelImpl(String messageId,MessageDispatcherImpl messageDispatcher, String name, Map<String, Object> configurationProperties, Map<String, Object> stateProperties)
+	protected ChannelImpl(String channelId,MessageDispatcherImpl messageDispatcher, ChannelImpl rootChannel, ChannelImpl parentChannel, String name, Map<String, Object> configurationProperties, Map<String, Object> stateProperties)
 	{
 		super();
 	
+		this.rootChannel = rootChannel;
+		this.parentChannel = parentChannel;
+		
+		if(parentChannel == null)
+		{
+			if(rootChannel != null)
+			{
+				throw new IllegalStateException("(parentChannel == null) && (rootChannel != null)");
+			}
+			this.rootChannel = this;
+		}
+		
 		this.name = name;
 		
-		this.channelId = messageId;
+		this.channelId = channelId;
 		this.messageDispatcher = messageDispatcher;
 		
 		this.genericChannelSpoolLock = new ReentrantLock();
@@ -125,10 +135,13 @@ public class ChannelImpl<T> implements IChannel<T>
 		this.registrationTypes = new RegistrationTypes();
 	}
 	
+	// TODO values in TaskContainer ???
 	protected static final String PROPERTY_KEY_TASK_ID 						= "TASK_ID"				;
 	protected static final String PROPERTY_PERIODIC_REPETITION_INTERVAL 	= "PERIODIC_REPETITION_INTERVAL";
 	protected static final String PROPERTY_KEY_THROWED_EXCEPTION			= "THROWED_EXCEPTION"	;
 	
+	protected ChannelImpl rootChannel = null;
+	protected ChannelImpl parentChannel = null;
 	protected String name = null;
 	protected volatile int capacity = Integer.MAX_VALUE;
 	
@@ -197,7 +210,6 @@ public class ChannelImpl<T> implements IChannel<T>
 	
 	protected DummyPublishMessageResult dummyPublishMessageResult = null;
 	
-	protected ChannelImpl parent = null;
 	protected LinkedList<DequeSnapshot<IMessage<T>>> snapshotsByWorkerThread;
 	
 	protected ReentrantLock sharedMessageLock = null;
@@ -428,7 +440,7 @@ public class ChannelImpl<T> implements IChannel<T>
 			this.recalcRegistrationTypes();
 			
 			// attachEvent
-			if(controllerContainer.isImplementingIOnQueueAttach())
+			if(controllerContainer.isImplementingIOnChannelAttach())
 			{
 				addOnChannelAttach((IOnChannelAttach)controllerContainer.getChannelManager());
 			}
@@ -491,7 +503,7 @@ public class ChannelImpl<T> implements IChannel<T>
 			
 			// IOnQueueDetach
 			
-			if(unlinkFromQueue.isImplementingIOnQueueDetach())
+			if(unlinkFromQueue.isImplementingIOnChannelDetach())
 			{
 				this.messageDispatcher.executeOnChannelDetach((IOnChannelDetach)unlinkFromQueue.getChannelManager(), this);
 			}
@@ -512,6 +524,26 @@ public class ChannelImpl<T> implements IChannel<T>
 		try
 		{
 			return this.channelManagerList.size();
+		}
+		finally 
+		{
+			channelManagerListReadLock.unlock();
+		}
+	}
+	
+	public boolean isMastered()
+	{
+		channelManagerListReadLock.lock();
+		try
+		{
+			for(ChannelManagerContainer container : this.channelManagerList)
+			{
+				if(container.isChannelMaster())
+				{
+					return true;
+				}
+			}
+			return false;
 		}
 		finally 
 		{
@@ -665,7 +697,7 @@ public class ChannelImpl<T> implements IChannel<T>
 		
 	}
 	
-	private void scheduleService(IChannelService queueService,DispatcherChannelSetup.ChannelServiceConfiguration configuration,boolean reschedule)
+	private void scheduleService(IDispatcherChannelService queueService,DispatcherChannelSetup.ChannelServiceConfiguration configuration,boolean reschedule)
 	{
 		String serviceId = configuration.getServiceId();
 		long delay = configuration.getStartDelayInMS() < 0L ? 0L : configuration.getStartDelayInMS() ;
@@ -946,25 +978,25 @@ public class ChannelImpl<T> implements IChannel<T>
 	}
 
 	@Override
-	public String scheduleTask(IChannelTask task)
+	public String scheduleTask(IDispatcherChannelTask task)
 	{
 		return scheduleTask(null,task);
 	}
 	
 	@Override
-	public String scheduleTask(String id, IChannelTask task)
+	public String scheduleTask(String id, IDispatcherChannelTask task)
 	{
 		return scheduleTask(id,task, null, -1, -1, -1);
 	}
 	
 	@Override
-	public String scheduleTask(String id, IChannelTask task, IPropertyBlock propertyBlock, long executionTimeStamp, long timeOutValue, long heartBeatTimeOut )
+	public String scheduleTask(String id, IDispatcherChannelTask task, IPropertyBlock propertyBlock, long executionTimeStamp, long timeOutValue, long heartBeatTimeOut )
 	{
 		return scheduleTask(id,task, propertyBlock, executionTimeStamp, timeOutValue, heartBeatTimeOut, false);
 	}
 	
 	@Override
-	public String scheduleTask(String id, IChannelTask task, IPropertyBlock propertyBlock, long executionTimeStamp, long timeOutValue, long heartBeatTimeOut, boolean stopOnTimeOut )
+	public String scheduleTask(String id, IDispatcherChannelTask task, IPropertyBlock propertyBlock, long executionTimeStamp, long timeOutValue, long heartBeatTimeOut, boolean stopOnTimeOut )
 	{
         if(this.disposed)
 		{
@@ -1079,7 +1111,7 @@ public class ChannelImpl<T> implements IChannel<T>
 	}
 	
 	@Override
-	public IChannelTask rescheduleTask(String id, long executionTimeStamp, long timeOutValue, long heartBeatTimeOut)
+	public IDispatcherChannelTask rescheduleTask(String id, long executionTimeStamp, long timeOutValue, long heartBeatTimeOut)
 	{
 	    if(this.disposed)
 		{
@@ -1137,7 +1169,7 @@ public class ChannelImpl<T> implements IChannel<T>
 	}
 	
 	@Override
-	public IChannelTask getTask(String id)
+	public IDispatcherChannelTask getTask(String id)
 	{
         if(this.disposed)
 		{
@@ -1165,7 +1197,7 @@ public class ChannelImpl<T> implements IChannel<T>
 	}
 	
 	@Override
-	public IChannelTask removeTask(String id)
+	public IDispatcherChannelTask removeTask(String id)
 	{
 	    if(this.disposed)
 		{
@@ -1328,7 +1360,7 @@ public class ChannelImpl<T> implements IChannel<T>
 	}
 
 	@Override
-	public boolean removeMessage(String uuid)
+	public boolean removeMessage(UUID uuid)
 	{
 	    if(this.disposed)
 		{
@@ -1347,7 +1379,7 @@ public class ChannelImpl<T> implements IChannel<T>
 		{
 			for(MessageImpl event : snapshot)
 			{
-				if(uuid.equals(event.getMessageHeader().getMessageID().toString()))
+				if(uuid.equals(event.getMessageHeader().getMessageID()))
 				{
 					DequeNode<MessageImpl> node = event.getNode();
 					if(node != null)
@@ -1461,7 +1493,7 @@ public class ChannelImpl<T> implements IChannel<T>
 		return true;
 	}
 
-	public List<ChannelManagerContainer> getControllerContainerList()
+	public List<ChannelManagerContainer> getManagerContainerList()
 	{
 		List<ChannelManagerContainer> list = controllerListCopy;
 		if(list != null)
@@ -1487,7 +1519,7 @@ public class ChannelImpl<T> implements IChannel<T>
 		return list;
 	}
 	
-	public List<ServiceContainer> getServiceList()
+	public List<ServiceContainer> getServiceContainerList()
 	{
 		List<ServiceContainer> list = serviceListCopy;
 		if(list != null)
@@ -1596,16 +1628,16 @@ public class ChannelImpl<T> implements IChannel<T>
 		
 		this.closeWorkerSnapshots();
 		
-		if((this instanceof SubChannelImpl) && (this.parent != null))
+		if((this instanceof SubChannelImpl) && (this.parentChannel != null))
 		{
-			parent.removeScope((SubChannelImpl)this);
+			this.parentChannel.removeScope((SubChannelImpl)this);
 			
 			channelManagerListReadLock.lock();
 			try
 			{
 				for(ChannelManagerContainer controllerContainer : this.channelManagerList)
 				{
-					if(controllerContainer.isImplementingIOnQueueDetach())
+					if(controllerContainer.isImplementingIOnChannelDetach())
 					{
 						this.messageDispatcher.executeOnChannelDetach(((IOnChannelDetach)controllerContainer.getChannelManager()), this);
 					}
@@ -1698,12 +1730,15 @@ public class ChannelImpl<T> implements IChannel<T>
 			catch (Exception e) {}
 			dummyPublishMessageResult = null;
 		}
+		
+		this.rootChannel = null;
+		this.parentChannel = null;
 	
 	}
 	
 	private void removeScope(SubChannelImpl scope)
 	{
-		List<SubChannelImpl> childList = null;
+		SubChannelImpl found = null;
 		this.queueScopeListWriteLock.lock();
 		try
 		{
@@ -1713,18 +1748,12 @@ public class ChannelImpl<T> implements IChannel<T>
 				List<ISubChannel> copyList = this.subChannelListCopy;
 				if(!((copyList == null) || copyList.isEmpty()))
 				{
-					SubChannelImpl scopeTest;
-					for(ISubChannel copyItem : copyList)
+					for(ISubChannel subChannel : copyList)
 					{
-						scopeTest = (SubChannelImpl)copyItem;
-						if(scopeId.equals(scopeTest.getParentScopeId()))
+						if(subChannel == scope)
 						{
-							if(childList == null)
-							{
-								childList = new ArrayList<SubChannelImpl>();
-							}
-							childList.add(scopeTest);
-							scopeTest.unlinkFromParent();
+							found = scope;
+							break;
 						}
 					}
 				}
@@ -1738,12 +1767,9 @@ public class ChannelImpl<T> implements IChannel<T>
 			this.queueScopeListWriteLock.unlock();
 		}	
 		
-		if(childList != null)
+		if(found != null)
 		{
-			for(SubChannelImpl childItem : childList)
-			{
-				childItem.dispose();
-			}
+			found.dispose();
 		}
 	}
 	
@@ -1798,7 +1824,7 @@ public class ChannelImpl<T> implements IChannel<T>
 		return this.newPublishedMessageQueue.createSnapshotPoll();
 	}
 
-	protected DequeSnapshot<? extends IMessage> getRemovedEventsSnapshot()
+	protected DequeSnapshot<? extends IMessage> getRemovedMessagesSnapshot()
 	{
 		if(! removedEventListUpdate)
 		{
@@ -2110,14 +2136,9 @@ public class ChannelImpl<T> implements IChannel<T>
 		this.notifyOrCreateWorker(-1);
 	}
 	
-	public String getName()
+	public String getChannelName()
 	{
 		return name;
-	}
-
-	public void setName(String name)
-	{
-		this.name = name;
 	}
 	
 	public void touchLastWorkerAction()
@@ -2143,7 +2164,7 @@ public class ChannelImpl<T> implements IChannel<T>
 
 
 	@Override
-	public ISubChannel createChildScope(UUID scopeId, String scopeName, ISubChannel parentScope, Map<String, Object> configurationProperties, Map<String, Object> stateProperties, boolean adoptContoller, boolean adoptServices)
+	public ISubChannel createChildScope(UUID scopeId, String scopeName, Map<String, Object> configurationProperties, Map<String, Object> stateProperties, boolean adoptContoller, boolean adoptServices)
 	{
 		if(disposed)
 		{
@@ -2168,19 +2189,7 @@ public class ChannelImpl<T> implements IChannel<T>
 				return null;
 			}
 			
-			UUID parentScopeId = null;
-			if(parentScope != null)
-			{
-				if((parentScope.getRootChannel() == this) && (parentScope.getScopeId() != null))
-				{
-					if(this.subChannelIndex.get(parentScope.getScopeId()) != null)
-					{
-						parentScopeId = parentScope.getScopeId();
-					}
-				}
-			}
-			
-			newScope = new SubChannelImpl(scopeId,parentScopeId,this, scopeName,adoptContoller,adoptServices,configurationProperties,stateProperties);
+			newScope = new SubChannelImpl(scopeId,this.rootChannel,this, scopeName,adoptContoller,adoptServices,configurationProperties,stateProperties);
 			
 			this.subChannelList.add(newScope);
 			this.subChannelListCopy = Collections.unmodifiableList(new ArrayList<ISubChannel>(this.subChannelList));
@@ -2205,40 +2214,6 @@ public class ChannelImpl<T> implements IChannel<T>
 	{
 		return this.subChannelListCopy;
 	}
-	
-	protected List<ISubChannel> getChildSessionScopes(UUID parentScopeId)
-	{
-	    if(this.disposed)
-		{
-			return null;
-		}
-		
-		List<ISubChannel> copyList = this.subChannelListCopy;
-		if(copyList.isEmpty())
-		{
-			return copyList;
-		}
-		List<ISubChannel> filterList = new ArrayList<ISubChannel>();
-		for(ISubChannel scope : copyList)
-		{
-			UUID currentParentScopeId = ((SubChannelImpl)scope).getParentScopeId();
-			if((parentScopeId == null) && (currentParentScopeId == null))
-			{
-				filterList.add(scope);
-				continue;
-			}
-			if(currentParentScopeId == null)
-			{
-				continue;
-			}
-			if(! currentParentScopeId.equals(parentScopeId))
-			{
-				continue;
-			}
-			filterList.add(scope);
-		}
-		return Collections.unmodifiableList(filterList);
-	}
 
 	@Override
 	public ISubChannel getChildScope(UUID scopeId)
@@ -2259,12 +2234,12 @@ public class ChannelImpl<T> implements IChannel<T>
 		}
 	}
 
-	public int getEventListLimit()
+	public int getCapacity()
 	{
 		return capacity;
 	}
 
-	public void setEventListLimit(int eventListLimit)
+	protected void setCapacity(int eventListLimit)
 	{
 		this.capacity = eventListLimit;
 		this.messageQueue.setCapacity(eventListLimit);
@@ -2272,9 +2247,15 @@ public class ChannelImpl<T> implements IChannel<T>
 	
 	
 	@Override
-	public IChannel getRootChannel()
+	public IDispatcherChannel<?> getRootChannel()
 	{
-		return this;
+		return this.rootChannel;
+	}
+	
+	@Override
+	public IDispatcherChannel<?> getParentChannel()
+	{
+		return this.parentChannel;
 	}
 
 	protected ReentrantLock getMessageEventLock()
@@ -2286,17 +2267,17 @@ public class ChannelImpl<T> implements IChannel<T>
 	{
 		RegistrationTypes newRegistrationTypes = new RegistrationTypes();
 		
-		for(ChannelManagerContainer controllerContainer : getControllerContainerList())
+		for(ChannelManagerContainer controllerContainer : getManagerContainerList())
 		{
-			if(controllerContainer.isImplementingIOnScheduleEvent())
+			if(controllerContainer.isImplementingIOnMessageStored())
 			{
 				newRegistrationTypes.onQueuedMessage = true;
 			}
-			if(controllerContainer.isImplementingIOnRemoveEvent())
+			if(controllerContainer.isImplementingIOnRemoveMessage())
 			{
 				newRegistrationTypes.onRemoveMessage = true;
 			}
-			if(controllerContainer.isImplementingIOnQueueSignal())
+			if(controllerContainer.isImplementingIOnChannelSignal())
 			{
 				newRegistrationTypes.onSignal = true;
 			}
@@ -2305,6 +2286,12 @@ public class ChannelImpl<T> implements IChannel<T>
 		this.registrationTypes = newRegistrationTypes;
 	}
 	
+	@Override
+	public boolean equals(Object obj)
+	{
+		return this == obj;
+	}
+
 	public class RegistrationTypes
 	{
 		boolean onQueuedMessage = false;

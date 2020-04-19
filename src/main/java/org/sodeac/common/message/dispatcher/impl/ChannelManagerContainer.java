@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -17,8 +17,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.sodeac.common.message.dispatcher.api.DispatcherChannelSetup;
-import org.sodeac.common.message.dispatcher.api.IChannelManager;
-import org.sodeac.common.message.dispatcher.api.IFeatureConfigurableController;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannelManager;
+import org.sodeac.common.message.dispatcher.api.IFeatureConfigurableManager;
 import org.sodeac.common.message.dispatcher.api.IOnChannelAttach;
 import org.sodeac.common.message.dispatcher.api.IOnChannelDetach;
 import org.sodeac.common.message.dispatcher.api.IOnChannelSignal;
@@ -37,7 +37,7 @@ public class ChannelManagerContainer
 	protected ChannelManagerContainer
 	(
 		MessageDispatcherImpl dispatcher,
-		IChannelManager queueController, 
+		IDispatcherChannelManager queueController, 
 		List<DispatcherChannelSetup.BoundedByChannelId> boundByIdList, 
 		List<DispatcherChannelSetup.BoundedByChannelConfiguration> boundedByQueueConfigurationList
 	)
@@ -49,12 +49,25 @@ public class ChannelManagerContainer
 		this.channelController = queueController;
 		this.createFilterObjectList();
 		this.detectControllerImplementions();
+		
+		if(boundByIdList != null)
+		{
+			for(DispatcherChannelSetup.BoundedByChannelId config : boundByIdList)
+			{
+				if(config.isChannelMaster())
+				{
+					this.channelMaster = true;
+					break;
+				}
+			}
+		}
 	}
 	
 	private MessageDispatcherImpl dispatcher = null;
-	private volatile IChannelManager channelController = null;
+	private volatile IDispatcherChannelManager channelController = null;
 	private List<DispatcherChannelSetup.BoundedByChannelId> boundByIdList = null;
 	private List<DispatcherChannelSetup.BoundedByChannelConfiguration> boundedByQueueConfigurationList = null;
+	private boolean channelMaster = false;
 	
 	private volatile boolean registered = false;
 	
@@ -64,11 +77,11 @@ public class ChannelManagerContainer
 	private volatile boolean implementsIOnTaskDone = false;
 	private volatile boolean implementsIOnTaskError = false;
 	private volatile boolean implementsIOnTaskTimeout = false;
-	private volatile boolean implementsIOnQueueAttach = false;
-	private volatile boolean implementsIOnQueueDetach = false;
-	private volatile boolean implementsIOnQueueSignal = false;
-	private volatile boolean implementsIOnScheduleEvent = false;
-	private volatile boolean implementsIOnRemoveEvent = false;
+	private volatile boolean implementsIOnChannelAttach = false;
+	private volatile boolean implementsIOnChannelDetach = false;
+	private volatile boolean implementsIOnChannelSignal = false;
+	private volatile boolean implementsIOnMessageStore = false;
+	private volatile boolean implementsIOnRemoveMessage = false;
 	
 	public void detectControllerImplementions()
 	{
@@ -77,38 +90,38 @@ public class ChannelManagerContainer
 			implementsIOnTaskDone = false;
 			implementsIOnTaskError = false;
 			implementsIOnTaskTimeout = false;
-			implementsIOnQueueAttach = false;
-			implementsIOnQueueDetach = false;
-			implementsIOnQueueSignal = false;
-			implementsIOnScheduleEvent = false;
-			implementsIOnRemoveEvent = false;
+			implementsIOnChannelAttach = false;
+			implementsIOnChannelDetach = false;
+			implementsIOnChannelSignal = false;
+			implementsIOnMessageStore = false;
+			implementsIOnRemoveMessage = false;
 			implementsIOnTaskTimeout = false;
 			return;
 		}
 		
 		
-		if(this.channelController instanceof IFeatureConfigurableController)
+		if(this.channelController instanceof IFeatureConfigurableManager)
 		{
-			IFeatureConfigurableController featureConfigurableController = (IFeatureConfigurableController)this.channelController;
+			IFeatureConfigurableManager featureConfigurableController = (IFeatureConfigurableManager)this.channelController;
 			implementsIOnTaskDone = featureConfigurableController.implementsOnTaskDone();
 			implementsIOnTaskError = featureConfigurableController.implementsOnTaskError();
 			implementsIOnTaskTimeout = featureConfigurableController.implementsOnTaskTimeout();
-			implementsIOnQueueAttach = featureConfigurableController.implementsOnChannelAttach();
-			implementsIOnQueueDetach = featureConfigurableController.implementsOnChannelDetach();
-			implementsIOnQueueSignal = featureConfigurableController.implementsOnChannelSignal();
-			implementsIOnScheduleEvent = featureConfigurableController.implementsOnMessageStore();
-			implementsIOnRemoveEvent = featureConfigurableController.implementsOnMessageRemove();
+			implementsIOnChannelAttach = featureConfigurableController.implementsOnChannelAttach();
+			implementsIOnChannelDetach = featureConfigurableController.implementsOnChannelDetach();
+			implementsIOnChannelSignal = featureConfigurableController.implementsOnChannelSignal();
+			implementsIOnMessageStore = featureConfigurableController.implementsOnMessageStore();
+			implementsIOnRemoveMessage = featureConfigurableController.implementsOnMessageRemove();
 		}
 		else
 		{
 			implementsIOnTaskDone = this.channelController instanceof IOnTaskDone;
 			implementsIOnTaskError = this.channelController instanceof IOnTaskError;
 			implementsIOnTaskTimeout = this.channelController instanceof IOnTaskTimeout;
-			implementsIOnQueueAttach = this.channelController instanceof IOnChannelAttach;
-			implementsIOnQueueDetach = this.channelController instanceof IOnChannelDetach;
-			implementsIOnQueueSignal = this.channelController instanceof IOnChannelSignal;
-			implementsIOnScheduleEvent = this.channelController instanceof IOnMessageStore;
-			implementsIOnRemoveEvent = this.channelController instanceof IOnMessageRemove;
+			implementsIOnChannelAttach = this.channelController instanceof IOnChannelAttach;
+			implementsIOnChannelDetach = this.channelController instanceof IOnChannelDetach;
+			implementsIOnChannelSignal = this.channelController instanceof IOnChannelSignal;
+			implementsIOnMessageStore = this.channelController instanceof IOnMessageStore;
+			implementsIOnRemoveMessage = this.channelController instanceof IOnMessageRemove;
 		}
 	}
 	
@@ -123,18 +136,12 @@ public class ChannelManagerContainer
 				{
 					continue;
 				}
-				if(boundedByQueueConfiguration.getLdapFilter().isEmpty())
-				{
-					continue;
-				}
 				ControllerFilterObjects controllerFilterObjects = new ControllerFilterObjects();
 				controllerFilterObjects.bound = boundedByQueueConfiguration;
-				controllerFilterObjects.filterExpression = boundedByQueueConfiguration.getLdapFilter();
+				controllerFilterObjects.filter = boundedByQueueConfiguration.getLdapFilter();
 				
 				try
 				{
-					controllerFilterObjects.filter = LDAPFilterDecodingHandler.getInstance().decodeFromString(controllerFilterObjects.filterExpression);
-					
 					LinkedList<IFilterItem> discoverLDAPItem = new LinkedList<IFilterItem>();
 					IFilterItem filter = controllerFilterObjects.filter;
 					
@@ -176,7 +183,7 @@ public class ChannelManagerContainer
 		}
 	}
 	
-	public IChannelManager getChannelManager()
+	public IDispatcherChannelManager getChannelManager()
 	{
 		return channelController;
 	}
@@ -207,6 +214,11 @@ public class ChannelManagerContainer
 		return filterAttributes;
 	}
 	
+	public boolean isChannelMaster()
+	{
+		return this.channelMaster;
+	}
+	
 	public void clean()
 	{
 		this.dispatcher = null;
@@ -220,7 +232,6 @@ public class ChannelManagerContainer
 	public class ControllerFilterObjects
 	{
 		DispatcherChannelSetup.BoundedByChannelConfiguration bound = null;
-		String filterExpression = null;
 		IFilterItem filter = null;
 		Set<String> attributes = new HashSet<String>();
 	}
@@ -235,29 +246,29 @@ public class ChannelManagerContainer
 		return implementsIOnTaskError;
 	}
 
-	public boolean isImplementingIOnQueueAttach()
+	public boolean isImplementingIOnChannelAttach()
 	{
-		return implementsIOnQueueAttach;
+		return implementsIOnChannelAttach;
 	}
 
-	public boolean isImplementingIOnQueueDetach()
+	public boolean isImplementingIOnChannelDetach()
 	{
-		return implementsIOnQueueDetach;
+		return implementsIOnChannelDetach;
 	}
 
-	public boolean isImplementingIOnQueueSignal()
+	public boolean isImplementingIOnChannelSignal()
 	{
-		return implementsIOnQueueSignal;
+		return implementsIOnChannelSignal;
 	}
 
-	public boolean isImplementingIOnScheduleEvent()
+	public boolean isImplementingIOnMessageStored()
 	{
-		return implementsIOnScheduleEvent;
+		return implementsIOnMessageStore;
 	}
 
-	public boolean isImplementingIOnRemoveEvent()
+	public boolean isImplementingIOnRemoveMessage()
 	{
-		return implementsIOnRemoveEvent;
+		return implementsIOnRemoveMessage;
 	}
 
 	public boolean isImplementingIOnTaskTimeout()

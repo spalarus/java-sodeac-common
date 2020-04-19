@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -11,12 +11,12 @@
 package org.sodeac.common.message.dispatcher.api;
 
 /**
- * An extenstion interface for {@link IChannelTask}. Tasks implements this interface will not finished by default and re-run periodically by worker, until the task set done manually with state-handler {@link ITaskControl}.
+ * An extenstion interface for {@link IDispatcherChannelTask}. Tasks implements this interface will not finished by default and re-run periodically by worker, until the task set done manually with state-handler {@link ITaskControl}.
  * 
  * @author Sebastian Palarus
  *
  */
-public interface IPeriodicChannelTask extends IChannelTask
+public interface IPeriodicChannelTask extends IDispatcherChannelTask
 {
 	/**
 	 * default periodic interval

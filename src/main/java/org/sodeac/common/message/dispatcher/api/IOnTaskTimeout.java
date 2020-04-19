@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -12,20 +12,20 @@ package org.sodeac.common.message.dispatcher.api;
 
 /**
  * 
- * An extension interface for {@link IChannelManager} to consume notifications if a task runs in a timeout
+ * An extension interface for {@link IDispatcherChannelManager} to consume notifications if a task runs in a timeout
  * 
  * @author Sebastian Palarus
  *
  */
-public interface IOnTaskTimeout extends IChannelManager
+public interface IOnTaskTimeout extends IDispatcherChannelManager
 {
 	/**
-	 * This is fired, if {@link IChannelTask} runs in timeout.
+	 * This is fired, if {@link IDispatcherChannelTask} runs in timeout.
 	 * <br>
 	 * Attention! This call is not synchronized by worker thread!
 	 * 
 	 * @param channel  queue of task runs in timeout
 	 * @param task runs in timeout
 	 */
-	public void onTaskTimeout(IChannel channel, IChannelTask task);
+	public void onTaskTimeout(IDispatcherChannel channel, IDispatcherChannelTask task);
 }

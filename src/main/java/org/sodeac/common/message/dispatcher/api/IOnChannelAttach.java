@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Sebastian Palarus
+ * Copyright (c) 2017, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -12,19 +12,19 @@ package org.sodeac.common.message.dispatcher.api;
 
 /**
  * 
- * An extension interface for {@link IChannelManager} to consume notifications if instance of {@link IChannelManager} attach to a {@link IChannel}
+ * An extension interface for {@link IDispatcherChannelManager} to consume notifications if instance of {@link IDispatcherChannelManager} attach to a {@link IDispatcherChannel}
  * 
  * @author Sebastian Palarus
  *
  */
-public interface IOnChannelAttach extends IChannelManager
+public interface IOnChannelAttach extends IDispatcherChannelManager
 {
 	/**
-	 * This is fired, if {@link IChannelManager} attach to a {@link IChannel}
+	 * This is fired, if {@link IDispatcherChannelManager} attach to a {@link IDispatcherChannel}
 	 * <br>
 	 * invoked and synchronized by queue worker
 	 * 
-	 * @param channel is attached with {@link IChannelManager}
+	 * @param channel is attached with {@link IDispatcherChannelManager}
 	 */
-	public void onChannelAttach(IChannel channel);
+	public void onChannelAttach(IDispatcherChannel channel);
 }

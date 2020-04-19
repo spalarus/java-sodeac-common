@@ -16,7 +16,7 @@ import java.util.function.Consumer;
 
 public interface IServiceConnection
 {
-	public Set<IChannel.IChannelDescription> getChannelCatalog();
+	public Set<IServiceChannel.IChannelDescription> getChannelCatalog();
 	
 	public <T> IMessageProducerEndpoint<T> openMessageProducerEndpoint(Class<T> messageClass);
 	public <T> IMessageConsumerEndpoint<T> openMessageConsumerEndpoint(Class<T> messageClass);
@@ -29,13 +29,13 @@ public interface IServiceConnection
 	
 	public <A> A getAdapter(Class<A> adapterClass);
 	
-	public interface IMessageConsumerEndpoint<T> extends IChannel<T>
+	public interface IMessageConsumerEndpoint<T> extends IServiceChannel<T>
 	{
 		public IMessageConsumerEndpoint<T> onMessageReceived(Consumer<IMessageReceive<T>> messageConsumer); 
 		public IMessageConsumerEndpoint<T> setupEndpoint(Consumer<IMessageConsumerEndpoint<T>> setup);
 	}
 	
-	public interface IMessageProducerEndpoint<T> extends IChannel<T>
+	public interface IMessageProducerEndpoint<T> extends IServiceChannel<T>
 	{
 		public IMessageProducerEndpoint<T> onMessageRequested(BiConsumer<IMessageRequest<T>,Consumer<T>> messageProducer);
 		public IMessageProducerEndpoint<T> setupEndpoint(Consumer<IMessageProducerEndpoint<T>> setup);
