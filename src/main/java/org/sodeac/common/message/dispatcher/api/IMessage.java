@@ -12,6 +12,7 @@ package org.sodeac.common.message.dispatcher.api;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.sodeac.common.message.MessageHeader;
 
@@ -29,6 +30,27 @@ public interface IMessage<T>
 	 */
 	public T getPayload();
 	
+	/**
+	 * Getter for id of message. 
+	 * 
+	 * @return id of message
+	 */
+	public UUID getId();
+
+	/**
+	 * Getter of create timestamp of message in channel
+	 * 
+	 * @return create timestamp of message
+	 */
+	public Long getCreateTimestamp();
+
+	/**
+	 * Getter of create sequence of message in channel
+	 * 
+	 * @return create sequence of message
+	 */
+	public Long getSequence();
+	
 	
 	/**
 	 * 
@@ -40,7 +62,7 @@ public interface IMessage<T>
 	 * 
 	 * @return parent channel
 	 */
-	public IDispatcherChannel<?> getChannel();
+	public IDispatcherChannel<T> getChannel();
 	
 	/**
 	 * insert or update property for {@link IMessage}
@@ -95,8 +117,14 @@ public interface IMessage<T>
 	}
 	
 	/**
-	 * remove event from parent queue
+	 * remove event from parent channel
 	 */
 	public void removeFromChannel();
+	
+	/**
+	 * 
+	 * @return true, if message is removed from channel
+	 */
+	public boolean isRemoved();
 	
 }

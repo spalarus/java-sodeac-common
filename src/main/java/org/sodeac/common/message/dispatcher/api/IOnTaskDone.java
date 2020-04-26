@@ -17,7 +17,7 @@ package org.sodeac.common.message.dispatcher.api;
  * @author Sebastian Palarus
  *
  */
-public interface IOnTaskDone extends IDispatcherChannelManager
+public interface IOnTaskDone<T> extends IDispatcherChannelManager
 {
 	/**
 	 * This is fired, if {@link IDispatcherChannelTask} remove a scheduled {@link IMessage}
@@ -27,5 +27,5 @@ public interface IOnTaskDone extends IDispatcherChannelManager
 	 * @param channel  queue of task finished {@link IDispatcherChannelTask}
 	 * @param task finished {@link IDispatcherChannelTask}
 	 */
-	public void onTaskDone(IDispatcherChannel channel,IDispatcherChannelTask task);
+	public void onTaskDone(IDispatcherChannel<T> channel,IDispatcherChannelTask<T> task);
 }

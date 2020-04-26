@@ -266,7 +266,7 @@ public class ChannelWorker extends Thread
 						catch(Exception ex) {}
 						catch(Error ex) {}
 						
-						for(MessageImpl event : (DequeSnapshot<MessageImpl>)removedMessagesSnapshot)
+						for(MessageImpl message : (DequeSnapshot<MessageImpl>)removedMessagesSnapshot)
 						{
 							channel.touchLastWorkerAction();
 							for(ChannelManagerContainer conf : channel.getManagerContainerList())
@@ -277,12 +277,23 @@ public class ChannelWorker extends Thread
 									{
 										if(conf.isImplementingIOnRemoveMessage())
 										{
-											((IOnMessageRemove)conf.getChannelManager()).onMessageRemove(event);
+											((IOnMessageRemove)conf.getChannelManager()).onMessageRemove(message);
 										}
 									}
 								}
 								catch (Exception e) {}
+								catch (Error e) {}
 							}
+						}
+						
+						for(MessageImpl message : (DequeSnapshot<MessageImpl>)removedMessagesSnapshot)
+						{
+							try
+							{
+								message.dispose();
+							}
+							catch (Exception e) {}
+							catch (Error e) {}
 						}
 					}
 				}
@@ -411,7 +422,7 @@ public class ChannelWorker extends Thread
 									{
 										this.currentTimeOutTimeStamp = System.currentTimeMillis() + dueTask.getTaskControl().getTimeout();
 									}
-									this.channel.getEventDispatcher().registerTimeOut(this.channel,dueTask);
+									this.channel.getMessageDispatcher().registerTimeOut(this.channel,dueTask);
 								}
 								if(dueTask.getTask() instanceof IPeriodicChannelTask)
 								{
@@ -483,7 +494,7 @@ public class ChannelWorker extends Thread
 								{
 									try
 									{
-										this.channel.getEventDispatcher().unregisterTimeOut(this.channel,dueTask);
+										this.channel.getMessageDispatcher().unregisterTimeOut(this.channel,dueTask);
 									}
 									catch (Exception e) 
 									{
@@ -508,7 +519,7 @@ public class ChannelWorker extends Thread
 								dueTask.getTaskControl().postRun();
 								if(taskTimeOut)
 								{
-									this.channel.getEventDispatcher().unregisterTimeOut(this.channel,dueTask);
+									this.channel.getMessageDispatcher().unregisterTimeOut(this.channel,dueTask);
 								}
 								
 								if(! (dueTask.getTask() instanceof IDispatcherChannelService))
@@ -558,7 +569,7 @@ public class ChannelWorker extends Thread
 								dueTask.getTaskControl().postRun();
 								if(taskTimeOut)
 								{
-									this.channel.getEventDispatcher().unregisterTimeOut(this.channel,dueTask);
+									this.channel.getMessageDispatcher().unregisterTimeOut(this.channel,dueTask);
 								}
 								
 								if(! (dueTask.getTask() instanceof IDispatcherChannelService))
@@ -625,7 +636,7 @@ public class ChannelWorker extends Thread
 										catch(Exception ex) {}
 										catch(Error ex) {}
 										
-										for(MessageImpl event : (DequeSnapshot<MessageImpl>)removedMessagesSnapshot)
+										for(MessageImpl message : (DequeSnapshot<MessageImpl>)removedMessagesSnapshot)
 										{
 											channel.touchLastWorkerAction();
 											for(ChannelManagerContainer conf : channel.getManagerContainerList())
@@ -636,12 +647,22 @@ public class ChannelWorker extends Thread
 													{
 														if(conf.isImplementingIOnRemoveMessage())
 														{
-															((IOnMessageRemove)conf.getChannelManager()).onMessageRemove(event);
+															((IOnMessageRemove)conf.getChannelManager()).onMessageRemove(message);
 														}
 													}
 												}
 												catch (Exception e) {}
 											}
+										}
+										
+										for(MessageImpl message : (DequeSnapshot<MessageImpl>)removedMessagesSnapshot)
+										{
+											try
+											{
+												message.dispose();
+											}
+											catch (Exception e) {}
+											catch (Error e) {}
 										}
 									}
 								}

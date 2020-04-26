@@ -66,7 +66,7 @@ public interface IFeatureConfigurableManager extends
 	}
 
 	@Override
-	default <T> void onMessageStore(IMessage<T> message){}
+	default void onMessageStore(IMessage message){}
 
 	@Override
 	default void onChannelSignal(IDispatcherChannel channel, String signal){}
@@ -87,7 +87,7 @@ public interface IFeatureConfigurableManager extends
 	default void onTaskTimeout(IDispatcherChannel channel, IDispatcherChannelTask task){}
 
 	@Override
-	default <T> void onMessageRemove(IMessage<T> message) {};
+	default void onMessageRemove(IMessage message) {};
 	
 	
 	default boolean implementsControllerMethod(String name,Class<?> returnType, Class<?>... parameterTypes)

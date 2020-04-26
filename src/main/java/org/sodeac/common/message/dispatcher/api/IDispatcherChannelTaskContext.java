@@ -18,14 +18,14 @@ import java.util.List;
  * @author Sebastian Palarus
  *
  */
-public interface IDispatcherChannelTaskContext
+public interface IDispatcherChannelTaskContext<T>
 {
 	/**
 	 * getter for queue
 	 * 
 	 * @return queue
 	 */
-	public IDispatcherChannel getChannel();
+	public IDispatcherChannel<T> getChannel();
 	
 	
 	/**

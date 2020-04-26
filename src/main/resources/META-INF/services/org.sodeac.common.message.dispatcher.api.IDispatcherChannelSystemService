@@ -1,1 +1,1 @@
-org.sodeac.common.message.dispatcher.systemmanager.RuleTriggeredMessageProcessingManager
+org.sodeac.common.message.dispatcher.components.ConsumeMessagesPlannerManager

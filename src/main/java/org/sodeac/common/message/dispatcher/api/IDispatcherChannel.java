@@ -10,6 +10,7 @@
  *******************************************************************************/
 package org.sodeac.common.message.dispatcher.api;
 
+import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -18,6 +19,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.sodeac.common.message.MessageHeader;
+import org.sodeac.common.snapdeque.CapacityExceededException;
 import org.sodeac.common.snapdeque.DequeSnapshot;
 
 /**
@@ -47,22 +49,22 @@ public interface IDispatcherChannel<T>
 	 * store a message with default header
 	 * 
 	 * @param messagePayload payload of message to store in channel
-	 * @throws ChannelIsFullException is thrown if message channel exceeds max allowed message size
+	 * @throws CapacityExceededException is thrown if message channel exceeds max allowed message size
 	 */
-	public default void storeMessage(T messagePayload) throws ChannelIsFullException
+	public default void storeMessage(T messagePayload) throws CapacityExceededException
 	{
-		this.storeMessage(messagePayload, mh -> mh.setTimestamp(System.currentTimeMillis()).lockAllHeader());
+		this.storeMessage(messagePayload, null);
 	}
 	
 	/**
 	 * store a message
 	 * 
 	 * @param messagePayload payload of message to store in channel
-	 * @param messageHeaderSetter consumer to set message header properties
+	 * @param messageHeader message header properties
 	 * 
-	 * @throws ChannelIsFullException is thrown if message channel exceeds max allowed message size
+	 * @throws CapacityExceededException is thrown if message channel exceeds max allowed message size
 	 */
-	public void storeMessage(T messagePayload, Consumer<MessageHeader> messageHeaderSetter) throws ChannelIsFullException;
+	public void storeMessage(T messagePayload, MessageHeader messageHeader) throws CapacityExceededException;
 	
 	/**
 	 * store a message with result
@@ -70,23 +72,23 @@ public interface IDispatcherChannel<T>
 	 * @param messagePayload payload of message to store in channel
 	 * 
 	 * @return Future of {@link IOnMessageStoreResult} 
-	 * @throws ChannelIsFullException
+	 * @throws CapacityExceededException
 	 */
-	public default Future<IOnMessageStoreResult> storeMessageWithResult(T messagePayload) throws ChannelIsFullException
+	public default Future<IOnMessageStoreResult> storeMessageWithResult(T messagePayload) throws CapacityExceededException
 	{
-		return this.storeMessageWithResult(messagePayload, mh -> mh.setTimestamp(System.currentTimeMillis()).lockAllHeader());
+		return this.storeMessageWithResult(messagePayload, null);
 	}
 	
 	/**
 	 * store a message with result
 	 * 
 	 * @param messagePayload payload of message to store in channel
-	 * @param messageHeaderSetter consumer to set message header properties
+	 * @param messageHeader message header properties
 	 * 
 	 * @return Future of {@link IOnMessageStoreResult} 
-	 * @throws ChannelIsFullException
+	 * @throws CapacityExceededException
 	 */
-	public Future<IOnMessageStoreResult> storeMessageWithResult(T messagePayload, Consumer<MessageHeader> messageHeaderSetter) throws ChannelIsFullException;
+	public Future<IOnMessageStoreResult> storeMessageWithResult(T messagePayload, MessageHeader messageHeader) throws CapacityExceededException;
 	
 	/**
 	 * getter for configuration propertyblock of queue
@@ -116,7 +118,7 @@ public interface IDispatcherChannel<T>
 	 * 
 	 * @return IQueuedEvent queued with {@code uuid} or null if not present
 	 */
-	public IMessage getMessage(String uuid); // TODO UUID
+	public IMessage<T> getMessage(UUID uuid);
 	
 	/**
 	 * remove {@link IMessage} queued  with {@code uuid} 
@@ -145,51 +147,99 @@ public interface IDispatcherChannel<T>
 	public DequeSnapshot<IMessage<T>> getMessageSnapshotPoll();
 	
 	/**
-	 * register an adapter 
+	 * register an adapter for purpose of channel configuration
 	 * 
 	 * @param adapterClass type of adapter
 	 * @param adapter implementation of adapter
 	 * @throws PropertyIsLockedException
 	 */
-	public default <T> void setAdapter(Class<T> adapterClass, T adapter) throws PropertyIsLockedException
+	public default <A> void setConfigurationAdapter(Class<A> adapterClass, A adapter) throws PropertyIsLockedException
 	{
 		getConfigurationPropertyBlock().setAdapter(adapterClass, adapter);
 	}
 	
 	/**
-	 * get registered adapter
+	 * get registered adapter for purpose of channel configuration
 	 * 
 	 * @param adapterClass type of adapter
 	 * 
 	 * @return registered adapter with specified adapterClass
 	 */
-	public default <T> T getAdapter(Class<T> adapterClass)
+	public default <A> A getConfigurationAdapter(Class<A> adapterClass)
 	{
 		return getConfigurationPropertyBlock().getAdapter(adapterClass);
 	}
 	
 	/**
-	 * get registered adapter
+	 * get registered adapter for purpose of channel configuration
 	 * 
 	 * @param adapterClass type of adapter
 	 * @param adapterFactoryIfNotExists factory to create adapter if not exists , and store with specified key 
 	 * 
 	 * @return registered adapter with specified adapterClass
 	 */
-	public default <T> T getAdapter(Class<T> adapterClass, Supplier<T> adapterFactoryIfNotExists)
+	public default <A> A getConfigurationAdapter(Class<A> adapterClass, Supplier<A> adapterFactoryIfNotExists)
 	{
 		return getConfigurationPropertyBlock().getAdapter(adapterClass, adapterFactoryIfNotExists);
 	}
 	
 	/**
-	 * remove registered adapter
+	 * remove registered adapter for purpose of channel configuration
 	 * 
 	 * @param adapterClass type of adapter
 	 * @throws PropertyIsLockedException
 	 */
-	public default <T> void removeAdapter(Class<T> adapterClass) throws PropertyIsLockedException
+	public default <A> void removeConfigruationAdapter(Class<A> adapterClass) throws PropertyIsLockedException
 	{
 		getConfigurationPropertyBlock().removeAdapter(adapterClass);
+	}
+	
+	/**
+	 * register an adapter for purpose of controlling during runtime
+	 * 
+	 * @param adapterClass type of adapter
+	 * @param adapter implementation of adapter
+	 * @throws PropertyIsLockedException
+	 */
+	public default <A> void setStateAdapter(Class<A> adapterClass, A adapter) throws PropertyIsLockedException
+	{
+		getStatePropertyBlock().setAdapter(adapterClass, adapter);
+	}
+	
+	/**
+	 * get registered adapter for purpose of controlling during runtime
+	 * 
+	 * @param adapterClass type of adapter
+	 * 
+	 * @return registered adapter with specified adapterClass
+	 */
+	public default <A> A getStateAdapter(Class<A> adapterClass)
+	{
+		return getStatePropertyBlock().getAdapter(adapterClass);
+	}
+	
+	/**
+	 * get registered adapter for purpose of controlling during runtime
+	 * 
+	 * @param adapterClass type of adapter
+	 * @param adapterFactoryIfNotExists factory to create adapter if not exists , and store with specified key 
+	 * 
+	 * @return registered adapter with specified adapterClass
+	 */
+	public default <A> A getStateAdapter(Class<A> adapterClass, Supplier<A> adapterFactoryIfNotExists)
+	{
+		return getStatePropertyBlock().getAdapter(adapterClass, adapterFactoryIfNotExists);
+	}
+	
+	/**
+	 * remove registered adapter for purpose of controlling during runtime
+	 * 
+	 * @param adapterClass type of adapter
+	 * @throws PropertyIsLockedException
+	 */
+	public default <A> void removeStateAdapter(Class<A> adapterClass) throws PropertyIsLockedException
+	{
+		getStatePropertyBlock().removeAdapter(adapterClass);
 	}
 	
 	/**
@@ -198,7 +248,7 @@ public interface IDispatcherChannel<T>
 	 * @param uuidList list of identifiers for {@link IMessage} to remove
 	 * @return  true if one of {@link IMessage} was found and remove, otherwise false
 	 */
-	public boolean removeMessageList(List<String> uuidList);
+	public boolean removeMessageList(List<UUID> uuidList);
 	
 	// TODO getTaskList/Index by Predicate
 	
@@ -302,14 +352,38 @@ public interface IDispatcherChannel<T>
 	 *
 	 * @return global scope
 	 */
-	public IDispatcherChannel<?> getRootChannel();
+	public IDispatcherChannel<Object> getRootChannel();
+	
+	/**
+	 * returns root scope
+	 *
+	 * @param rootType
+	 * @return global scope
+	 */
+	@SuppressWarnings("unchecked")
+	public default <R>  IDispatcherChannel<R> getRootChannel(Class<R> rootType)
+	{
+		return (IDispatcherChannel<R>)getRootChannel();
+	}
 	
 	/**
 	 * getter for parent scope, if exists.
 	 * 
 	 * @return parentChannel or null
 	 */
-	public IDispatcherChannel<?> getParentChannel();
+	public IDispatcherChannel<Object> getParentChannel();
+	
+	/**
+	 * getter for parent scope, if exists.
+	 * 
+	 * @param parentType
+	 * @return parentChannel or null
+	 */
+	@SuppressWarnings("unchecked")
+	public default <P> IDispatcherChannel<P> getParentChannel(Class<P> parentType)
+	{
+		return (IDispatcherChannel<P>)getParentChannel();
+	}
 	
 	/**
 	 * create {@link ISubChannel} for {@link IDispatcherChannel}
@@ -367,5 +441,10 @@ public interface IDispatcherChannel<T>
 	 * @return  scope with given {@code scopeId} or null, if scope not found
 	 */
 	public ISubChannel getChildScope(UUID scopeId);
+	
+	public interface IDispatcherChannelReference extends Closeable
+	{
+		
+	}
 	
 }

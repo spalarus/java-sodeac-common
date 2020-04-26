@@ -35,15 +35,25 @@ public class Driver
 		Iterator<T> iterator = serviceLoader.iterator();
 		T bestDriver = null;
 		int bestIndex = -1;
-		while(iterator.hasNext())
+		boolean hasNext = true;
+		while(hasNext)
 		{
-			T driverInstance = iterator.next();
-			int applicableIndex = driverInstance.driverIsApplicableFor(properties);
-			if(applicableIndex > bestIndex)
+			try
 			{
-				bestDriver = driverInstance;
-				bestIndex = applicableIndex;
+				hasNext = iterator.hasNext();
+				if(hasNext)
+				{
+					T driverInstance = iterator.next();
+					int applicableIndex = driverInstance.driverIsApplicableFor(properties);
+					if(applicableIndex > bestIndex)
+					{
+						bestDriver = driverInstance;
+						bestIndex = applicableIndex;
+					}
+				}
 			}
+			catch (Exception e) {}
+			catch (Error e) {}
 		}
 		return bestDriver;
 	}
@@ -80,23 +90,29 @@ public class Driver
 		Iterator<T> iterator = serviceLoader.iterator();
 		List<T> list = new ArrayList<T>();
 		Set<String> uniqueIndex = new HashSet<String>();
-		while(iterator.hasNext())
+		boolean hasNext = true;
+		while(hasNext)
 		{
 			try
 			{
-				T driverInstance = iterator.next();
-				if(uniqueIndex.contains(driverInstance.getClass().getCanonicalName()))
+				hasNext = iterator.hasNext();
+				if(hasNext)
 				{
-					continue;
-				}
-				int applicableIndex = driverInstance.driverIsApplicableFor(properties);
-				if(applicableIndex > IDriver.APPLICABLE_NONE)
-				{
-					list.add(driverInstance);
-					uniqueIndex.add(driverInstance.getClass().getCanonicalName());
+					T driverInstance = iterator.next();
+					if(uniqueIndex.contains(driverInstance.getClass().getCanonicalName()))
+					{
+						continue;
+					}
+					int applicableIndex = driverInstance.driverIsApplicableFor(properties);
+					if(applicableIndex > IDriver.APPLICABLE_NONE)
+					{
+						list.add(driverInstance);
+						uniqueIndex.add(driverInstance.getClass().getCanonicalName());
+					}
 				}
 			}
 			catch (Exception e) {}
+			catch (Error e) {}
 		}
 		uniqueIndex.clear();
 		return list;

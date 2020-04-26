@@ -12,6 +12,8 @@ package org.sodeac.common.message.dispatcher.api;
 
 import java.util.List;
 
+import org.sodeac.common.snapdeque.CapacityExceededException;
+
 /**
  * 
  * API for message dispatcher
@@ -29,9 +31,9 @@ public interface IMessageDispatcher
 	 * 
 	 * 
 	 * @throws ChannelNotFoundException
-	 * @throws ChannelIsFullException
+	 * @throws CapacityExceededException
 	 */
-	public <T> void sendMessage(String channelId,T message) throws ChannelNotFoundException, ChannelIsFullException;
+	public <T> void sendMessage(String channelId,T message) throws ChannelNotFoundException, CapacityExceededException;
 	
 	/**
 	 * factory-methode creating instance of {@link IPropertyBlock} 

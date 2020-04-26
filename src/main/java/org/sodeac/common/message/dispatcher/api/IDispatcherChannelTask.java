@@ -17,7 +17,7 @@ package org.sodeac.common.message.dispatcher.api;
  *
  */
 @FunctionalInterface
-public interface IDispatcherChannelTask
+public interface IDispatcherChannelTask<T>
 {
 	
 	/**
@@ -28,7 +28,7 @@ public interface IDispatcherChannelTask
 	 * @param propertyBlock properties for this task
 	 * @param taskControl state-handler for this task
 	 */
-	public default void configure(IDispatcherChannel queue, String id, IPropertyBlock propertyBlock, ITaskControl taskControl) {};
+	public default void configure(IDispatcherChannel<T> queue, String id, IPropertyBlock propertyBlock, ITaskControl taskControl) {};
 	
 	/**
 	 * run this task, invoked by channel-worker.
@@ -36,5 +36,5 @@ public interface IDispatcherChannelTask
 	 * @param context of task running
 	 * @throws Exception
 	 */
-	public void run(IDispatcherChannelTaskContext taskContext) throws Exception;
+	public void run(IDispatcherChannelTaskContext<T> taskContext) throws Exception;
 }

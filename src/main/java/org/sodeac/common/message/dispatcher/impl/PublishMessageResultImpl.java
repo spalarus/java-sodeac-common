@@ -13,15 +13,15 @@ package org.sodeac.common.message.dispatcher.impl;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.sodeac.common.message.dispatcher.api.IOnMessageStoreResult;
+import org.sodeac.common.misc.TaskDoneNotifier;
 
 public class PublishMessageResultImpl implements IOnMessageStoreResult
 {
 	private				ReentrantLock		lock						= null;
-	private 			CountDownLatch 		countDownLatch 				= null;
+	private 			TaskDoneNotifier	resultSettedNotifier		= null;
 	private volatile 	boolean 			processingIsFinished 		= false; 
 	
 	private volatile 	boolean 			queued 						= false;
@@ -32,7 +32,7 @@ public class PublishMessageResultImpl implements IOnMessageStoreResult
 	protected PublishMessageResultImpl()
 	{
 		super();
-		this.countDownLatch = new CountDownLatch(1);
+		this.resultSettedNotifier = new TaskDoneNotifier();
 		this.lock = new ReentrantLock(true);
 	}
 	
@@ -42,7 +42,7 @@ public class PublishMessageResultImpl implements IOnMessageStoreResult
 		{
 			try
 			{
-				this.countDownLatch.await();
+				this.resultSettedNotifier.await();
 			}
 			catch (Exception e) {}
 		}
@@ -51,7 +51,7 @@ public class PublishMessageResultImpl implements IOnMessageStoreResult
 	protected void processPhaseIsFinished()
 	{
 		this.processingIsFinished = true;
-		this.countDownLatch.countDown();
+		this.resultSettedNotifier.countDown();
 	}
 	
 	@Override
@@ -163,7 +163,7 @@ public class PublishMessageResultImpl implements IOnMessageStoreResult
 	
 	protected void dispose()
 	{
-		this.countDownLatch = null;
+		this.resultSettedNotifier = null;
 		this.detailResultObject = null;
 		
 		if(this.detailResultObjectList != null)

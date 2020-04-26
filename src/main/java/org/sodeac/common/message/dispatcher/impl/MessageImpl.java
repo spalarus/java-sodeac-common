@@ -12,6 +12,7 @@ package org.sodeac.common.message.dispatcher.impl;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.sodeac.common.message.MessageHeader;
@@ -31,6 +32,10 @@ public class MessageImpl<T> implements IMessage<T>
 	private volatile PropertyBlockImpl propertyBlock = null;
 	private DequeNode<MessageImpl<T>> node = null;
 	
+	private UUID channelMessageId = null;
+	private Long channelMessageTimestamp = null;
+	private Long channelMessageSequence = null;
+	
 	protected MessageImpl(T payload,ChannelImpl channel, MessageHeader messageHeader)
 	{
 		super();
@@ -43,8 +48,14 @@ public class MessageImpl<T> implements IMessage<T>
 	{
 		return node;
 	}
-	public void setNode(DequeNode<MessageImpl<T>> node)
+	protected void setNode(DequeNode<MessageImpl<T>> node)
 	{
+		if(node != null)
+		{
+			this.channelMessageId = node.getId();
+			this.channelMessageSequence = node.getSequence();
+			this.channelMessageTimestamp = node.getTimestamp();
+		}
 		this.node = node;
 	}
 
@@ -60,9 +71,27 @@ public class MessageImpl<T> implements IMessage<T>
 		return this.scheduleResult;
 	}
 
-	public void setScheduleResultObject(PublishMessageResultImpl scheduleResult)
+	protected void setScheduleResultObject(PublishMessageResultImpl scheduleResult)
 	{
 		this.scheduleResult = scheduleResult;
+	}
+
+	@Override
+	public UUID getId()
+	{
+		return channelMessageId;
+	}
+
+	@Override
+	public Long getCreateTimestamp()
+	{
+		return channelMessageTimestamp;
+	}
+
+	@Override
+	public Long getSequence()
+	{
+		return channelMessageSequence;
 	}
 
 	@Override
@@ -152,7 +181,7 @@ public class MessageImpl<T> implements IMessage<T>
 	}
 
 	@Override
-	public IDispatcherChannel getChannel()
+	public IDispatcherChannel<T> getChannel()
 	{
 		return this.channel;
 	}
@@ -186,6 +215,7 @@ public class MessageImpl<T> implements IMessage<T>
 				this.messageHeader.dispose();
 			}
 			catch (Exception e) {}
+			this.messageHeader = null;
 		}
 		if(this.propertyBlock != null)
 		{
@@ -197,5 +227,19 @@ public class MessageImpl<T> implements IMessage<T>
 		}
 		this.propertyBlock = null;
 		this.node = null;
+		this.channelMessageId = null;
+		this.channelMessageSequence = null;
+		this.channelMessageTimestamp = null;
+	}
+
+	@Override
+	public boolean isRemoved()
+	{
+		DequeNode<MessageImpl<T>> n = this.node;
+		if(n == null)
+		{
+			return false;
+		}
+		return n.isLinked();
 	}
 }

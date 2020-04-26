@@ -17,7 +17,7 @@ package org.sodeac.common.message.dispatcher.api;
  * @author Sebastian Palarus
  *
  */
-public interface IOnMessageRemove extends IDispatcherChannelManager
+public interface IOnMessageRemove<T> extends IDispatcherChannelManager
 {
 	/**
 	 * This methode is fired, if {@link IDispatcherChannelManager} removed a queued {@link IMessage}
@@ -26,5 +26,5 @@ public interface IOnMessageRemove extends IDispatcherChannelManager
 	 *  
 	 * @param message removed message
 	 */
-	public <T> void onMessageRemove(IMessage<T> message);
+	public void onMessageRemove(IMessage<T> message);
 }

@@ -10,26 +10,26 @@
  *******************************************************************************/
 package org.sodeac.common.function;
 
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 import org.sodeac.common.misc.RuntimeWrappedException;
 
 /**
- * Extends {@link Consumer} to consume with potentially throws an exception. Catched exceptions will delegate as {@link RuntimeWrappedException}
  * 
  * @author Sebastian Palarus
  *
  * @param <T>
+ * @param <U>
  */
-@FunctionalInterface
-public interface ExceptionCatchedConsumer<T> extends Consumer<T>
+public interface ExceptionCatchedBiConsumer <T, U> extends BiConsumer<T, U>
 {
+
 	@Override
-	default void accept(T t)
+	default void accept(T t, U u)
 	{
 		try
 		{
-			acceptWithException(t);
+			acceptWithException(t,u);
 		}
 		catch (Exception e) 
 		{
@@ -44,25 +44,26 @@ public interface ExceptionCatchedConsumer<T> extends Consumer<T>
 			throw new RuntimeWrappedException(e);
 		}
 	}
-	
 	/**
+	 * 
 	 * Consume object with potentially throws an exception.
 	 * 
 	 * @param t object to consume 
-	 * 
+	 * @param u object to consume 
 	 * @throws Exception
 	 */
-	public void acceptWithException(T t) throws Exception, Error;
+	public void acceptWithException(T t, U u) throws Exception, Error;
 	
-	public static <T> Consumer<T> wrap(ExceptionCatchedConsumer<T> consumer)
+	public static <T,U> BiConsumer<T,U> wrap(ExceptionCatchedBiConsumer<T,U> consumer)
 	{
-		return new Consumer<T>()
+		return new BiConsumer<T,U>()
 		{
 			@Override
-			public void accept(T t)
+			public void accept(T t, U u)
 			{
-				consumer.accept(t);
+				consumer.accept(t,u);
 			}
 		};
 	}
+
 }

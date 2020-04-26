@@ -10,6 +10,11 @@
  *******************************************************************************/
 package org.sodeac.common.message.dispatcher.api;
 
+import java.util.Map;
+
+import org.sodeac.common.misc.Driver.IDriver;
+import org.sodeac.common.xuri.ldapfilter.IFilterItem;
+import org.sodeac.common.xuri.ldapfilter.LDAPFilterBuilder;
 
 /**
  * Channel components are services bounded to any number of {@link IDispatcherChannel}s.
@@ -18,4 +23,17 @@ package org.sodeac.common.message.dispatcher.api;
  */
 public interface IDispatcherChannelComponent
 {
+	public interface IDispatcherChannelComponentDriver extends IDispatcherChannelComponent,IDriver
+	{
+		public default int driverIsApplicableFor(Map<String,Object> properties)
+		{
+			return IDriver.APPLICABLE_DEFAULT;
+		}
+	}
+	
+	@SuppressWarnings("rawtypes")
+	public static IFilterItem getAdapterMatchFilter(Class adapterClass)
+	{
+		return LDAPFilterBuilder.andLinker().criteriaWithName(adapterClass.getCanonicalName()).eq("*").build();
+	}
 }

@@ -17,7 +17,7 @@ package org.sodeac.common.message.dispatcher.api;
  * @author Sebastian Palarus
  *
  */
-public interface IOnTaskTimeout extends IDispatcherChannelManager
+public interface IOnTaskTimeout<T> extends IDispatcherChannelManager
 {
 	/**
 	 * This is fired, if {@link IDispatcherChannelTask} runs in timeout.
@@ -27,5 +27,5 @@ public interface IOnTaskTimeout extends IDispatcherChannelManager
 	 * @param channel  queue of task runs in timeout
 	 * @param task runs in timeout
 	 */
-	public void onTaskTimeout(IDispatcherChannel channel, IDispatcherChannelTask task);
+	public void onTaskTimeout(IDispatcherChannel<T> channel, IDispatcherChannelTask<T> task);
 }

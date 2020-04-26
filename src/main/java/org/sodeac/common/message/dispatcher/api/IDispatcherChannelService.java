@@ -16,15 +16,13 @@ package org.sodeac.common.message.dispatcher.api;
  * @author Sebastian Palarus
  *
  */
-public interface IDispatcherChannelService extends IDispatcherChannelTask,IDispatcherChannelComponent
+public interface IDispatcherChannelService<T> extends IDispatcherChannelTask<T>,IDispatcherChannelComponent
 { 
-	// TODO configuration => dispatcher configuration
-	// TODO ChannelComponentConfiguration => ChannelServiceConfiguration
 	/**
 	 * 
 	 * @param componentConfiguration
 	 */
-	public default void configure(IChannelServicePolicy policy)
+	public default void configure(IChannelServicePolicy componentBindingPolicy)
 	{
 	}
 	
@@ -34,6 +32,6 @@ public interface IDispatcherChannelService extends IDispatcherChannelTask,IDispa
 		 * 
 		 * @param configuration
 		 */
-		public void addConfigurationDetail(DispatcherChannelSetup configuration);
+		public IChannelServicePolicy addConfigurationDetail(ComponentBindingSetup componentBindingSetup);
 	}
 }

@@ -15,9 +15,17 @@ import org.sodeac.common.message.dispatcher.impl.MessageDispatcherManagerImpl;
 
 public interface IMessageDispatcherManager 
 {
+	public static final String DEFAULT_DISPATCHER_ID = "org.sodeac.common.message.dispatcher.default";
+	
 	public static IMessageDispatcherManager get()
 	{
 		return MessageDispatcherManagerImpl.get();
+	}
+	
+	public default IMessageDispatcher getDefaultDispatcher()
+	{
+		// shutdown-protection ?
+		return getOrCreateDispatcher(DEFAULT_DISPATCHER_ID);
 	}
 	
 	public IMessageDispatcher createDispatcher(String id);

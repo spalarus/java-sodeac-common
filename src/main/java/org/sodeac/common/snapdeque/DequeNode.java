@@ -11,6 +11,7 @@
 package org.sodeac.common.snapdeque;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 
 import org.sodeac.common.snapdeque.SnapshotableDeque.SnapshotVersion;
@@ -28,17 +29,25 @@ import org.sodeac.common.snapdeque.SnapshotableDeque.LinkMode;
  */
 public class DequeNode<E>
 {
-	protected DequeNode(E element, SnapshotableDeque<E> snapshotableDeque)
+	protected DequeNode(E element, SnapshotableDeque<E> snapshotableDeque, UUID id, Long timestamp, Long sequence)
 	{
 		super();
 		this.snapshotableDeque = snapshotableDeque;
 		this.element = element;
+		this.id = id;
+		this.timestamp = timestamp;
+		this.sequence = sequence;
 	}
+	
 	protected SnapshotableDeque<E> snapshotableDeque = null;
 	protected E element = null;
 	protected volatile Link<E> head = null;
 	protected volatile long lastObsoleteOnVersion = Link.NO_OBSOLETE;
 	private volatile int linkSize = 0;
+	
+	protected Long timestamp = null; 
+	protected Long sequence = null;
+	protected UUID id = null;;
 	
 	
 	/**
@@ -65,6 +74,10 @@ public class DequeNode<E>
 		snapshotableDeque = null;
 		element = null;
 		head = null;
+		
+		id = null;
+		timestamp = null;
+		sequence = null;
 	}
 	
 	
@@ -268,7 +281,7 @@ public class DequeNode<E>
 					{
 						if(startsWithEmptyState && (snapshotableDeque.nodeSize >= snapshotableDeque.capacity))
 						{
-							throw new IllegalStateException("Can not link node, becase max size of deque is " + snapshotableDeque.capacity );
+							throw new CapacityExceededException(snapshotableDeque.capacity, "Can not link node, becase max size of deque is " + snapshotableDeque.capacity );
 						}
 						notify = true;
 						linkSize++;
@@ -321,6 +334,37 @@ public class DequeNode<E>
 	{
 		return element;
 	}
+
+	/**
+	 * getter for link timestamp, if deque has to generate metadata
+	 * 
+	 * @return link timestamp
+	 */
+	public Long getTimestamp()
+	{
+		return timestamp;
+	}
+
+	/**
+	 * getter for link sequence, if deque has to generate metadata
+	 * 
+	 * @return link sequence
+	 */
+	public Long getSequence()
+	{
+		return sequence;
+	}
+
+	/**
+	 * getter for link id, if deque has to generate metadata
+	 * 
+	 * @return link id
+	 */
+	public UUID getId()
+	{
+		return id;
+	}
+
 
 	/**
 	 * Internal method.

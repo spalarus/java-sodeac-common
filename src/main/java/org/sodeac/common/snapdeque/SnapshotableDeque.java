@@ -20,6 +20,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
@@ -46,13 +47,21 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	 */
 	public  SnapshotableDeque()
 	{
-		this(Long.MAX_VALUE);
+		this(Integer.MAX_VALUE,false);
 	}
 	
 	/**
 	 * Constructor to create a SnapshotableDeque with specified capacity .
 	 */
 	public  SnapshotableDeque(long capacity)
+	{
+		this(capacity,false);
+	}
+	
+	/**
+	 * Constructor to create a SnapshotableDeque with specified capacity .
+	 */
+	public  SnapshotableDeque(long capacity, boolean generateMetadata)
 	{
 		super();
 		
@@ -67,6 +76,8 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 		this.capacity = capacity;
 		this.begin = new Bollard();
 		this.end = new Bollard();
+		this.generateMetadata = generateMetadata;
+		this.sequence = 0L;
 	}
 	
 	
@@ -86,6 +97,9 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	protected volatile long capacity;
 	
 	protected UUID uuid = null;
+	protected boolean generateMetadata = false;
+	
+	protected long sequence;
 	
 	public long getCapacity()
 	{
@@ -577,6 +591,19 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	 */
 	public DequeNode<E> link(SnapshotableDeque.LinkMode linkMode, E element)
 	{
+		return link(linkMode, element, null);
+	}
+	
+	/**
+	 * link (append or prepend) new element to deque. If capacity is reached a IllegalStateException is thrown.
+	 * 
+	 * @param linkMode append or prepend
+	 * @param element item to link
+	 * @param synchronizedConsumer consumer accept new node inside inside write lock
+	 * @return node
+	 */
+	public DequeNode<E> link(SnapshotableDeque.LinkMode linkMode, E element, Consumer<DequeNode<E>> synchronizedConsumer)
+	{
 		DequeNode<E> node = null;
 		
 		Lock lock = this.writeLock;
@@ -585,7 +612,14 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 		{
 			this.getModificationVersion();
 			
-			node = new DequeNode<E>(element,this);
+			if(generateMetadata)
+			{
+				node = new DequeNode<E>(element,this, UUID.randomUUID(), System.currentTimeMillis(), ++this.sequence);
+			}
+			else
+			{
+				node = new DequeNode<E>(element,this, null, null, null);
+			}
 			
 			if(linkMode == SnapshotableDeque.LinkMode.PREPEND)
 			{
@@ -594,6 +628,11 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 			else
 			{
 				this.appendNode(node, this.modificationVersion);
+			}
+			
+			if(synchronizedConsumer != null)
+			{
+				synchronizedConsumer.accept(node);
 			}
 			
 		}
@@ -632,7 +671,15 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 			int index = 0;
 			for(E element : elements)
 			{
-				node = new DequeNode<E>(element,this);
+				if(generateMetadata)
+				{
+					node = new DequeNode<E>(element,this, UUID.randomUUID(), System.currentTimeMillis(), ++this.sequence);
+				}
+				else
+				{
+					node = new DequeNode<E>(element,this, null, null, null);
+				}
+				
 				nodes[index++] = node;
 				
 				if(linkMode == SnapshotableDeque.LinkMode.PREPEND)
@@ -824,7 +871,7 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	{
 		protected Bollard()
 		{
-			super(null,SnapshotableDeque.this);
+			super(null,SnapshotableDeque.this, null, null, null);
 		}
 		
 		@Override
@@ -1160,13 +1207,13 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	@Override
 	public void addFirst(E e) 
 	{
-		link(SnapshotableDeque.LinkMode.PREPEND,e);
+		link(SnapshotableDeque.LinkMode.PREPEND,e, null);
 	}
 
 	@Override
 	public void addLast(E e) 
 	{
-		link(SnapshotableDeque.LinkMode.APPEND,e);
+		link(SnapshotableDeque.LinkMode.APPEND,e, null);
 	}
 
 	@Override

@@ -14,7 +14,7 @@ import java.io.Serializable;
 
 import org.sodeac.common.xuri.ldapfilter.IFilterItem;
 
-public abstract class DispatcherChannelSetup implements Serializable
+public abstract class ComponentBindingSetup implements Serializable
 {
 	/**
 	 * 
@@ -27,9 +27,9 @@ public abstract class DispatcherChannelSetup implements Serializable
 	 * @return array of allowed scope
 	 */
 	public abstract Class<? extends IDispatcherChannelComponent>[] getScopes();
-	public abstract DispatcherChannelSetup copy(); 
+	public abstract ComponentBindingSetup copy(); 
 	
-	private DispatcherChannelSetup()
+	private ComponentBindingSetup()
 	{
 		super();
 	}
@@ -56,7 +56,7 @@ public abstract class DispatcherChannelSetup implements Serializable
 	 * 
 	 * @return channel component configuration
 	 */
-	protected DispatcherChannelSetup setDispatcherId(String dispatcherId)
+	protected ComponentBindingSetup setDispatcherId(String dispatcherId)
 	{
 		this.dispatcherId = dispatcherId;
 		return this;
@@ -78,7 +78,7 @@ public abstract class DispatcherChannelSetup implements Serializable
 	 * @param name name of channel component
 	 * @return component configuration
 	 */
-	protected DispatcherChannelSetup setName(String name)
+	protected ComponentBindingSetup setName(String name)
 	{
 		this.name = name;
 		return this;
@@ -100,7 +100,7 @@ public abstract class DispatcherChannelSetup implements Serializable
 	 * @param channelCapacity max size of stored messages 
 	 * @return channel component configuration
 	 */
-	protected DispatcherChannelSetup setChannelCapacity(Long channelCapacity) 
+	protected ComponentBindingSetup setChannelCapacity(Long channelCapacity) 
 	{
 		this.channelCapacity = channelCapacity;
 		return this;
@@ -122,7 +122,7 @@ public abstract class DispatcherChannelSetup implements Serializable
 	 * @param privateChannelWorkerRequirement declares necessity to use same channel worker thread for synchronized channel activities at all times
 	 * @return channel component configuration
 	 */
-	protected DispatcherChannelSetup setPrivateChannelWorkerRequirement(PrivateChannelWorkerRequirement privateChannelWorkerRequirement)
+	protected ComponentBindingSetup setPrivateChannelWorkerRequirement(PrivateChannelWorkerRequirement privateChannelWorkerRequirement)
 	{
 		this.privateChannelWorkerRequirement = privateChannelWorkerRequirement;
 		return this;
@@ -136,7 +136,7 @@ public abstract class DispatcherChannelSetup implements Serializable
 	 * @author Sebastian Palarus
 	 *
 	 */
-	public final static class BoundedByChannelId extends DispatcherChannelSetup
+	public final static class BoundedByChannelId extends ComponentBindingSetup
 	{
 		/**
 		 * 
@@ -265,7 +265,7 @@ public abstract class DispatcherChannelSetup implements Serializable
 	 * @author Sebastian Palarus
 	 *
 	 */
-	public final static class BoundedByChannelConfiguration extends DispatcherChannelSetup
+	public final static class BoundedByChannelConfiguration extends ComponentBindingSetup
 	{
 		
 		/**
@@ -367,7 +367,7 @@ public abstract class DispatcherChannelSetup implements Serializable
 	 * @author Sebastian Palarus
 	 *
 	 */
-	public static class ChannelServiceConfiguration extends DispatcherChannelSetup
+	public static class ChannelServiceConfiguration extends ComponentBindingSetup
 	{
 
 		public ChannelServiceConfiguration(String serviceId)

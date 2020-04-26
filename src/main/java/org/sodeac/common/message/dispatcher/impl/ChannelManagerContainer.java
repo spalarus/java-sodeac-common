@@ -16,7 +16,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.sodeac.common.message.dispatcher.api.DispatcherChannelSetup;
+import org.sodeac.common.message.dispatcher.api.ComponentBindingSetup;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelManager;
 import org.sodeac.common.message.dispatcher.api.IFeatureConfigurableManager;
 import org.sodeac.common.message.dispatcher.api.IOnChannelAttach;
@@ -38,8 +38,8 @@ public class ChannelManagerContainer
 	(
 		MessageDispatcherImpl dispatcher,
 		IDispatcherChannelManager queueController, 
-		List<DispatcherChannelSetup.BoundedByChannelId> boundByIdList, 
-		List<DispatcherChannelSetup.BoundedByChannelConfiguration> boundedByQueueConfigurationList
+		List<ComponentBindingSetup.BoundedByChannelId> boundByIdList, 
+		List<ComponentBindingSetup.BoundedByChannelConfiguration> boundedByQueueConfigurationList
 	)
 	{
 		super();
@@ -52,7 +52,7 @@ public class ChannelManagerContainer
 		
 		if(boundByIdList != null)
 		{
-			for(DispatcherChannelSetup.BoundedByChannelId config : boundByIdList)
+			for(ComponentBindingSetup.BoundedByChannelId config : boundByIdList)
 			{
 				if(config.isChannelMaster())
 				{
@@ -65,8 +65,8 @@ public class ChannelManagerContainer
 	
 	private MessageDispatcherImpl dispatcher = null;
 	private volatile IDispatcherChannelManager channelController = null;
-	private List<DispatcherChannelSetup.BoundedByChannelId> boundByIdList = null;
-	private List<DispatcherChannelSetup.BoundedByChannelConfiguration> boundedByQueueConfigurationList = null;
+	private List<ComponentBindingSetup.BoundedByChannelId> boundByIdList = null;
+	private List<ComponentBindingSetup.BoundedByChannelConfiguration> boundedByQueueConfigurationList = null;
 	private boolean channelMaster = false;
 	
 	private volatile boolean registered = false;
@@ -130,7 +130,7 @@ public class ChannelManagerContainer
 		List<ControllerFilterObjects> list = new ArrayList<ControllerFilterObjects>();
 		if(this.boundedByQueueConfigurationList != null)
 		{
-			for(DispatcherChannelSetup.BoundedByChannelConfiguration boundedByQueueConfiguration : boundedByQueueConfigurationList)
+			for(ComponentBindingSetup.BoundedByChannelConfiguration boundedByQueueConfiguration : boundedByQueueConfigurationList)
 			{
 				if(boundedByQueueConfiguration.getLdapFilter() == null)
 				{
@@ -165,7 +165,7 @@ public class ChannelManagerContainer
 				}
 				catch (Exception e) 
 				{
-					dispatcher.logError("parse bounded queue configuration " + boundedByQueueConfiguration.getLdapFilter(),e);
+					dispatcher.logError("parse bounded channel configuration " + boundedByQueueConfiguration.getLdapFilter(),e);
 				}
 			}
 		}
@@ -195,11 +195,11 @@ public class ChannelManagerContainer
 	{
 		this.registered = registered;
 	}
-	public List<DispatcherChannelSetup.BoundedByChannelConfiguration> getBoundedByChannelConfigurationList()
+	public List<ComponentBindingSetup.BoundedByChannelConfiguration> getBoundedByChannelConfigurationList()
 	{
 		return boundedByQueueConfigurationList;
 	}
-	public List<DispatcherChannelSetup.BoundedByChannelId> getBoundByIdList()
+	public List<ComponentBindingSetup.BoundedByChannelId> getBoundByIdList()
 	{
 		return boundByIdList;
 	}
@@ -231,7 +231,7 @@ public class ChannelManagerContainer
 	
 	public class ControllerFilterObjects
 	{
-		DispatcherChannelSetup.BoundedByChannelConfiguration bound = null;
+		ComponentBindingSetup.BoundedByChannelConfiguration bound = null;
 		IFilterItem filter = null;
 		Set<String> attributes = new HashSet<String>();
 	}
@@ -276,9 +276,9 @@ public class ChannelManagerContainer
 		return implementsIOnTaskTimeout;
 	}
 	
-	public List<DispatcherChannelSetup> getComponentConfigurationList()
+	public List<ComponentBindingSetup> getComponentConfigurationList()
 	{
-		List<DispatcherChannelSetup> list = new ArrayList<DispatcherChannelSetup>();
+		List<ComponentBindingSetup> list = new ArrayList<ComponentBindingSetup>();
 		
 		if(boundByIdList != null)
 		{

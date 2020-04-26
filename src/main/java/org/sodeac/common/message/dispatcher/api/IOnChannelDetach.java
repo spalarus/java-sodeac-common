@@ -17,7 +17,7 @@ package org.sodeac.common.message.dispatcher.api;
  * @author Sebastian Palarus
  *
  */
-public interface IOnChannelDetach extends IDispatcherChannelManager
+public interface IOnChannelDetach<T> extends IDispatcherChannelManager
 {
 	/**
 	 * This is fired, if {@link IDispatcherChannelManager} detach from a {@link IDispatcherChannel}
@@ -26,5 +26,5 @@ public interface IOnChannelDetach extends IDispatcherChannelManager
 	 * 
 	 * @param channel is detach from {@link IDispatcherChannelManager}
 	 */
-	public void onChannelDetach(IDispatcherChannel channel);
+	public void onChannelDetach(IDispatcherChannel<T> channel);
 }

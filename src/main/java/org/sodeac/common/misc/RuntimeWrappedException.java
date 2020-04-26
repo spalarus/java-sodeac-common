@@ -8,8 +8,18 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.message.dispatcher.api;
+package org.sodeac.common.misc;
 
-public interface IDispatcherChannelSystemManager extends IDispatcherChannelManager, IDispatcherChannelComponent.IDispatcherChannelComponentDriver
-{	
+public class RuntimeWrappedException extends RuntimeException
+{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 8985443414667960529L;
+
+	public RuntimeWrappedException(Throwable throwable)
+	{
+		super(throwable.getMessage(), throwable);
+	}
+	
 }

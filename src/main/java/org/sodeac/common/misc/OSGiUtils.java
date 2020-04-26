@@ -22,7 +22,6 @@ import java.util.function.BiConsumer;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
 import org.sodeac.common.misc.Driver.IDriver;
-import org.sodeac.common.misc.OSGiDriverRegistry.DriverServiceTracker;
 
 public class OSGiUtils 
 {

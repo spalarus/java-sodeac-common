@@ -17,7 +17,7 @@ package org.sodeac.common.message.dispatcher.api;
  * @author Sebastian Palarus
  *
  */
-public interface IOnChannelAttach extends IDispatcherChannelManager
+public interface IOnChannelAttach<T> extends IDispatcherChannelManager
 {
 	/**
 	 * This is fired, if {@link IDispatcherChannelManager} attach to a {@link IDispatcherChannel}
@@ -26,5 +26,5 @@ public interface IOnChannelAttach extends IDispatcherChannelManager
 	 * 
 	 * @param channel is attached with {@link IDispatcherChannelManager}
 	 */
-	public void onChannelAttach(IDispatcherChannel channel);
+	public void onChannelAttach(IDispatcherChannel<T> channel);
 }

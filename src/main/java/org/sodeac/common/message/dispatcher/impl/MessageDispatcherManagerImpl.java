@@ -20,6 +20,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.sodeac.common.message.dispatcher.api.IMessageDispatcher;
 import org.sodeac.common.message.dispatcher.api.IMessageDispatcherManager;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelSystemManager;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannelSystemService;
 import org.sodeac.common.misc.Driver;
 
 public class MessageDispatcherManagerImpl implements IMessageDispatcherManager
@@ -64,6 +65,10 @@ public class MessageDispatcherManagerImpl implements IMessageDispatcherManager
 		{
 			messageDispatcher.registerChannelManager(channelManager);
 		}
+		for(IDispatcherChannelSystemService<?> channelService : Driver.getDriverList(IDispatcherChannelSystemService.class, null))
+		{
+			messageDispatcher.registerChannelService(channelService);
+		}
 		return messageDispatcher;
 	}
 	
@@ -81,6 +86,10 @@ public class MessageDispatcherManagerImpl implements IMessageDispatcherManager
 			for(IDispatcherChannelSystemManager channelManager : Driver.getDriverList(IDispatcherChannelSystemManager.class, null))
 			{
 				messageDispatcher.registerChannelManager(channelManager);
+			}
+			for(IDispatcherChannelSystemService<?> channelService : Driver.getDriverList(IDispatcherChannelSystemService.class, null))
+			{
+				messageDispatcher.registerChannelService(channelService);
 			}
 			this.registeredDispatcher.put(id, messageDispatcher);
 			return messageDispatcher;
@@ -105,6 +114,10 @@ public class MessageDispatcherManagerImpl implements IMessageDispatcherManager
 			for(IDispatcherChannelSystemManager channelManager : Driver.getDriverList(IDispatcherChannelSystemManager.class, null))
 			{
 				messageDispatcher.registerChannelManager(channelManager);
+			}
+			for(IDispatcherChannelSystemService<?> channelService : Driver.getDriverList(IDispatcherChannelSystemService.class, null))
+			{
+				messageDispatcher.registerChannelService(channelService);
 			}
 			this.registeredDispatcher.put(id, messageDispatcher);
 			return messageDispatcher;
@@ -162,8 +175,10 @@ public class MessageDispatcherManagerImpl implements IMessageDispatcherManager
 	
 	protected void registerSystemChannelManager(IDispatcherChannelSystemManager channelManager)
 	{
+		lock.lock();
 		try
 		{
+			System.out.println("---- Register Manager " + channelManager + " " + this.registeredDispatcher.size());
 			for(MessageDispatcherImpl messageDispatcherImpl : this.registeredDispatcher.values())
 			{
 				messageDispatcherImpl.registerChannelManager(channelManager);
@@ -177,11 +192,45 @@ public class MessageDispatcherManagerImpl implements IMessageDispatcherManager
 	
 	protected void unregisterSystemChannelManager(IDispatcherChannelSystemManager channelManager)
 	{
+		lock.lock();
+		try
+		{
+			System.out.println("---- UnRegister Manager " + channelManager + " " + this.registeredDispatcher.size());
+			for(MessageDispatcherImpl messageDispatcherImpl : this.registeredDispatcher.values())
+			{
+				messageDispatcherImpl.unregisterChannelManager(channelManager);
+			}
+		}
+		finally 
+		{
+			lock.unlock();
+		}
+	}
+	
+	protected void registerSystemChannelService(IDispatcherChannelSystemService<?> channelService)
+	{
+		lock.lock();
 		try
 		{
 			for(MessageDispatcherImpl messageDispatcherImpl : this.registeredDispatcher.values())
 			{
-				messageDispatcherImpl.unregisterChannelManager(channelManager);
+				messageDispatcherImpl.registerChannelService(channelService);
+			}
+		}
+		finally 
+		{
+			lock.unlock();
+		}
+	}
+	
+	protected void unregisterSystemChannelService(IDispatcherChannelSystemService<?> channelService)
+	{
+		lock.lock();
+		try
+		{
+			for(MessageDispatcherImpl messageDispatcherImpl : this.registeredDispatcher.values())
+			{
+				messageDispatcherImpl.unregisterChannelService(channelService);
 			}
 		}
 		finally 

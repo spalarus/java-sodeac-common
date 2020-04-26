@@ -10,14 +10,6 @@
  *******************************************************************************/
 package org.sodeac.common.message.dispatcher.api;
 
-import java.util.Map;
-
-import org.sodeac.common.misc.Driver.IDriver;
-
-public interface IDispatcherChannelSystemService extends IDriver
+public interface IDispatcherChannelSystemService<T> extends IDispatcherChannelService<T>,IDispatcherChannelComponent.IDispatcherChannelComponentDriver
 {
-	public default int driverIsApplicableFor(Map<String,Object> properties)
-	{
-		return IDriver.APPLICABLE_DEFAULT;
-	}
 }

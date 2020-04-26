@@ -19,7 +19,7 @@ package org.sodeac.common.message.dispatcher.api;
  * @author Sebastian Palarus
  *
  */
-public interface IOnMessageStore extends IDispatcherChannelManager
+public interface IOnMessageStore<T> extends IDispatcherChannelManager
 {
 	/**
 	 * This is fired, if {@link IDispatcherChannel} has queued an {@link IMessage}
@@ -30,5 +30,5 @@ public interface IOnMessageStore extends IDispatcherChannelManager
 	 * 
 	 * @param message new message
 	 */
-	public <T> void onMessageStore(IMessage<T> message);
+	public void onMessageStore(IMessage<T> message);
 }

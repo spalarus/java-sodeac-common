@@ -17,7 +17,7 @@ package org.sodeac.common.message.dispatcher.api;
  * @author Sebastian Palarus
  *
  */
-public interface IOnChannelSignal extends IDispatcherChannelManager
+public interface IOnChannelSignal<T> extends IDispatcherChannelManager
 {
 	/**
 	 * consume channel signals
@@ -28,5 +28,5 @@ public interface IOnChannelSignal extends IDispatcherChannelManager
 	 * @param channel parent queue
 	 * @param signal fired signal
 	 */
-	public void onChannelSignal(IDispatcherChannel channel, String signal);
+	public void onChannelSignal(IDispatcherChannel<T> channel, String signal);
 }

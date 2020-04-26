@@ -10,26 +10,19 @@
  *******************************************************************************/
 package org.sodeac.common.function;
 
-import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.sodeac.common.misc.RuntimeWrappedException;
 
-/**
- * Extends {@link Consumer} to consume with potentially throws an exception. Catched exceptions will delegate as {@link RuntimeWrappedException}
- * 
- * @author Sebastian Palarus
- *
- * @param <T>
- */
-@FunctionalInterface
-public interface ExceptionCatchedConsumer<T> extends Consumer<T>
+public interface ExceptionCatchedSupplier<T> extends Supplier<T>
 {
+
 	@Override
-	default void accept(T t)
+	default T get()
 	{
 		try
 		{
-			acceptWithException(t);
+			return getWithException();
 		}
 		catch (Exception e) 
 		{
@@ -45,24 +38,18 @@ public interface ExceptionCatchedConsumer<T> extends Consumer<T>
 		}
 	}
 	
-	/**
-	 * Consume object with potentially throws an exception.
-	 * 
-	 * @param t object to consume 
-	 * 
-	 * @throws Exception
-	 */
-	public void acceptWithException(T t) throws Exception, Error;
+	public T getWithException() throws Exception, Error;
 	
-	public static <T> Consumer<T> wrap(ExceptionCatchedConsumer<T> consumer)
+	public static <T> Supplier<T> wrap(ExceptionCatchedSupplier<T> supplier)
 	{
-		return new Consumer<T>()
+		return new Supplier<T>()
 		{
 			@Override
-			public void accept(T t)
+			public T get()
 			{
-				consumer.accept(t);
+				return supplier.get();
 			}
 		};
 	}
+	
 }

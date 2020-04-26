@@ -23,11 +23,11 @@ public class ChannelComponentUnconfiguredException extends RuntimeException
 	private static final long serialVersionUID = -4059017650955484511L;
 	
 	private IDispatcherChannelComponent component = null;
-	public ChannelComponentUnconfiguredException(IDispatcherChannelComponent component)
+	/*public ChannelComponentUnconfiguredException(IDispatcherChannelComponent component)
 	{
 		super();
 		this.component = component;
-	}
+	}*/
 
 	public ChannelComponentUnconfiguredException(IDispatcherChannelComponent component,String message, Throwable cause, boolean enableSuppression,boolean writableStackTrace)
 	{

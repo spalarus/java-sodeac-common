@@ -159,7 +159,11 @@ public class DequeSnapshot<E> implements AutoCloseable, Collection<E>
 		try
 		{
 			closed = true;
-			this.version.removeSnapshot(this);
+			SnapshotVersion<E> version = this.version;
+			if(version != null)
+			{
+				version.removeSnapshot(this);
+			}
 		}
 		finally 
 		{
@@ -224,6 +228,27 @@ public class DequeSnapshot<E> implements AutoCloseable, Collection<E>
 			if(element.node.getElement() == o)
 			{
 				return element.node;
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * Find unlinked node by element (same object)
+	 * 
+	 * @param o element
+	 * @return matched node
+	 */
+	public DequeNode<E> getLinkedNode(E o)
+	{
+		for(Link<E> element : this.linkIterable())
+		{
+			if(element.node.getElement() == o)
+			{
+				if(element.node.isLinked())
+				{
+					return element.node;
+				}
 			}
 		}
 		return null;

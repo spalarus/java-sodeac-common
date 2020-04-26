@@ -34,7 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sodeac.common.message.dispatcher.api.ChannelComponentUnconfiguredException;
 import org.sodeac.common.message.dispatcher.api.ChannelNotFoundException;
-import org.sodeac.common.message.dispatcher.api.DispatcherChannelSetup;
+import org.sodeac.common.message.dispatcher.api.ComponentBindingSetup;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannel;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelManager;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelService;
@@ -46,9 +46,9 @@ import org.sodeac.common.message.dispatcher.api.IOnTaskStop;
 import org.sodeac.common.message.dispatcher.api.IOnTaskTimeout;
 import org.sodeac.common.message.dispatcher.api.IPropertyBlock;
 import org.sodeac.common.message.dispatcher.api.ISubChannel;
-import org.sodeac.common.message.dispatcher.api.DispatcherChannelSetup.BoundedByChannelConfiguration;
-import org.sodeac.common.message.dispatcher.api.DispatcherChannelSetup.BoundedByChannelId;
-import org.sodeac.common.message.dispatcher.api.IDispatcherChannelManager.IChannelControllerPolicy;
+import org.sodeac.common.message.dispatcher.api.ComponentBindingSetup.BoundedByChannelConfiguration;
+import org.sodeac.common.message.dispatcher.api.ComponentBindingSetup.BoundedByChannelId;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannelManager.IChannelManagerPolicy;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelService.IChannelServicePolicy;
 import org.sodeac.common.snapdeque.DequeNode;
 import org.sodeac.common.snapdeque.DequeSnapshot;
@@ -87,6 +87,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 	private Map<IDispatcherChannelService ,ServiceContainer> serviceContainerIndex = null; 
 	
 	private Logger logger = LoggerFactory.getLogger(MessageDispatcherImpl.class);
+	private boolean stopped = false;
 	
 	@Override
 	public String getId()
@@ -231,7 +232,6 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 		this.dispatcherGuardian.unregisterTimeOut(channel,taskContainer);
 	}
 	
-	
 	@Override
 	public void shutdown()
 	{
@@ -324,6 +324,8 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 		catch (Exception e) {}
 		
 		((MessageDispatcherManagerImpl)MessageDispatcherManagerImpl.get()).remove(this.id);
+		
+		this.stopped = true;
 	}
 	
 	
@@ -336,36 +338,35 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 		if(channelManagerPolicy.getConfigurationSet().isEmpty())
 		{
 			return;
-			// throw new ChannelComponentUnconfiguredException(channelManager);
 		}
 		
 		ChannelManagerContainer channelManagerContainer = null;
 		lifecycleReadLock.lock();
 		try
 		{
-			List<DispatcherChannelSetup.BoundedByChannelId> boundByIdList = null;
-			List<DispatcherChannelSetup.BoundedByChannelConfiguration> boundedByChannelConfigurationList = null;
+			List<ComponentBindingSetup.BoundedByChannelId> boundByIdList = null;
+			List<ComponentBindingSetup.BoundedByChannelConfiguration> boundedByChannelConfigurationList = null;
 			
-			DispatcherChannelSetup.BoundedByChannelId boundedById;
-			DispatcherChannelSetup.BoundedByChannelConfiguration boundedByChannelConfiguration;
-			for(DispatcherChannelSetup config : channelManagerPolicy.getConfigurationSet())
+			ComponentBindingSetup.BoundedByChannelId boundedById;
+			ComponentBindingSetup.BoundedByChannelConfiguration boundedByChannelConfiguration;
+			for(ComponentBindingSetup config : channelManagerPolicy.getConfigurationSet())
 			{
-				if(config instanceof DispatcherChannelSetup.BoundedByChannelId)
+				if(config instanceof ComponentBindingSetup.BoundedByChannelId)
 				{
-					boundedById = (DispatcherChannelSetup.BoundedByChannelId)config;
+					boundedById = (ComponentBindingSetup.BoundedByChannelId)config;
 					if((boundedById.getDispatcherId() != null) && (! boundedById.getDispatcherId().equals(this.id)))
 					{
 						continue;
 					}
 					if(boundByIdList == null)
 					{
-						boundByIdList = new ArrayList<DispatcherChannelSetup.BoundedByChannelId>();
+						boundByIdList = new ArrayList<ComponentBindingSetup.BoundedByChannelId>();
 					}
 					boundByIdList.add(boundedById.copy());
 				}
-				if(config instanceof DispatcherChannelSetup.BoundedByChannelConfiguration)
+				if(config instanceof ComponentBindingSetup.BoundedByChannelConfiguration)
 				{
-					boundedByChannelConfiguration = (DispatcherChannelSetup.BoundedByChannelConfiguration)config;
+					boundedByChannelConfiguration = (ComponentBindingSetup.BoundedByChannelConfiguration)config;
 					if
 					(
 						(boundedByChannelConfiguration.getDispatcherId() != null) && 
@@ -377,7 +378,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 					}
 					if(boundedByChannelConfigurationList == null)
 					{
-						boundedByChannelConfigurationList = new ArrayList<DispatcherChannelSetup.BoundedByChannelConfiguration>();
+						boundedByChannelConfigurationList = new ArrayList<ComponentBindingSetup.BoundedByChannelConfiguration>();
 					}
 					boundedByChannelConfigurationList.add(boundedByChannelConfiguration.copy());
 				}
@@ -392,6 +393,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 				return;
 			}
 			
+			// TODO sameObject
 			channelManagerContainer = this.channelManagerIndex.get(channelManager);
 				
 			if(channelManagerContainer == null)
@@ -579,12 +581,12 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 			
 			try(DequeSnapshot<ChannelManagerContainer> managerSnapshot = this.managerList.createSnapshot())
 			{
-				DequeNode<ChannelManagerContainer> extensionInList = null;
-				while((extensionInList = managerSnapshot.getNode(managerContainer)) != null)
+				DequeNode<ChannelManagerContainer> containerNode = null;
+				while((containerNode = managerSnapshot.getLinkedNode(managerContainer)) != null)
 				{
-					if(extensionInList != null)
+					if(containerNode != null)
 					{
-						extensionInList.unlink();
+						containerNode.unlink();
 					}
 				}
 			}
@@ -621,7 +623,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 					registeredOnChannelList.add(entry.getValue());
 				}
 				
-				if(entry.getValue().isMastered())
+				if(! entry.getValue().isMastered())
 				{
 					if(channelRemoveList == null)
 					{
@@ -703,7 +705,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 		
 		if(channelServicePolicy.getConfigurationSet().isEmpty())
 		{
-			throw new ChannelComponentUnconfiguredException(channelService);
+			return;
 		}
 		
 		ServiceContainer serviceContainer = null;
@@ -711,19 +713,19 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 		lifecycleReadLock.lock();
 		try
 		{
-			List<DispatcherChannelSetup.BoundedByChannelId> boundByIdList = null;
-			List<DispatcherChannelSetup.BoundedByChannelConfiguration> boundedByChannelConfigurationList = null;
-			List<DispatcherChannelSetup.ChannelServiceConfiguration> serviceBehaviorConfigurationList = null;
+			List<ComponentBindingSetup.BoundedByChannelId> boundByIdList = null;
+			List<ComponentBindingSetup.BoundedByChannelConfiguration> boundedByChannelConfigurationList = null;
+			List<ComponentBindingSetup.ChannelServiceConfiguration> serviceBehaviorConfigurationList = null;
 			
 			
-			DispatcherChannelSetup.BoundedByChannelId boundedById;
-			DispatcherChannelSetup.BoundedByChannelConfiguration boundedByChannelConfiguration;
-			DispatcherChannelSetup.ChannelServiceConfiguration serviceConfiguration;
-			for(DispatcherChannelSetup config : channelServicePolicy.getConfigurationSet())
+			ComponentBindingSetup.BoundedByChannelId boundedById;
+			ComponentBindingSetup.BoundedByChannelConfiguration boundedByChannelConfiguration;
+			ComponentBindingSetup.ChannelServiceConfiguration serviceConfiguration;
+			for(ComponentBindingSetup config : channelServicePolicy.getConfigurationSet())
 			{
-				if(config instanceof DispatcherChannelSetup.BoundedByChannelId)
+				if(config instanceof ComponentBindingSetup.BoundedByChannelId)
 				{
-					boundedById = (DispatcherChannelSetup.BoundedByChannelId)config;
+					boundedById = (ComponentBindingSetup.BoundedByChannelId)config;
 					if
 					(
 						(boundedById.getDispatcherId() != null) && 
@@ -735,13 +737,13 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 					}
 					if(boundByIdList == null)
 					{
-						boundByIdList = new ArrayList<DispatcherChannelSetup.BoundedByChannelId>();
+						boundByIdList = new ArrayList<ComponentBindingSetup.BoundedByChannelId>();
 					}
 					boundByIdList.add(boundedById.copy());
 				}
-				if(config instanceof DispatcherChannelSetup.BoundedByChannelConfiguration)
+				if(config instanceof ComponentBindingSetup.BoundedByChannelConfiguration)
 				{
-					boundedByChannelConfiguration = (DispatcherChannelSetup.BoundedByChannelConfiguration)config;
+					boundedByChannelConfiguration = (ComponentBindingSetup.BoundedByChannelConfiguration)config;
 					if
 					(
 						(boundedByChannelConfiguration.getDispatcherId() != null) && 
@@ -753,16 +755,16 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 					}
 					if(boundedByChannelConfigurationList == null)
 					{
-						boundedByChannelConfigurationList = new ArrayList<DispatcherChannelSetup.BoundedByChannelConfiguration>();
+						boundedByChannelConfigurationList = new ArrayList<ComponentBindingSetup.BoundedByChannelConfiguration>();
 					}
 					boundedByChannelConfigurationList.add(boundedByChannelConfiguration.copy());
 				}
-				if(config instanceof DispatcherChannelSetup.ChannelServiceConfiguration)
+				if(config instanceof ComponentBindingSetup.ChannelServiceConfiguration)
 				{
-					serviceConfiguration = (DispatcherChannelSetup.ChannelServiceConfiguration)config;
+					serviceConfiguration = (ComponentBindingSetup.ChannelServiceConfiguration)config;
 					if(serviceBehaviorConfigurationList == null)
 					{
-						serviceBehaviorConfigurationList = new ArrayList<DispatcherChannelSetup.ChannelServiceConfiguration>();
+						serviceBehaviorConfigurationList = new ArrayList<ComponentBindingSetup.ChannelServiceConfiguration>();
 					}
 					serviceBehaviorConfigurationList.add(serviceConfiguration.copy());
 				}
@@ -778,6 +780,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 			}
 			
 			
+			// TODO sameObject
 			serviceContainer = serviceContainerIndex.get(channelService);
 				
 			if(serviceContainer == null)
@@ -832,7 +835,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 			
 		if(serviceContainer.getBoundByIdList() != null)
 		{
-			for(DispatcherChannelSetup.BoundedByChannelId boundedByChannelId : serviceContainer.getBoundByIdList())
+			for(ComponentBindingSetup.BoundedByChannelId boundedByChannelId : serviceContainer.getBoundByIdList())
 			{
 				if(boundedByChannelId.getChannelId() == null)
 				{
@@ -898,7 +901,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 			try(DequeSnapshot<ServiceContainer> managerSnapshot = this.serviceList.createSnapshot())
 			{
 				DequeNode<ServiceContainer> serviceInList = null;
-				while((serviceInList = managerSnapshot.getNode(serviceContainer)) != null)
+				while((serviceInList = managerSnapshot.getLinkedNode(serviceContainer)) != null)
 				{
 					if(serviceInList != null)
 					{
@@ -963,12 +966,14 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 	{
 		try(DequeSnapshot<ChannelWorker> snapshot = this.workerPool.createSnapshot())
 		{
-			DequeNode<ChannelWorker> workerNode = null;
-			ChannelWorker foundWorker = null;
-			while((workerNode = snapshot.getFirstNode()) != null)
+			for(DequeNode<ChannelWorker> node : snapshot.nodeIterable())
 			{
-				foundWorker = workerNode.getElement();
-				workerNode.unlink();
+				if(! node.isLinked())
+				{
+					continue;
+				}
+				ChannelWorker foundWorker = node.getElement();
+				node.unlink();
 				
 				if(! foundWorker.isGo())
 				{
@@ -1246,18 +1251,20 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 		logger.error(message,throwable);
 	}
 	
-	private class ChannelManagerPolicy implements IChannelControllerPolicy
+	private class ChannelManagerPolicy implements IChannelManagerPolicy
 	{
-		private Set<DispatcherChannelSetup> configurationSet = new HashSet<DispatcherChannelSetup>();
+		private Set<ComponentBindingSetup> configurationSet = new HashSet<ComponentBindingSetup>();
 		
 		@Override
-		public void addConfigurationDetail(DispatcherChannelSetup configuration) 
+		public IChannelManagerPolicy addConfigurationDetail(ComponentBindingSetup configuration) 
 		{
 			Objects.requireNonNull(configuration);
 			this.configurationSet.add(configuration);
+			
+			return this;
 		}
 
-		private Set<DispatcherChannelSetup> getConfigurationSet() 
+		private Set<ComponentBindingSetup> getConfigurationSet() 
 		{
 			return configurationSet;
 		}
@@ -1267,19 +1274,25 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 	
 	private class ChannelServicePolicy implements IChannelServicePolicy
 	{
-		private Set<DispatcherChannelSetup> configurationSet = new HashSet<DispatcherChannelSetup>();
+		private Set<ComponentBindingSetup> configurationSet = new HashSet<ComponentBindingSetup>();
 		
 		@Override
-		public void addConfigurationDetail(DispatcherChannelSetup configuration) 
+		public IChannelServicePolicy addConfigurationDetail(ComponentBindingSetup configuration) 
 		{
 			Objects.requireNonNull(configuration);
 			this.configurationSet.add(configuration);
+			return this;
 		}
 
-		private Set<DispatcherChannelSetup> getConfigurationSet() 
+		private Set<ComponentBindingSetup> getConfigurationSet() 
 		{
 			return configurationSet;
 		}
 			
+	}
+	
+	protected boolean isStopped()
+	{
+		return this.stopped;
 	}
 }

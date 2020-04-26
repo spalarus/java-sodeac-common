@@ -16,7 +16,7 @@ package org.sodeac.common.message.dispatcher.api;
  * @author Sebastian Palarus
  *
  */
-public interface IOnTaskStop extends IDispatcherChannelTask
+public interface IOnTaskStop<T> extends IDispatcherChannelTask<T>
 {
 	/**
 	 * 

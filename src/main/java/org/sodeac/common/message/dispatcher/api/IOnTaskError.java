@@ -17,7 +17,7 @@ package org.sodeac.common.message.dispatcher.api;
  * @author Sebastian Palarus
  *
  */
-public interface IOnTaskError extends IDispatcherChannelManager
+public interface IOnTaskError<T> extends IDispatcherChannelManager
 {
 	/**
 	 * This methode is fired, if {@link IDispatcherChannelTask} throws an exception or an error
@@ -28,5 +28,5 @@ public interface IOnTaskError extends IDispatcherChannelManager
 	 * @param task task which throws the exception
 	 * @param throwable throwed exception or error
 	 */
-	public void onTaskError(IDispatcherChannel queue,IDispatcherChannelTask task, Throwable throwable);
+	public void onTaskError(IDispatcherChannel<T> queue,IDispatcherChannelTask<T> task, Throwable throwable);
 }

@@ -24,11 +24,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
-import java.util.function.Consumer;
 
 import org.sodeac.common.message.MessageHeader;
-import org.sodeac.common.message.dispatcher.api.ChannelIsFullException;
-import org.sodeac.common.message.dispatcher.api.DispatcherChannelSetup;
+import org.sodeac.common.message.dispatcher.api.ComponentBindingSetup;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannel;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelService;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelTask;
@@ -44,6 +42,7 @@ import org.sodeac.common.message.dispatcher.impl.ChannelManagerContainer.Control
 import org.sodeac.common.message.dispatcher.impl.ServiceContainer.ServiceFilterObjects;
 import org.sodeac.common.message.dispatcher.impl.TaskControlImpl.RescheduleTimestampPredicate;
 import org.sodeac.common.message.dispatcher.impl.TaskControlImpl.ScheduleTimestampPredicate;
+import org.sodeac.common.snapdeque.CapacityExceededException;
 import org.sodeac.common.snapdeque.DequeNode;
 import org.sodeac.common.snapdeque.DequeSnapshot;
 import org.sodeac.common.snapdeque.SnapshotableDeque;
@@ -86,7 +85,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		this.channelServiceListReadLock = this.channelServiceListLock.readLock();
 		this.channelServiceListWriteLock = this.channelServiceListLock.writeLock();
 		
-		this.messageQueue = new SnapshotableDeque<>(Integer.MAX_VALUE);
+		this.messageQueue = new SnapshotableDeque<>(Integer.MAX_VALUE, true);
 		this.newPublishedMessageQueue = new SnapshotableDeque<>();
 		this.removedMessageQueue = new SnapshotableDeque<>();
 		
@@ -217,38 +216,37 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 	protected volatile RegistrationTypes registrationTypes = null;
 	
 	@Override
-	public void storeMessage(T messagePayload, Consumer<MessageHeader> messageHeaderConfiguration)
+	public void storeMessage(T messagePayload, MessageHeader messageHeader)
 	{
 	    if(this.disposed)
 		{
 			return;
 		}
 	    
-	    if(messageHeaderConfiguration == null)
+	    if(messageHeader == null)
 	    {
-	    	storeMessage(messagePayload);
-	    	return;
+	    	messageHeader = MessageHeader.newInstance()
+	    		.setTimestamp(System.currentTimeMillis())
+	    		.lockHeader(MessageHeader.MESSAGE_HEADER_TIMESTAMP);
 	    }
-		
-	    MessageHeader messageHeader = MessageHeader.newInstance();
-	    messageHeaderConfiguration.accept(messageHeader);
-	    messageHeader.lockHeader(messageHeader.MESSAGE_HEADER_MESSAGE_ID);
 		
 	    MessageImpl message = new MessageImpl(messagePayload,this, messageHeader);
 	    try
 	    {
-	    	DequeNode<MessageImpl> node = this.messageQueue.link(SnapshotableDeque.LinkMode.APPEND,message);
-	    	message.setScheduleResultObject(dummyPublishMessageResult);
-	    	message.setNode(node);
+	    	DequeNode<MessageImpl> node = this.messageQueue.link(SnapshotableDeque.LinkMode.APPEND,message, n -> 
+	    	{
+	    		message.setNode(n);
+	    		message.setScheduleResultObject(dummyPublishMessageResult);
+	    	});
 	    }
-	    catch (IllegalStateException e) 
+	    catch (CapacityExceededException e) 
 	    {
 	    	try
 	    	{
 	    		message.dispose();
 	    	}
 	    	catch (Exception ex) {}
-	    	throw new ChannelIsFullException(this.channelId, this.capacity);
+	    	throw e;
 		}
 		
 		if(this.registrationTypes.onQueuedMessage)
@@ -260,39 +258,40 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 	}
 	
 	@Override
-	public Future<IOnMessageStoreResult> storeMessageWithResult(T messagePayload, Consumer<MessageHeader> messageHeaderSetter)
+	public Future<IOnMessageStoreResult> storeMessageWithResult(T messagePayload, MessageHeader messageHeader)
 	{
 	    if(this.disposed)
 		{
 			return this.messageDispatcher.createFutureOfScheduleResult(new PublishMessageResultImpl());
 		}
 	    
-	    if(messageHeaderSetter == null)
+	    if(messageHeader == null)
 	    {
-	    	return storeMessageWithResult(messagePayload);
+	    	messageHeader = MessageHeader.newInstance()
+	    		.setTimestamp(System.currentTimeMillis())
+	    		.lockHeader(MessageHeader.MESSAGE_HEADER_TIMESTAMP);
 	    }
-		
-	    MessageHeader messageHeader = MessageHeader.newInstance();
-	    messageHeaderSetter.accept(messageHeader);
-	    messageHeader.lockHeader(messageHeader.MESSAGE_HEADER_MESSAGE_ID);
 		
 		PublishMessageResultImpl resultImpl = new PublishMessageResultImpl();
 		
 		MessageImpl message = new MessageImpl(messagePayload,this, messageHeader);
 	    try
 	    {
-	    	DequeNode<MessageImpl> node = this.messageQueue.link(SnapshotableDeque.LinkMode.APPEND,message);
-	    	message.setScheduleResultObject(resultImpl);
-	    	message.setNode(node);
+	    	DequeNode<MessageImpl> node = this.messageQueue.link(SnapshotableDeque.LinkMode.APPEND,message, n -> 
+	    	{
+	    		message.setScheduleResultObject(resultImpl);
+		    	message.setNode(n);
+	    	});
+	    	
 	    }
-	    catch (IllegalStateException e) 
+	    catch (CapacityExceededException e) 
 	    {
 	    	try
 	    	{
 	    		message.dispose();
 	    	}
 	    	catch (Exception ex) {}
-	    	throw new ChannelIsFullException(this.channelId, this.capacity);
+	    	throw e;
 		}
 		
 		if(this.registrationTypes.onQueuedMessage)
@@ -312,7 +311,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		boolean controllerMatch = false;
 		if(controllerContainer.getBoundByIdList() != null)
 		{
-			for(DispatcherChannelSetup.BoundedByChannelId boundedById : controllerContainer.getBoundByIdList())
+			for(ComponentBindingSetup.BoundedByChannelId boundedById : controllerContainer.getBoundByIdList())
 			{
 				if(boundedById.getChannelId() == null)
 				{
@@ -408,7 +407,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		}
 	}
 	
-	public boolean setManager(ChannelManagerContainer controllerContainer)
+	protected boolean setManager(ChannelManagerContainer controllerContainer)
 	{
 		channelManagerListReadLock.lock();
 		try
@@ -458,7 +457,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		return unsetChannelManager(configurationContainer,false);
 	}
 	
-	public boolean unsetChannelManager(ChannelManagerContainer configurationContainer, boolean unregisterInScope)
+	protected boolean unsetChannelManager(ChannelManagerContainer configurationContainer, boolean unregisterInScope)
 	{
 		if(unregisterInScope)
 		{
@@ -559,7 +558,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		
 		if(serviceContainer.getBoundByIdList() != null)
 		{
-			for(DispatcherChannelSetup.BoundedByChannelId boundedById : serviceContainer.getBoundByIdList())
+			for(ComponentBindingSetup.BoundedByChannelId boundedById : serviceContainer.getBoundByIdList())
 			{
 				if(boundedById.getChannelId() == null)
 				{
@@ -697,7 +696,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		
 	}
 	
-	private void scheduleService(IDispatcherChannelService queueService,DispatcherChannelSetup.ChannelServiceConfiguration configuration,boolean reschedule)
+	private void scheduleService(IDispatcherChannelService queueService,ComponentBindingSetup.ChannelServiceConfiguration configuration,boolean reschedule)
 	{
 		String serviceId = configuration.getServiceId();
 		long delay = configuration.getStartDelayInMS() < 0L ? 0L : configuration.getStartDelayInMS() ;
@@ -1223,19 +1222,14 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 	}
 
 	@Override
-	public IMessage getMessage(String uuid)
+	public IMessage getMessage(UUID id)
 	{
 	    if(this.disposed)
 		{
 			return null;
 		}
 		
-		if(uuid == null)
-		{
-			return null;
-		}
-		
-		if(uuid.isEmpty())
+		if(id == null)
 		{
 			return null;
 		}
@@ -1245,7 +1239,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		{
 			for(IMessage queuedEvent : snapshot)
 			{
-				if(uuid.equals(queuedEvent.getMessageHeader().getMessageID().toString()))
+				if(id.equals(queuedEvent.getId()))
 				{
 					return queuedEvent;
 				}
@@ -1343,7 +1337,6 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		{
 			node.unlink();
 		}
-		message.setNode(null);
 		
 		if(this.registrationTypes.onRemoveMessage)
 		{
@@ -1379,14 +1372,14 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		{
 			for(MessageImpl event : snapshot)
 			{
-				if(uuid.equals(event.getMessageHeader().getMessageID()))
+				if(uuid.equals(event.getId()))
 				{
 					DequeNode<MessageImpl> node = event.getNode();
 					if(node != null)
 					{
 						node.unlink();
+						event.setNode(null);
 					}
-					event.setNode(null);
 					removed = event;
 					break;
 				}
@@ -1419,7 +1412,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 	}
 
 	@Override
-	public boolean removeMessageList(List<String> uuidList)
+	public boolean removeMessageList(List<UUID> uuidList)
 	{
 	    if(this.disposed)
 		{
@@ -1437,32 +1430,35 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		}
 	
 		boolean removed = false;
-		List<MessageImpl> removeEventList = new ArrayList<MessageImpl>(uuidList.size());
+		List<MessageImpl> removeMessageList = null;
+		if(this.registrationTypes.onRemoveMessage)
+		{
+			 removeMessageList = new ArrayList<MessageImpl>(uuidList.size());
+		}
 		DequeSnapshot<MessageImpl> snapshot = this.messageQueue.createSnapshot();
 		try
 		{
-			for(MessageImpl event : snapshot)
+			for(MessageImpl message : snapshot)
 			{
-				for(String uuid : uuidList)
+				for(UUID uuid : uuidList)
 				{
 					if(uuid == null)
 					{
 						continue;
 					}
-					if(uuid.isEmpty())
-					{
-						continue;
-					}
-					if(uuid.equals(event.getMessageHeader().getMessageID().toString()))
+					if(uuid.equals(message.getId()))
 					{
 						removed = true;
-						DequeNode<MessageImpl> node = event.getNode();
+						DequeNode<MessageImpl> node = message.getNode();
 						if(node != null)
 						{
 							node.unlink();
 						}
-						event.setNode(null);
-						removeEventList.add(event);
+						message.setNode(null);
+						if(removeMessageList != null)
+						{
+							removeMessageList.add(message);
+						}
 					}
 				}
 			}
@@ -1483,11 +1479,13 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 			}
 		}
 		
-		if(this.registrationTypes.onRemoveMessage)
+		if(removeMessageList != null)
 		{
-			this.removedMessageQueue.addAll(removeEventList);
+			this.removedMessageQueue.addAll(removeMessageList);
 			this.removedEventListUpdate = true;
 			this.notifyOrCreateWorker(-1);
+			
+			removeMessageList.clear();
 		}
 		
 		return true;
@@ -1797,7 +1795,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		}
 	}
 
-	public MessageDispatcherImpl getEventDispatcher()
+	protected MessageDispatcherImpl getMessageDispatcher()
 	{
 		return messageDispatcher;
 	}
@@ -2128,7 +2126,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		return this.onChannelAttachList.createSnapshotPoll();
 	}
 	
-	public void addOnChannelAttach(IOnChannelAttach onChannelAttach)
+	protected void addOnChannelAttach(IOnChannelAttach onChannelAttach)
 	{
 		this.onQueueAttachListUpdate = true;
 		this.onChannelAttachList.addLast(onChannelAttach);
@@ -2247,13 +2245,13 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 	
 	
 	@Override
-	public IDispatcherChannel<?> getRootChannel()
+	public IDispatcherChannel<Object> getRootChannel()
 	{
 		return this.rootChannel;
 	}
 	
 	@Override
-	public IDispatcherChannel<?> getParentChannel()
+	public IDispatcherChannel<Object> getParentChannel()
 	{
 		return this.parentChannel;
 	}

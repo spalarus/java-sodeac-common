@@ -181,6 +181,10 @@ public class Criteria implements IFilterItem, Serializable
 	@Override
 	public boolean matches(Map<String,IMatchable> properties)
 	{
+		if(properties == null)
+		{
+			return invert;
+		}
 		IMatchable matchable = properties.get(this.name);
 		if((matchable != null) && matchable.matches(operator, this.name, this.value ))
 		{

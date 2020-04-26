@@ -8,8 +8,24 @@
  * Contributors:
  *     Sebastian Palarus - initial API and implementation
  *******************************************************************************/
-package org.sodeac.common.message.dispatcher.api;
+package org.sodeac.common.misc;
 
-public interface IDispatcherChannelSystemManager extends IDispatcherChannelManager, IDispatcherChannelComponent.IDispatcherChannelComponentDriver
-{	
+import java.util.concurrent.CountDownLatch;
+
+public class TaskDoneNotifier extends CountDownLatch
+{
+	public TaskDoneNotifier()
+	{
+		super(1);
+	}
+	
+	public void setTaskDone()
+	{
+		super.countDown();
+	}
+	
+	public boolean isTaskDone()
+	{
+		return super.getCount() < 1;
+	}
 }

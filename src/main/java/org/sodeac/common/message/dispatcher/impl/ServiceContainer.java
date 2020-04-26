@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.sodeac.common.message.dispatcher.api.DispatcherChannelSetup;
+import org.sodeac.common.message.dispatcher.api.ComponentBindingSetup;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelService;
 import org.sodeac.common.xuri.ldapfilter.Criteria;
 import org.sodeac.common.xuri.ldapfilter.CriteriaLinker;
@@ -29,9 +29,9 @@ public class ServiceContainer
 	protected ServiceContainer
 	(
 		MessageDispatcherImpl dispatcher, 
-		List<DispatcherChannelSetup.BoundedByChannelId> boundByIdList, 
-		List<DispatcherChannelSetup.BoundedByChannelConfiguration> boundedByQueueConfigurationList,
-		List<DispatcherChannelSetup.ChannelServiceConfiguration> serviceConfigurationList
+		List<ComponentBindingSetup.BoundedByChannelId> boundByIdList, 
+		List<ComponentBindingSetup.BoundedByChannelConfiguration> boundedByQueueConfigurationList,
+		List<ComponentBindingSetup.ChannelServiceConfiguration> serviceConfigurationList
 	)
 	{
 		super();
@@ -44,15 +44,15 @@ public class ServiceContainer
 		}
 		else
 		{
-			this.serviceConfiguration = new DispatcherChannelSetup.ChannelServiceConfiguration(UUID.randomUUID().toString());
+			this.serviceConfiguration = new ComponentBindingSetup.ChannelServiceConfiguration(UUID.randomUUID().toString());
 		}
 		this.createFilterObjectList();
 	}
 	
 	private MessageDispatcherImpl dispatcher;
-	private List<DispatcherChannelSetup.BoundedByChannelId> boundByIdList = null;
-	private List<DispatcherChannelSetup.BoundedByChannelConfiguration> boundedByQueueConfigurationList = null;
-	private DispatcherChannelSetup.ChannelServiceConfiguration serviceConfiguration = null;
+	private List<ComponentBindingSetup.BoundedByChannelId> boundByIdList = null;
+	private List<ComponentBindingSetup.BoundedByChannelConfiguration> boundedByQueueConfigurationList = null;
+	private ComponentBindingSetup.ChannelServiceConfiguration serviceConfiguration = null;
 	
 	private volatile IDispatcherChannelService queueService = null;
 	
@@ -66,20 +66,20 @@ public class ServiceContainer
 		List<ServiceFilterObjects> list = new ArrayList<ServiceFilterObjects>();
 		if(this.boundedByQueueConfigurationList != null)
 		{
-			for(DispatcherChannelSetup.BoundedByChannelConfiguration boundedByQueueConfiguration : boundedByQueueConfigurationList)
+			for(ComponentBindingSetup.BoundedByChannelConfiguration boundedByQueueConfiguration : boundedByQueueConfigurationList)
 			{
 				if(boundedByQueueConfiguration.getLdapFilter() == null)
 				{
 					continue;
 				}
-				ServiceFilterObjects controllerFilterObjects = new ServiceFilterObjects();
-				controllerFilterObjects.bound = boundedByQueueConfiguration;
-				controllerFilterObjects.filter = boundedByQueueConfiguration.getLdapFilter();
+				ServiceFilterObjects serviceFilterObjects = new ServiceFilterObjects();
+				serviceFilterObjects.bound = boundedByQueueConfiguration;
+				serviceFilterObjects.filter = boundedByQueueConfiguration.getLdapFilter();
 				
 				try
 				{
 					LinkedList<IFilterItem> discoverLDAPItem = new LinkedList<IFilterItem>();
-					IFilterItem filter = LDAPFilterDecodingHandler.getInstance().decodeFromString(controllerFilterObjects.filterExpression);
+					IFilterItem filter = serviceFilterObjects.filter;
 					
 					discoverLDAPItem.addLast(filter);
 					
@@ -89,7 +89,7 @@ public class ServiceContainer
 						
 						if(filter instanceof Criteria) 
 						{
-							controllerFilterObjects.attributes.add(((Criteria)filter).getName());
+							serviceFilterObjects.attributes.add(((Criteria)filter).getName());
 						}
 						else if(filter instanceof CriteriaLinker)
 						{
@@ -97,11 +97,11 @@ public class ServiceContainer
 						}
 					}
 					
-					list.add(controllerFilterObjects);
+					list.add(serviceFilterObjects);
 				}
 				catch (Exception e) 
 				{
-					dispatcher.logError("parse bounded queue configuration " + boundedByQueueConfiguration.getLdapFilter(),e);
+					dispatcher.logError("parse bounded channel configuration " + boundedByQueueConfiguration.getLdapFilter(),e);
 				}
 			}
 		}
@@ -152,19 +152,19 @@ public class ServiceContainer
 		return filterObjectList;
 	}
 
-	public List<DispatcherChannelSetup.BoundedByChannelId> getBoundByIdList()
+	public List<ComponentBindingSetup.BoundedByChannelId> getBoundByIdList()
 	{
 		return boundByIdList;
 	}
 
 
-	public List<DispatcherChannelSetup.BoundedByChannelConfiguration> getBoundedByChannelConfigurationList()
+	public List<ComponentBindingSetup.BoundedByChannelConfiguration> getBoundedByChannelConfigurationList()
 	{
 		return boundedByQueueConfigurationList;
 	}
 
 
-	public DispatcherChannelSetup.ChannelServiceConfiguration getServiceConfiguration()
+	public ComponentBindingSetup.ChannelServiceConfiguration getServiceConfiguration()
 	{
 		return serviceConfiguration;
 	}
@@ -178,7 +178,7 @@ public class ServiceContainer
 
 	public class ServiceFilterObjects
 	{
-		DispatcherChannelSetup.BoundedByChannelConfiguration bound = null;
+		ComponentBindingSetup.BoundedByChannelConfiguration bound = null;
 		String filterExpression = null;
 		IFilterItem filter = null;
 		Set<String> attributes = new HashSet<String>();
