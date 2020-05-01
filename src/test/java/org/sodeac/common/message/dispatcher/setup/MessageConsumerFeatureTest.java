@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 
 import org.junit.FixMethodOrder;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import org.sodeac.common.function.ConplierBean;
@@ -42,6 +43,7 @@ import org.sodeac.common.message.dispatcher.setup.MessageDispatcherChannelSetup.
 import org.sodeac.common.misc.TaskDoneNotifier;
 import org.sodeac.common.snapdeque.SnapshotableDeque;
 
+@Ignore
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class MessageConsumerFeatureTest
 {
