@@ -176,7 +176,7 @@ public class MessageConsumerFeatureBuilderTest
 	@Test
 	public void test00003_BuilderSynthaxPhase3()
 	{
-		IChannelFeature feature = MessageConsumerFeature.newBuilder().consumeMessage((m,h) -> m.getChannel()).ifAllMessagesAreOlderThan(13).seconds().buildFeature();
+		IChannelFeature feature = MessageConsumerFeature.newBuilder().consumeMessage((m,h) -> m.getChannel()).notBeforeTheMessageWaitsForAtLeast(13).seconds().buildFeature();
 		
 		assertNotNull("object should not be  null",feature);
 		List<ConsumerRule> ruleList = ((MessageConsumerFeature.MessageConsumerFeatureConfiguration)feature).getConsumerRuleList();
@@ -191,7 +191,7 @@ public class MessageConsumerFeatureBuilderTest
 		assertEquals("value should be correct",-1, consumerRule.getConsumeEventAgeTriggerAge());
 		assertEquals("value should be correct",TimeUnit.SECONDS, consumerRule.getConsumeEventAgeTriggerUnit());
 		
-		feature = MessageConsumerFeature.newBuilder().consumeMessage((m,h) -> m.getChannel()).ifLastConsumeEvent().isOlderThan(7).minutes().buildFeature();
+		feature = MessageConsumerFeature.newBuilder().consumeMessage((m,h) -> m.getChannel()).notBeforeTheConsumeEvent().eitherTookPlaceNeverOrTookPlace(7).minutesAgo().buildFeature();
 		
 		assertNotNull("object should not be  null",feature);
 		ruleList = ((MessageConsumerFeature.MessageConsumerFeatureConfiguration)feature).getConsumerRuleList();
@@ -206,7 +206,7 @@ public class MessageConsumerFeatureBuilderTest
 		assertEquals("value should be correct",7, consumerRule.getConsumeEventAgeTriggerAge());
 		assertEquals("value should be correct",TimeUnit.MINUTES, consumerRule.getConsumeEventAgeTriggerUnit());
 		
-		feature = MessageConsumerFeature.newBuilder().consumeMessage((m,h) -> m.getChannel()).ifLastConsumeEvent().ofGroup("ABC").isOlderThan(7).minutes().buildFeature();
+		feature = MessageConsumerFeature.newBuilder().consumeMessage((m,h) -> m.getChannel()).notBeforeTheConsumeEvent().ofGroup("ABC").eitherTookPlaceNeverOrTookPlace(7).minutesAgo().buildFeature();
 		
 		assertNotNull("object should not be  null",feature);
 		ruleList = ((MessageConsumerFeature.MessageConsumerFeatureConfiguration)feature).getConsumerRuleList();
@@ -221,7 +221,7 @@ public class MessageConsumerFeatureBuilderTest
 		assertEquals("value should be correct",7, consumerRule.getConsumeEventAgeTriggerAge());
 		assertEquals("value should be correct",TimeUnit.MINUTES, consumerRule.getConsumeEventAgeTriggerUnit());
 		
-		feature = MessageConsumerFeature.newBuilder().consumeMessage((m,h) -> m.getChannel()).ifAllMessagesAreOlderThan(3).hours().buildFeature();
+		feature = MessageConsumerFeature.newBuilder().consumeMessage((m,h) -> m.getChannel()).notBeforeTheMessageWaitsForAtLeast(3).hours().buildFeature();
 		
 		assertNotNull("object should not be  null",feature);
 		ruleList = ((MessageConsumerFeature.MessageConsumerFeatureConfiguration)feature).getConsumerRuleList();
@@ -238,8 +238,8 @@ public class MessageConsumerFeatureBuilderTest
 		
 		feature = MessageConsumerFeature
 			.newBuilder().consumeMessage((m,h) -> m.getChannel())
-				.ifAllMessagesAreOlderThan(77).minutes()
-				.andIfLastConsumeEvent().isOlderThan(1).hours()
+				.notBeforeTheMessageWaitsForAtLeast(77).minutes()
+				.andNotBeforeTheConsumeEvent().eitherTookPlaceNeverOrTookPlace(1).hoursAgo()
 			.buildFeature();
 		
 		assertNotNull("object should not be  null",feature);
@@ -255,7 +255,7 @@ public class MessageConsumerFeatureBuilderTest
 		assertEquals("value should be correct",1, consumerRule.getConsumeEventAgeTriggerAge());
 		assertEquals("value should be correct",TimeUnit.HOURS, consumerRule.getConsumeEventAgeTriggerUnit());
 		
-		feature = MessageConsumerFeature.newBuilder().consumeMessage((m,h) -> m.getChannel()).ifAtLeastOneOfMessagesIsOlderThan(3).hours().buildFeature();
+		feature = MessageConsumerFeature.newBuilder().consumeMessage((m,h) -> m.getChannel()).notBeforeOneOfTheMessagesWaitsForAtLeast(3).hours().buildFeature();
 		
 		assertNotNull("object should not be  null",feature);
 		ruleList = ((MessageConsumerFeature.MessageConsumerFeatureConfiguration)feature).getConsumerRuleList();
@@ -272,8 +272,8 @@ public class MessageConsumerFeatureBuilderTest
 		
 		feature = MessageConsumerFeature.newBuilder()
 			.consumeMessage((m,h) -> m.getChannel())
-				.ifAtLeastOneOfMessagesIsOlderThan(77).minutes()
-				.andIfLastConsumeEvent().isOlderThan(1).hours()
+				.notBeforeOneOfTheMessagesWaitsForAtLeast(77).minutes()
+				.andNotBeforeTheConsumeEvent().eitherTookPlaceNeverOrTookPlace(1).hoursAgo()
 			.buildFeature();
 		
 		assertNotNull("object should not be  null",feature);
@@ -293,8 +293,8 @@ public class MessageConsumerFeatureBuilderTest
 		
 		feature = MessageConsumerFeature.newBuilder()
 			.consumeMessage((m,h) -> m.getChannel()).withTimeoutForEachMessage(3).days()
-				.ifAtLeastOneOfMessagesIsOlderThan(77).minutes()
-				.andIfLastConsumeEvent().isOlderThan(1).hours()
+				.notBeforeOneOfTheMessagesWaitsForAtLeast(77).minutes()
+				.andNotBeforeTheConsumeEvent().eitherTookPlaceNeverOrTookPlace(1).hoursAgo()
 			.buildFeature();
 			
 		assertNotNull("object should not be  null",feature);
@@ -330,7 +330,7 @@ public class MessageConsumerFeatureBuilderTest
 		ConsumerRule consumerRule = ruleList.get(0);
 		assertNotNull("value should be correct", consumerRule.getMessageConsumer());
 		assertEquals("value should be correct", 1, consumerRule.getSpecialErrorHandler().size());
-		assertTrue("value should be correct", consumerRule.getSpecialErrorHandler().containsKey(TimeoutException.class));
+		assertTrue("value should be correct", consumerRule.getSpecialErrorHandler().stream().filter(d -> d.getType() == TimeoutException.class).findAny().isPresent());
 		assertNotNull("value should be correct", consumerRule.getDefaultErrorHandler());
 		assertNotNull("value should be correct", consumerRule.getTimeOutHandler());
 		assertFalse("value should be correct", consumerRule.isKeepMessages());
@@ -356,10 +356,10 @@ public class MessageConsumerFeatureBuilderTest
 	{
 		IChannelFeature feature = MessageConsumerFeature.newBuilder()
 				.inMessageMonitoringPool().minPoolSize(17).consumeMessage((m,h) -> m.getChannel())
-				.ifAtLeastOneOfMessagesIsOlderThan(13).seconds()
+				.notBeforeOneOfTheMessagesWaitsForAtLeast(13).seconds()
 			.or()
 				.inMessageMonitoringPool().maxPoolSize(1).consumeMessage((m,h) -> m.getChannel())
-				.ifLastConsumeEvent().isOlderThan(33).seconds()
+				.notBeforeTheConsumeEvent().eitherTookPlaceNeverOrTookPlace(33).secondsAgo()
 			.buildFeature();
 		
 		assertNotNull("object should not be  null",feature);

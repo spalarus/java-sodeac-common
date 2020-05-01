@@ -29,6 +29,10 @@ public class ChannelTaskContextImpl implements IDispatcherChannelTaskContext
 	private List<IDispatcherChannelTask> currentProcessedTaskListReadOnly;
 	private List<TaskContainer> dueTaskList;
 	
+	private volatile IPropertyBlock propertyBlock = null;
+	private volatile String id = null;
+	private volatile ITaskControl taskControl = null;
+	
 	protected ChannelTaskContextImpl(List<TaskContainer> dueTaskList)
 	{
 		super();
@@ -42,17 +46,23 @@ public class ChannelTaskContextImpl implements IDispatcherChannelTaskContext
 	{
 		return this.channel;
 	}
+	
+	@Override
+	public String getTaskId()
+	{
+		return this.id;
+	}
 
 	@Override
 	public IPropertyBlock getTaskPropertyBlock()
 	{
-		return this.dueTask.getPropertyBlock();
+		return this.propertyBlock;
 	}
 
 	@Override
 	public ITaskControl getTaskControl()
 	{
-		return this.dueTask.getTaskControl();
+		return this.taskControl;
 	}
 
 	@Override
@@ -70,12 +80,12 @@ public class ChannelTaskContextImpl implements IDispatcherChannelTaskContext
 		return this.currentProcessedTaskList;
 	}
 
-	public void setChannel(IDispatcherChannel channel)
+	protected void setChannel(IDispatcherChannel channel)
 	{
 		this.channel = channel;
 	}
 
-	public void resetCurrentProcessedTaskList()
+	protected void resetCurrentProcessedTaskList()
 	{
 		this.currentProcessedTaskList = null;
 		if(! this.currentProcessedTaskListWritable.isEmpty())
@@ -84,8 +94,51 @@ public class ChannelTaskContextImpl implements IDispatcherChannelTaskContext
 		}
 	}
 
-	public void setDueTask(TaskContainer dueTask)
+	protected void setDueTask(TaskContainer dueTask)
 	{
+		if(dueTask == null)
+		{
+			this.propertyBlock = null;
+			this.id = null;
+			this.taskControl = null;
+			
+			this.dueTask = null;
+			
+			return;
+		}
+		this.propertyBlock = dueTask.getPropertyBlock();
+		this.id = dueTask.getId();
+		this.taskControl = dueTask.getTaskControl();
 		this.dueTask = dueTask;
+	}
+	
+	protected void onTimeout()
+	{
+		this.dueTask = null;
+	}
+
+	@Override
+	public void heartbeat()
+	{
+		try
+		{
+			if(dueTask != null)
+			{
+				dueTask.heartbeat();
+			}
+		}
+		catch (Exception e) {}
+		catch (Error e) {}
+		
+	}
+
+	@Override
+	public void setTaskState(Object taskState)
+	{
+		if(this.taskControl != null)
+		{
+			((TaskControlImpl)this.taskControl).setTaskState(taskState);
+		}
+		
 	}
 }

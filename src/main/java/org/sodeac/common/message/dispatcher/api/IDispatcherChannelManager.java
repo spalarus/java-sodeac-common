@@ -24,7 +24,7 @@ public interface IDispatcherChannelManager extends IDispatcherChannelComponent
 	 * 
 	 * @param configurationPolicy
 	 */
-	public default void configure(IChannelManagerPolicy componentBindingPolicy)
+	public default void configureChannelManagerPolicy(IChannelManagerPolicy componentBindingPolicy)
 	{
 	}
 	

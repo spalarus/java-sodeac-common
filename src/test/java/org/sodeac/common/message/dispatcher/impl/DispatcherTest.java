@@ -81,7 +81,7 @@ public class DispatcherTest
 		}
 		
 		@Override
-		public void configure(IChannelManagerPolicy configurationPolicy) 
+		public void configureChannelManagerPolicy(IChannelManagerPolicy configurationPolicy) 
 		{
 			configurationPolicy.addConfigurationDetail(new ComponentBindingSetup.BoundedByChannelId(CHANNEL_ID).setChannelMaster(true).setName("Test SimpleManagerTest001"));
 		}

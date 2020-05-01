@@ -12,6 +12,7 @@ package org.sodeac.common.misc;
 
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.ListIterator;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -95,19 +96,13 @@ public class CloseableCollector implements AutoCloseable
 		{
 		
 			LinkedList<Integer> positionsToRemove = new LinkedList<>();
-			int pos = 0;
-			for(AutoCloseable closeableItem : this.closeableList)
+			ListIterator<AutoCloseable> itr = this.closeableList.listIterator();
+			while(itr.hasNext())
 			{
-				if(closeableItem == closeable)
+				if(itr.next() == closeable)
 				{
-					positionsToRemove.addFirst(pos);
+					itr.remove();
 				}
-				pos++;
-			}
-			
-			for(Integer position : positionsToRemove)
-			{
-				this.closeableList.remove(position.intValue());
 			}
 				
 			positionsToRemove.clear();

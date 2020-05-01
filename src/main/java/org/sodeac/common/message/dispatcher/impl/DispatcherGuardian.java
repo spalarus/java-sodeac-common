@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
@@ -136,9 +137,11 @@ public class DispatcherGuardian extends Thread
 					
 					heartBeatTimeOutStamp = -1;
 					
-					if(task !=  null)
+					if((task !=  null) && (task.getTaskControl() != null))
 					{
 						heartBeatTimeOut = task.getTaskControl().getHeartbeatTimeout();
+						
+						
 						if(heartBeatTimeOut > 0)
 						{
 							try
@@ -158,7 +161,7 @@ public class DispatcherGuardian extends Thread
 									}
 									else
 									{
-										if(nextTimeOutTimeStamp > heartBeatTimeOutStamp)
+										if((nextTimeOutTimeStamp < 0) || nextTimeOutTimeStamp > heartBeatTimeOutStamp)
 										{
 											nextTimeOutTimeStamp = heartBeatTimeOutStamp;
 										}
@@ -274,34 +277,35 @@ public class DispatcherGuardian extends Thread
 		}
 	}
 	
-	public void registerTimeOut(ChannelImpl<?> queue, TaskContainer task)
+	public void registerTimeOut(ChannelImpl<?> channel, TaskContainer taskContainer)
 	{
-		TaskControlImpl taskControl = task.getTaskControl();
+		TaskControlImpl taskControl = taskContainer.getTaskControl();
 		if(taskControl == null)
 		{
 			return;
 		}
 		
-		long timeOutTimeStamp = taskControl.getTimeout() + System.currentTimeMillis();
+		
+		long timeOutTimeStamp = taskControl.getTimeout() < 0L ? -1 : taskControl.getTimeout() + System.currentTimeMillis();
 		
 		taskTimeOutIndexWriteLock.lock();
 		try
 		{
-			TaskObservable taskObservable = this.taskTimeOutIndex.get(queue);
+			TaskObservable taskObservable = this.taskTimeOutIndex.get(channel);
 			if(taskObservable ==  null)
 			{
 				taskObservable =  new TaskObservable();
-				taskObservable.queue = queue;
-				this.taskTimeOutIndex.put(queue,taskObservable);
+				taskObservable.queue = channel;
+				this.taskTimeOutIndex.put(channel,taskObservable);
 			}
 			if(taskControl.getTimeout() > 0)
 			{
-				taskObservable.task = task;
+				taskObservable.task = taskContainer;
 				taskObservable.taskTimeOut = timeOutTimeStamp;
 			}
 			else if(taskControl.getHeartbeatTimeout() > 0)
 			{
-				taskObservable.task = task;
+				taskObservable.task = taskContainer;
 			}
 			else
 			{
@@ -325,12 +329,12 @@ public class DispatcherGuardian extends Thread
 				}
 				else
 				{
-					long heartBeatTimeOut = task.getTaskControl().getHeartbeatTimeout();
+					long heartBeatTimeOut = taskContainer.getTaskControl().getHeartbeatTimeout();
 					if(heartBeatTimeOut > 0)
 					{
 						try
 						{
-							long lastHeartBeat = task.getLastHeartbeat();
+							long lastHeartBeat = taskContainer.getLastHeartbeat();
 							if(lastHeartBeat > 0)
 							{
 								long heartBeatTimeOutStamp = lastHeartBeat + heartBeatTimeOut;
@@ -338,6 +342,7 @@ public class DispatcherGuardian extends Thread
 								{
 									notify = true;
 								}
+								
 							}
 						}
 						catch (Exception e) 

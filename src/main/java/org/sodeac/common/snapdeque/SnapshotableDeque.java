@@ -20,7 +20,6 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
@@ -644,14 +643,27 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	}
 	
 	/**
-	 * Internal method to link elements
+	 * link (append or prepend) new elements to deque.
 	 * 
 	 * @param linkMode append or prepend
 	 * @param elements items to link
 	 * @return nodes
 	 */
+	public DequeNode<E>[] linkAll(SnapshotableDeque.LinkMode linkMode, Collection<? extends E> elements)
+	{
+		return linkAll(linkMode, elements, null);
+	}
+	
+	/**
+	 * link (append or prepend) new elements to deque.
+	 * 
+	 * @param linkMode append or prepend
+	 * @param elements items to link
+	 * @param synchronizedConsumer consumer accept new node inside inside write lock
+	 * @return nodes
+	 */
 	@SuppressWarnings("unchecked")
-	private DequeNode<E>[] linkAll(SnapshotableDeque.LinkMode linkMode, Collection<? extends E> elements)
+	public DequeNode<E>[] linkAll(SnapshotableDeque.LinkMode linkMode, Collection<? extends E> elements, Consumer<DequeNode<E>> synchronizedConsumer)
 	{
 		
 		if(elements == null)
@@ -689,6 +701,13 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 				else
 				{
 					this.appendNode(node, this.modificationVersion);
+				}
+			}
+			if(synchronizedConsumer != null)
+			{
+				for(DequeNode<E> item : nodes)
+				{
+					synchronizedConsumer.accept(item);
 				}
 			}
 		}
@@ -954,7 +973,7 @@ public class SnapshotableDeque<E> implements AutoCloseable,Deque<E>
 	public boolean addAll(Collection<? extends E> c) 
 	{
 		Objects.requireNonNull(c);
-		this.linkAll(SnapshotableDeque.LinkMode.APPEND, c);
+		this.linkAll(SnapshotableDeque.LinkMode.APPEND, c, null);
 		return c != null && c.size() > 0;
 	}
 

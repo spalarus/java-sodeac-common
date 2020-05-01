@@ -1,2 +1,2 @@
-org.sodeac.common.message.dispatcher.components.ConsumeMessagesExecuteManager
+org.sodeac.common.message.dispatcher.components.ConsumeMessagesConsumerManager
 org.sodeac.common.message.dispatcher.components.ConsumeMessagesPlannerManager

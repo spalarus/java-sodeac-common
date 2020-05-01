@@ -1428,4 +1428,102 @@ public class MessageHeader implements Serializable
 		this.end = null;
 		this.properties = null;
 	}
+	
+	public static void copyLocks(MessageHeader messageHeader, MessageHeader template)
+	{
+		messageHeader.messageIDLocked = template.messageIDLocked;
+		messageHeader.correlationIDLocked = template.correlationIDLocked;
+		messageHeader.priorityLocked = template.priorityLocked;
+		messageHeader.guaranteedDeliveryLocked = template.guaranteedDeliveryLocked;
+		messageHeader.timestampLocked = template.timestampLocked;
+		messageHeader.expirationLocked = template.expirationLocked;
+		messageHeader.connectionLocked = template.connectionLocked;
+		messageHeader.sessionLocked = template.sessionLocked;
+		messageHeader.workflowLocked = template.workflowLocked;
+		messageHeader.topicLocked = template.topicLocked;
+		messageHeader.queueLocked = template.queueLocked;
+		messageHeader.messageTypeLocked = template.messageTypeLocked;
+		messageHeader.messageFormatLocked = template.messageFormatLocked;
+		messageHeader.serviceLocked = template.serviceLocked;
+		messageHeader.domainLocked = template.domainLocked;
+		messageHeader.boundedContextLocked = template.boundedContextLocked;
+		messageHeader.destinationLocked = template.destinationLocked;
+		messageHeader.userLocked = template.userLocked;
+		messageHeader.sourceLocked = template.sourceLocked;
+		messageHeader.replyToLocked = template.replyToLocked;
+		messageHeader.deliveryTimeLocked = template.deliveryTimeLocked;
+		messageHeader.redeliveredLocked = template.redeliveredLocked;
+		messageHeader.sequenceLocked = template.sequenceLocked;
+		messageHeader.positionLocked = template.positionLocked;
+		messageHeader.sizeLocked = template.sizeLocked;
+		messageHeader.endLocked = template.endLocked;
+		messageHeader.propertiesLocked = template.propertiesLocked;
+	}
+	public static MessageHeader createFrom(MessageHeader template, boolean copyLocks)
+	{
+		MessageHeader mh = MessageHeader.newInstance();
+		
+		mh.correlationID = template.correlationID;
+		mh.priority = template.priority;
+		mh.guaranteedDelivery = template.guaranteedDelivery;
+		mh.timestamp = template.timestamp;
+		mh.expiration = template.expiration;
+		mh.connection = template.connection;
+		mh.session = template.session;
+		mh.workflow = template.workflow;
+		mh.topic = template.topic;
+		mh.queue = template.queue;
+		mh.messageType = template.messageType;
+		mh.messageFormat = template.messageFormat;
+		mh.service =  template.service;
+		mh.domain =  template.domain;
+		mh.boundedContext = template.boundedContext;
+		mh.destination = template.destination;
+		mh.user = template.user;
+		mh.source = template.source;
+		mh.replyTo = template.replyTo;
+		mh.deliveryTime = template.deliveryTime;
+		mh.redelivered = template.redelivered;
+		mh.sequence = template.sequence;
+		mh.position = template.position;
+		mh.size = template.size;
+		mh.end = template.end;
+		if(template.properties != null)
+		{
+			template.properties = new HashMap<>(template.properties);
+		}
+		
+		if(copyLocks)
+		{
+			mh.messageIDLocked = template.messageIDLocked;
+			mh.correlationIDLocked = template.correlationIDLocked;
+			mh.priorityLocked = template.priorityLocked;
+			mh.guaranteedDeliveryLocked = template.guaranteedDeliveryLocked;
+			mh.timestampLocked = template.timestampLocked;
+			mh.expirationLocked = template.expirationLocked;
+			mh.connectionLocked = template.connectionLocked;
+			mh.sessionLocked = template.sessionLocked;
+			mh.workflowLocked = template.workflowLocked;
+			mh.topicLocked = template.topicLocked;
+			mh.queueLocked = template.queueLocked;
+			mh.messageTypeLocked = template.messageTypeLocked;
+			mh.messageFormatLocked = template.messageFormatLocked;
+			mh.serviceLocked = template.serviceLocked;
+			mh.domainLocked = template.domainLocked;
+			mh.boundedContextLocked = template.boundedContextLocked;
+			mh.destinationLocked = template.destinationLocked;
+			mh.userLocked = template.userLocked;
+			mh.sourceLocked = template.sourceLocked;
+			mh.replyToLocked = template.replyToLocked;
+			mh.deliveryTimeLocked = template.deliveryTimeLocked;
+			mh.redeliveredLocked = template.redeliveredLocked;
+			mh.sequenceLocked = template.sequenceLocked;
+			mh.positionLocked = template.positionLocked;
+			mh.sizeLocked = template.sizeLocked;
+			mh.endLocked = template.endLocked;
+			mh.propertiesLocked = template.propertiesLocked;
+		}
+		
+		return mh;
+	}
 }

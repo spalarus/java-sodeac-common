@@ -11,11 +11,11 @@
 package org.sodeac.common.message.dispatcher.api;
 
 import java.io.Closeable;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Future;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.sodeac.common.message.MessageHeader;
@@ -46,25 +46,43 @@ public interface IDispatcherChannel<T>
 	public String getChannelName();
 	
 	/**
-	 * store a message with default header
+	 * send a message with default header
 	 * 
 	 * @param messagePayload payload of message to store in channel
 	 * @throws CapacityExceededException is thrown if message channel exceeds max allowed message size
 	 */
-	public default void storeMessage(T messagePayload) throws CapacityExceededException
+	public default void sendMessage(T messagePayload) throws CapacityExceededException
 	{
-		this.storeMessage(messagePayload, null);
+		this.sendMessage(messagePayload, null);
 	}
 	
 	/**
-	 * store a message
+	 * send a message
 	 * 
 	 * @param messagePayload payload of message to store in channel
 	 * @param messageHeader message header properties
 	 * 
 	 * @throws CapacityExceededException is thrown if message channel exceeds max allowed message size
 	 */
-	public void storeMessage(T messagePayload, MessageHeader messageHeader) throws CapacityExceededException;
+	public void sendMessage(T messagePayload, MessageHeader messageHeader) throws CapacityExceededException;
+	
+	/**
+	 * send messages
+	 * 
+	 * @param messagePayloadCollection payload collection of messages to store in channel
+	 */
+	public default void sendMessages(Collection<T> messagePayloadCollection)
+	{
+		sendMessages(messagePayloadCollection, null);
+	}
+	
+	/**
+	 * send messages
+	 * 
+	 * @param messagePayloadCollection payload collection of messages to store in channel
+	 * @param messageHeaderTemplate template of message header properties
+	 */
+	public void sendMessages(Collection<T> messagePayloadCollection, MessageHeader messageHeaderTemplate);
 	
 	/**
 	 * store a message with result
@@ -74,9 +92,9 @@ public interface IDispatcherChannel<T>
 	 * @return Future of {@link IOnMessageStoreResult} 
 	 * @throws CapacityExceededException
 	 */
-	public default Future<IOnMessageStoreResult> storeMessageWithResult(T messagePayload) throws CapacityExceededException
+	public default Future<IOnMessageStoreResult> sendMessageWithResult(T messagePayload) throws CapacityExceededException
 	{
-		return this.storeMessageWithResult(messagePayload, null);
+		return this.sendMessageWithResult(messagePayload, null);
 	}
 	
 	/**
@@ -88,7 +106,7 @@ public interface IDispatcherChannel<T>
 	 * @return Future of {@link IOnMessageStoreResult} 
 	 * @throws CapacityExceededException
 	 */
-	public Future<IOnMessageStoreResult> storeMessageWithResult(T messagePayload, MessageHeader messageHeader) throws CapacityExceededException;
+	public Future<IOnMessageStoreResult> sendMessageWithResult(T messagePayload, MessageHeader messageHeader) throws CapacityExceededException;
 	
 	/**
 	 * getter for configuration propertyblock of queue
@@ -444,7 +462,7 @@ public interface IDispatcherChannel<T>
 	
 	public interface IDispatcherChannelReference extends Closeable
 	{
-		
+		public <T> IDispatcherChannel<T> getChannel(Class<T> type);
 	}
 	
 }

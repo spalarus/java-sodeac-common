@@ -47,5 +47,23 @@ public interface IDispatcherChannelTaskContext<T>
 	 * 
 	 * @return current processing task list
 	 */
-	public List<IDispatcherChannelTask> currentProcessedTaskList();
+	public List<IDispatcherChannelTask<T>> currentProcessedTaskList();
+
+	/**
+	 * 
+	 * @return
+	 */
+	public String getTaskId();
+	
+	/**
+	 * publish healthy living state
+	 */
+	public void heartbeat();
+	
+	/**
+	 * Setter for task state. task state is usable in {@link IOnTaskTimeout#onTaskTimeout(IDispatcherChannel, IDispatcherChannelTask, Object, Runnable)}. 
+	 * 
+	 * @param taskState
+	 */
+	public void setTaskState(Object taskState);
 }

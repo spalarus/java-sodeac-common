@@ -179,7 +179,7 @@ public class MessageDispatcherChannelSetup
 		}
 		
 		@Override
-		public void configure(IChannelManagerPolicy configurationPolicy) 
+		public void configureChannelManagerPolicy(IChannelManagerPolicy configurationPolicy) 
 		{
 			configurationPolicy.addConfigurationDetail(new ComponentBindingSetup.BoundedByChannelId(id).setChannelMaster(true).setName(name));
 		}
@@ -208,6 +208,12 @@ public class MessageDispatcherChannelSetup
 			this.taskDoneNotifier = null;
 			this.featureList = null;
 		}
+
+		@Override
+		public <T> IDispatcherChannel<T> getChannel(Class<T> type)
+		{
+			return (IDispatcherChannel) dispatcher.getChannel(id);
+		}
 	}
 	
 	public interface MessageConsumeHelper<T,H>
@@ -219,5 +225,7 @@ public class MessageDispatcherChannelSetup
 		public IMessage<T> getMessage();
 		public IDispatcherChannel<T> getChannel();
 		public H getHelper(Supplier<H> supplierIfNotExist);
+		public void heartbeat();
+		public boolean isInTimeout();
 	}
 }

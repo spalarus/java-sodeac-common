@@ -13,7 +13,6 @@ package org.sodeac.common.function;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
-import java.util.LinkedList;
 import java.util.Optional;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
@@ -238,24 +237,9 @@ public class ConplierBean<T> implements Supplier<T>,Consumer<T>
 	{
 		if(changes != null)
 		{
-			LinkedList<PropertyChangeListener> toRemove = null;
 			for(PropertyChangeListener listener : changes.getPropertyChangeListeners())
 			{
-				if(toRemove == null)
-				{
-					toRemove = new LinkedList<PropertyChangeListener>();
-				}
-				toRemove.add(listener);
-			}
-			
-			if(toRemove != null)
-			{
-				for(PropertyChangeListener listener : toRemove)
-				{
-					this.changes.removePropertyChangeListener(listener);
-				}
-				toRemove.clear();
-				toRemove = null;
+				this.changes.removePropertyChangeListener(listener);
 			}
 		}
 		

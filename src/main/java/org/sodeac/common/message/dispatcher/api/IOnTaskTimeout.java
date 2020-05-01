@@ -26,6 +26,8 @@ public interface IOnTaskTimeout<T> extends IDispatcherChannelManager
 	 * 
 	 * @param channel  queue of task runs in timeout
 	 * @param task runs in timeout
+	 * @param taskState
+	 * @param interruptInvoke
 	 */
-	public void onTaskTimeout(IDispatcherChannel<T> channel, IDispatcherChannelTask<T> task);
+	public void onTaskTimeout(IDispatcherChannel<T> channel, IDispatcherChannelTask<T> task, Object taskState, Runnable interrupter);
 }

@@ -240,6 +240,6 @@ public class MessageImpl<T> implements IMessage<T>
 		{
 			return false;
 		}
-		return n.isLinked();
+		return ! n.isLinked();
 	}
 }

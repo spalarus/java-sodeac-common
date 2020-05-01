@@ -11,7 +11,6 @@
 package org.sodeac.common.message.dispatcher.setup;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,7 +24,6 @@ import java.util.function.Predicate;
 
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannel;
 import org.sodeac.common.message.dispatcher.api.IMessage;
-import org.sodeac.common.message.dispatcher.api.ISubChannel;
 import org.sodeac.common.message.dispatcher.setup.MessageConsumerFeature.ConsumerRule.TriggerByMessageAgeMode;
 import org.sodeac.common.message.dispatcher.setup.MessageDispatcherChannelSetup.IChannelFeature;
 import org.sodeac.common.message.dispatcher.setup.MessageDispatcherChannelSetup.IPreparedChannelFeature;
@@ -274,7 +272,7 @@ public class MessageConsumerFeature
 					return new BuilderPhaseC12();
 				}
 				
-				public BuilderPhaseC12 hours2()
+				public BuilderPhaseC12 hours()
 				{
 					FeatureBuilder.this.feature.currentConsumerRule.timeOutUnit = TimeUnit.HOURS;
 					
@@ -297,27 +295,27 @@ public class MessageConsumerFeature
 						return new BuilderPhaseX1();
 					}
 					
-					public BuilderPhaseD1.BuilderPhaseD2 ifLastConsumeEvent()
+					public BuilderPhaseD1.BuilderPhaseD2 notBeforeTheConsumeEvent()
 					{
 						return new BuilderPhaseD1().new BuilderPhaseD2();
 					}
 					
-					public BuilderPhaseC2 ifAllMessagesAreOlderThan(int olderThan)
+					public BuilderPhaseC2 notBeforeTheMessageWaitsForAtLeast(int waitTime)
 					{
 						FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerMode = TriggerByMessageAgeMode.ALL;
-						FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerAge = olderThan;
+						FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerAge = waitTime;
 						return new BuilderPhaseC2();
 					}
 					
-					public BuilderPhaseC2 ifAtLeastOneOfMessagesIsOlderThan(int olderThan)
+					public BuilderPhaseC2 notBeforeOneOfTheMessagesWaitsForAtLeast(int waitTime)
 					{
 						FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerMode = TriggerByMessageAgeMode.LEAST_ONE;
-						FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerAge = olderThan;
+						FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerAge = waitTime;
 						FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerCount = 1;
 						return new BuilderPhaseC2();
 					}
 					
-					public BuilderPhaseC3 ifAtLeast(int messgeSize)
+					public BuilderPhaseC3 notBefore(int messgeSize)
 					{
 						FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerCount = messgeSize;
 						return new BuilderPhaseC3();
@@ -330,27 +328,27 @@ public class MessageConsumerFeature
 				return new BuilderPhaseX1();
 			}
 			
-			public BuilderPhaseD1.BuilderPhaseD2 ifLastConsumeEvent()
+			public BuilderPhaseD1.BuilderPhaseD2 notBeforeTheConsumeEvent()
 			{
 				return new BuilderPhaseD1().new BuilderPhaseD2();
 			}
 			
-			public BuilderPhaseC2 ifAllMessagesAreOlderThan(int olderThan)
+			public BuilderPhaseC2 notBeforeTheMessageWaitsForAtLeast(int waitTime)
 			{
 				FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerMode = TriggerByMessageAgeMode.ALL;
-				FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerAge = olderThan;
+				FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerAge = waitTime;
 				return new BuilderPhaseC2();
 			}
 			
-			public BuilderPhaseC2 ifAtLeastOneOfMessagesIsOlderThan(int olderThan)
+			public BuilderPhaseC2 notBeforeOneOfTheMessagesWaitsForAtLeast(int waitTime)
 			{
 				FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerMode = TriggerByMessageAgeMode.LEAST_ONE;
-				FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerAge = olderThan;
+				FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerAge = waitTime;
 				FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerCount = 1;
 				return new BuilderPhaseC2();
 			}
 			
-			public BuilderPhaseC3 ifAtLeast(int messgeSize)
+			public BuilderPhaseC3 notBefore(int messgeSize)
 			{
 				FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerCount = messgeSize;
 				return new BuilderPhaseC3();
@@ -406,10 +404,10 @@ public class MessageConsumerFeature
 					super();
 				}
 				
-				public BuilderPhaseC2 messagesAreOlderThan(int olderThan)
+				public BuilderPhaseC2 waitForAtLeast(int waitTime)
 				{
 					FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerMode = TriggerByMessageAgeMode.LEAST_X;
-					FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerAge = olderThan;
+					FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerAge = waitTime;
 					return new BuilderPhaseC2();
 				}
 			}
@@ -422,7 +420,7 @@ public class MessageConsumerFeature
 				super();
 			}
 	
-			public BuilderPhaseD2 andIfLastConsumeEvent()
+			public BuilderPhaseD2 andNotBeforeTheConsumeEvent()
 			{
 				return new BuilderPhaseD2();
 			}
@@ -431,29 +429,48 @@ public class MessageConsumerFeature
 			{
 				private BuilderPhaseD2(){super();}
 				
-				public BuilderPhaseD3.BuilderPhaseD4 isOlderThan(int olderThan)
-				{
-					return new BuilderPhaseD3().isOlderThan(olderThan);
-				}
-				
 				public BuilderPhaseD3 ofGroup(String group)
 				{
 					FeatureBuilder.this.feature.currentConsumerRule.consumeEventAgeTriggerGroup = group;
 					return new BuilderPhaseD3();
 				}
 				
+				public BuilderPhaseD3.BuilderPhaseD4 eitherTookPlaceNeverOrTookPlace(int waitTime)
+				{
+					return new BuilderPhaseD3().eitherTookPlaceNeverOrTookPlace(waitTime);
+				}
+				
+				public BuilderPhaseD3.BuilderPhaseD4 tookPlace(int waitTime)
+				{
+					return new BuilderPhaseD3().tookPlace(waitTime);
+				}
+				
 				public class BuilderPhaseD3
 				{
 					private BuilderPhaseD3(){super();}
 					
-					public BuilderPhaseD4 isOlderThan(int olderThan)
+					public BuilderPhaseD4 eitherTookPlaceNeverOrTookPlace(int waitTime)
 					{
-						if(olderThan < 0)
+						if(waitTime < 0)
 						{
-							olderThan = 0;
+							waitTime = 0;
 						}
 						
-						FeatureBuilder.this.feature.currentConsumerRule.consumeEventAgeTriggerAge = olderThan;
+						FeatureBuilder.this.feature.currentConsumerRule.consumeEventAgeTriggerAge = waitTime;
+						FeatureBuilder.this.feature.currentConsumerRule.consumeEventAgeTriggerNeverMode = true;
+						
+						return new BuilderPhaseD4();
+					}
+					
+					public BuilderPhaseD4 tookPlace(int waitTime)
+					{
+						if(waitTime < 0)
+						{
+							waitTime = 0;
+						}
+						
+						FeatureBuilder.this.feature.currentConsumerRule.consumeEventAgeTriggerAge = waitTime;
+						FeatureBuilder.this.feature.currentConsumerRule.consumeEventAgeTriggerNeverMode = false;
 						
 						return new BuilderPhaseD4();
 					}
@@ -462,35 +479,35 @@ public class MessageConsumerFeature
 					{
 						private BuilderPhaseD4(){super();}
 						
-						public BuilderPhaseX1 milliSeconds()
+						public BuilderPhaseX1 milliSecondsAgo()
 						{
 							FeatureBuilder.this.feature.currentConsumerRule.consumeEventAgeTriggerUnit = TimeUnit.MILLISECONDS;
 							
 							return new BuilderPhaseX1();
 						}
 						
-						public BuilderPhaseX1 seconds()
+						public BuilderPhaseX1 secondsAgo()
 						{
 							FeatureBuilder.this.feature.currentConsumerRule.consumeEventAgeTriggerUnit = TimeUnit.SECONDS;
 							
 							return new BuilderPhaseX1();
 						}
 						
-						public BuilderPhaseX1 minutes()
+						public BuilderPhaseX1 minutesAgo()
 						{
 							FeatureBuilder.this.feature.currentConsumerRule.consumeEventAgeTriggerUnit = TimeUnit.MINUTES;
 							
 							return new BuilderPhaseX1();
 						}
 						
-						public BuilderPhaseX1 hours()
+						public BuilderPhaseX1 hoursAgo()
 						{
 							FeatureBuilder.this.feature.currentConsumerRule.consumeEventAgeTriggerUnit = TimeUnit.HOURS;
 							
 							return new BuilderPhaseX1();
 						}
 						
-						public BuilderPhaseX1 days()
+						public BuilderPhaseX1 daysAgo()
 						{
 							FeatureBuilder.this.feature.currentConsumerRule.consumeEventAgeTriggerUnit = TimeUnit.DAYS;
 							
@@ -506,37 +523,37 @@ public class MessageConsumerFeature
 			
 			private BuilderPhaseX1(){super();}
 			
-			public <E extends Exception,T,H> BuilderPhaseX1 onError(Class<E> clazz,BiConsumer<E, MessageConsumeHelper<T,H>> errorConsumer)
+			public <E extends Throwable,T,H> BuilderPhaseX1 onError(Class<E> clazz,BiConsumer<E, MessageConsumeHelper<T,H>> errorConsumer)
 			{
-				FeatureBuilder.this.feature.currentConsumerRule.specialErrorHandler.put(clazz, (BiConsumer)errorConsumer);
+				FeatureBuilder.this.feature.currentConsumerRule.specialErrorHandler.add(new SpecialErrorHandlerDefinition(clazz, (BiConsumer)errorConsumer));
 				return this;
 			}
 			
-			public <E extends Exception,T,H> BuilderPhaseX1 onError(Class<E> clazz,BiConsumer<E, MessageConsumeHelper<T,H>> errorConsumer, Class<T> messageType)
+			public <E extends Throwable,T,H> BuilderPhaseX1 onError(Class<E> clazz,BiConsumer<E, MessageConsumeHelper<T,H>> errorConsumer, Class<T> messageType)
 			{
-				FeatureBuilder.this.feature.currentConsumerRule.specialErrorHandler.put(clazz, (BiConsumer)errorConsumer);
+				FeatureBuilder.this.feature.currentConsumerRule.specialErrorHandler.add(new SpecialErrorHandlerDefinition(clazz, (BiConsumer)errorConsumer));
 				return this;
 			}
 			
-			public <E extends Exception,T,H> BuilderPhaseX1 onError(Class<E> clazz,BiConsumer<E, MessageConsumeHelper<T,H>> errorConsumer, Class<T> messageType, Class<H> helperType)
+			public <E extends Throwable,T,H> BuilderPhaseX1 onError(Class<E> clazz,BiConsumer<E, MessageConsumeHelper<T,H>> errorConsumer, Class<T> messageType, Class<H> helperType)
 			{
-				FeatureBuilder.this.feature.currentConsumerRule.specialErrorHandler.put(clazz, (BiConsumer)errorConsumer);
+				FeatureBuilder.this.feature.currentConsumerRule.specialErrorHandler.add(new SpecialErrorHandlerDefinition(clazz, (BiConsumer)errorConsumer));
 				return this;
 			}
 			
-			public <T,H> BuilderPhaseX2 onError(BiConsumer<Exception, MessageConsumeHelper<T,H>> errorConsumer)
+			public <T,H> BuilderPhaseX2 onError(BiConsumer<Throwable, MessageConsumeHelper<T,H>> errorConsumer)
 			{
 				FeatureBuilder.this.feature.currentConsumerRule.defaultErrorHandler = (BiConsumer)errorConsumer;
 				return new BuilderPhaseX2();
 			}
 			
-			public <T,H> BuilderPhaseX2 onError(BiConsumer<Exception, MessageConsumeHelper<T,H>> errorConsumer, Class<T> messageType)
+			public <T,H> BuilderPhaseX2 onError(BiConsumer<Throwable, MessageConsumeHelper<T,H>> errorConsumer, Class<T> messageType)
 			{
 				FeatureBuilder.this.feature.currentConsumerRule.defaultErrorHandler = (BiConsumer)errorConsumer;
 				return new BuilderPhaseX2();
 			}
 			
-			public <T,H> BuilderPhaseX2 onError(BiConsumer<Exception, MessageConsumeHelper<T,H>> errorConsumer, Class<T> messageType , Class<H> helperType)
+			public <T,H> BuilderPhaseX2 onError(BiConsumer<Throwable, MessageConsumeHelper<T,H>> errorConsumer, Class<T> messageType , Class<H> helperType)
 			{
 				FeatureBuilder.this.feature.currentConsumerRule.defaultErrorHandler = (BiConsumer)errorConsumer;
 				return new BuilderPhaseX2();
@@ -647,10 +664,32 @@ public class MessageConsumerFeature
 		}
 	}
 	
+	public static class SpecialErrorHandlerDefinition
+	{
+		public SpecialErrorHandlerDefinition(Class type, BiConsumer<Throwable, MessageConsumeHelper> handler)
+		{
+			super();
+			this.type = type;
+			this.handler = handler;
+		}
+		
+		private Class type;
+		private BiConsumer<Throwable, MessageConsumeHelper> handler;
+		
+		public Class getType()
+		{
+			return type;
+		}
+		public BiConsumer<Throwable, MessageConsumeHelper> getHandler()
+		{
+			return handler;
+		}
+	}
+	
 	public static class ConsumerRule
 	{
 		public enum TriggerByMessageAgeMode {NONE, ALL, LEAST_ONE, LEAST_X};
-		public static final String ALL_GROUP = "CONSUMER_ALL_GROUP";
+		public static final String ANY_GROUP = "CONSUMER_ALL_GROUP";
 		
 		private UUID id = UUID.randomUUID();
 		
@@ -662,6 +701,7 @@ public class MessageConsumerFeature
 		// consume event trigger
 		private String consumeEventAgeTriggerGroup = null;
 		private int consumeEventAgeTriggerAge = -1;
+		private boolean consumeEventAgeTriggerNeverMode = false;
 		private TimeUnit consumeEventAgeTriggerUnit = TimeUnit.SECONDS;
 		
 		// message age trigger
@@ -680,8 +720,8 @@ public class MessageConsumerFeature
 		private BiConsumer<IMessage<?>, MessageConsumeHelper<?,?>> timeOutHandler = null;
 		
 		// error
-		private BiConsumer<Exception, MessageConsumeHelper> defaultErrorHandler = null;
-		private Map<Class,BiConsumer<Exception, MessageConsumeHelper>> specialErrorHandler = new HashMap<>();
+		private BiConsumer<Throwable, MessageConsumeHelper> defaultErrorHandler = null;
+		private List<SpecialErrorHandlerDefinition> specialErrorHandler = new ArrayList<>();
 		
 		// keep messages in channel
 		private boolean keepMessages = false;
@@ -694,6 +734,7 @@ public class MessageConsumerFeature
 			consumerRule.poolMaxSize = this.poolMaxSize;
 			consumerRule.consumeEventAgeTriggerGroup = this.consumeEventAgeTriggerGroup;
 			consumerRule.consumeEventAgeTriggerAge = this.consumeEventAgeTriggerAge;
+			consumerRule.consumeEventAgeTriggerNeverMode = this.consumeEventAgeTriggerNeverMode;
 			consumerRule.consumeEventAgeTriggerUnit = this.consumeEventAgeTriggerUnit;
 			consumerRule.messageConsumer = this.messageConsumer;
 			consumerRule.timeOut = this.timeOut;
@@ -704,7 +745,7 @@ public class MessageConsumerFeature
 			consumerRule.messageAgeTriggerAge = this.messageAgeTriggerAge;
 			consumerRule.messageAgeTriggerUnit = this.messageAgeTriggerUnit;
 			consumerRule.defaultErrorHandler = this.defaultErrorHandler;
-			consumerRule.specialErrorHandler = new HashMap<>(this.specialErrorHandler);
+			consumerRule.specialErrorHandler = new ArrayList<>(this.specialErrorHandler);
 			consumerRule.timeOutHandler = this.timeOutHandler;
 			consumerRule.keepMessages = this.keepMessages;
 			return consumerRule;
@@ -741,6 +782,11 @@ public class MessageConsumerFeature
 			return consumeEventAgeTriggerAge;
 		}
 
+		public boolean isConsumeEventAgeTriggerNeverMode()
+		{
+			return consumeEventAgeTriggerNeverMode;
+		}
+
 		public TimeUnit getConsumeEventAgeTriggerUnit()
 		{
 			return consumeEventAgeTriggerUnit;
@@ -761,47 +807,47 @@ public class MessageConsumerFeature
 			return messageAgeTriggerMode;
 		}
 
-		protected int getMessageAgeTriggerCount()
+		public int getMessageAgeTriggerCount()
 		{
 			return messageAgeTriggerCount;
 		}
 
-		protected int getMessageAgeTriggerAge()
+		public int getMessageAgeTriggerAge()
 		{
 			return messageAgeTriggerAge;
 		}
 
-		protected TimeUnit getMessageAgeTriggerUnit()
+		public TimeUnit getMessageAgeTriggerUnit()
 		{
 			return messageAgeTriggerUnit;
 		}
 
-		protected int getTimeOut()
+		public int getTimeOut()
 		{
 			return timeOut;
 		}
 
-		protected TimeUnit getTimeOutUnit()
+		public TimeUnit getTimeOutUnit()
 		{
 			return timeOutUnit;
 		}
 
-		protected BiConsumer<Exception, MessageConsumeHelper> getDefaultErrorHandler()
+		public BiConsumer<Throwable, MessageConsumeHelper> getDefaultErrorHandler()
 		{
 			return defaultErrorHandler;
 		}
 
-		protected Map<Class, BiConsumer<Exception, MessageConsumeHelper>> getSpecialErrorHandler()
+		public List<SpecialErrorHandlerDefinition> getSpecialErrorHandler()
 		{
 			return specialErrorHandler;
 		}
 
-		protected BiConsumer<IMessage<?>, MessageConsumeHelper<?, ?>> getTimeOutHandler()
+		public BiConsumer<IMessage<?>, MessageConsumeHelper<?, ?>> getTimeOutHandler()
 		{
 			return timeOutHandler;
 		}
 
-		protected boolean isKeepMessages()
+		public boolean isKeepMessages()
 		{
 			return keepMessages;
 		}
@@ -838,10 +884,10 @@ public class MessageConsumerFeature
 						consumerRule.consumeEventAgeTriggerGroup = privateGroup;
 					}
 					consumerRule.groupMembers.add(privateGroup);
-					consumerRule.groupMembers.add(ConsumerRule.ALL_GROUP);
+					consumerRule.groupMembers.add(ConsumerRule.ANY_GROUP);
 					
 					consumerRule.groupMembers = Collections.unmodifiableSet(consumerRule.groupMembers);
-					consumerRule.specialErrorHandler = Collections.unmodifiableMap(consumerRule.specialErrorHandler);
+					consumerRule.specialErrorHandler = Collections.unmodifiableList(consumerRule.specialErrorHandler);
 				}
 				this.consumerRuleList = Collections.unmodifiableList(this.consumerRuleList);
 			}

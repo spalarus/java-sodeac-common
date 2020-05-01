@@ -18,14 +18,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannel;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelService;
+import org.sodeac.common.message.dispatcher.api.IDispatcherChannelTask;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelWorker;
 import org.sodeac.common.message.dispatcher.api.IMessage;
 import org.sodeac.common.message.dispatcher.api.IOnChannelAttach;
 import org.sodeac.common.message.dispatcher.api.IOnChannelSignal;
 import org.sodeac.common.message.dispatcher.api.IOnMessageRemove;
+import org.sodeac.common.message.dispatcher.api.IOnMessageRemoveSnapshot;
 import org.sodeac.common.message.dispatcher.api.IOnMessageStore;
 import org.sodeac.common.message.dispatcher.api.IOnMessageStoreResult;
+import org.sodeac.common.message.dispatcher.api.IOnMessageStoreSnapshot;
 import org.sodeac.common.message.dispatcher.api.IOnTaskDone;
 import org.sodeac.common.message.dispatcher.api.IOnTaskError;
 import org.sodeac.common.message.dispatcher.api.IOnTaskTimeout;
@@ -120,6 +124,7 @@ public class ChannelWorker extends Thread
 	public void run()
 	{
 		Set<IOnMessageStoreResult> scheduledResultSet = new HashSet<IOnMessageStoreResult>();
+		Set<String> signalProcessed = new HashSet<String>();
 		DequeSnapshot<? extends IMessage> newMessagesSnapshot;
 		DequeSnapshot<? extends IMessage> removedMessagesSnapshot;
 		while(go)
@@ -141,114 +146,14 @@ public class ChannelWorker extends Thread
 				}
 				
 				channel.closeWorkerSnapshots();
-				newMessagesSnapshot = channel.getNewScheduledEventsSnaphot();
-				try
-				{
-					if((newMessagesSnapshot != null) && (! newMessagesSnapshot.isEmpty()))
-					{
-						try
-						{
-							checkQueueAttach();
-						}
-						catch(Exception ex) {}
-						catch(Error ex) {}
-						
-						boolean onMessageStored = false;
-							
-						scheduledResultSet.clear();
-						for(IMessage<?> event : newMessagesSnapshot)
-						{
-							try
-							{
-								scheduledResultSet.add(event.getScheduleResultObject());
-							}
-							catch (Exception ie) {}
-						}
-							
-						for(ChannelManagerContainer conf : channel.getManagerContainerList())
-						{
-							if(conf.isImplementingIOnMessageStored())
-							{
-								onMessageStored = true;
-							}
-						}
-						if(onMessageStored)
-						{
-							for(MessageImpl<?> message : (DequeSnapshot<MessageImpl<?>>)newMessagesSnapshot)
-							{
-								channel.touchLastWorkerAction();
-								for(ChannelManagerContainer conf : channel.getManagerContainerList())
-								{
-									try
-									{
-										if(go)
-										{
-											if(conf.isImplementingIOnMessageStored())
-											{
-												((IOnMessageStore)conf.getChannelManager()).onMessageStore(message);
-											}
-										}
-									}
-									catch (Exception e) 
-									{
-										try
-										{
-											message.getScheduleResultObject().addError(e);
-										}
-										catch (Exception ie) {}		
-									}
-									catch (Error e) 
-									{
-										try
-										{
-											message.getScheduleResultObject().addError(e);
-										}
-										catch (Exception ie) {}		
-									}
-								}
-							}
-						}
-						for(IOnMessageStoreResult scheduleResult : scheduledResultSet)
-						{
-							try
-							{
-								((PublishMessageResultImpl)scheduleResult).processPhaseIsFinished();
-							}
-							catch (Exception ie) {}										
-						}
-						for(MessageImpl<?> event : (DequeSnapshot<MessageImpl<?>>)newMessagesSnapshot)
-						{
-							try
-							{
-								event.setScheduleResultObject(null);
-							}
-							catch(Exception e) {}
-						}
-					}
-				}
-				finally
-				{
-					if(newMessagesSnapshot != null)
-					{
-						try
-						{
-							newMessagesSnapshot.close();
-						}
-						finally 
-						{
-							newMessagesSnapshot = null;
-						}
-						scheduledResultSet.clear();
-					}
-				}
 			}
 			catch (Exception e) 
 			{
-				logger.error("Exception while process newScheduledList",e);
+				logger.error("Exception while worker go init",e);
 			}
 			catch (Error e) 
 			{
-				logger.error("Error while process newScheduledList",e);
+				logger.error("Exception while worker go init",e);
 			}
 			
 			try
@@ -266,6 +171,22 @@ public class ChannelWorker extends Thread
 						catch(Exception ex) {}
 						catch(Error ex) {}
 						
+						boolean onMessageRemoveSingle = false;
+						boolean onMessageRemoveSnapshot = false;
+						
+						for(ChannelManagerContainer conf : channel.getManagerContainerList())
+						{
+							try
+							{
+								if(go && conf.isImplementingIOnMessageRemoveSnapshot())
+								{
+									((IOnMessageRemoveSnapshot)conf.getChannelManager()).onMessageRemoveSnapshot(removedMessagesSnapshot);
+								}
+							}
+							catch (Exception e) {}
+							catch (Error e) {}
+						}
+						
 						for(MessageImpl message : (DequeSnapshot<MessageImpl>)removedMessagesSnapshot)
 						{
 							channel.touchLastWorkerAction();
@@ -273,12 +194,9 @@ public class ChannelWorker extends Thread
 							{
 								try
 								{
-									if(go)
+									if(go && conf.isImplementingIOnMessageRemove())
 									{
-										if(conf.isImplementingIOnRemoveMessage())
-										{
-											((IOnMessageRemove)conf.getChannelManager()).onMessageRemove(message);
-										}
+										((IOnMessageRemove)conf.getChannelManager()).onMessageRemove(message);
 									}
 								}
 								catch (Exception e) {}
@@ -323,6 +241,146 @@ public class ChannelWorker extends Thread
 			
 			try
 			{
+				newMessagesSnapshot = channel.getNewScheduledEventsSnaphot();
+				try
+				{
+					if((newMessagesSnapshot != null) && (! newMessagesSnapshot.isEmpty()))
+					{
+						try
+						{
+							checkQueueAttach();
+						}
+						catch(Exception ex) {}
+						catch(Error ex) {}
+						
+						boolean onMessageStoredSingle = false;
+						boolean onMessageStoredSnapshot = false;
+						
+						for(ChannelManagerContainer conf : channel.getManagerContainerList())
+						{
+							if(conf.isImplementingIOnMessageStore())
+							{
+								onMessageStoredSingle = true;
+							}
+							if(conf.isImplementingIOnMessageStoreSnapshot())
+							{
+								onMessageStoredSnapshot = true;
+							}
+						}
+						
+						if(onMessageStoredSingle || onMessageStoredSnapshot)
+						{
+							scheduledResultSet.clear();
+							for(IMessage<?> event : newMessagesSnapshot)
+							{
+								try
+								{
+									scheduledResultSet.add(event.getScheduleResultObject());
+								}
+								catch (Exception ie) {}
+							}
+							
+							if(onMessageStoredSnapshot)
+							{
+								channel.touchLastWorkerAction();
+								for(ChannelManagerContainer conf : channel.getManagerContainerList())
+								{
+									if(go && conf.isImplementingIOnMessageStoreSnapshot())
+									{
+										try
+										{
+											((IOnMessageStoreSnapshot)conf.getChannelManager()).onMessageStoreSnapshot(newMessagesSnapshot);
+										
+										}
+										catch (Exception e) {}
+										catch (Error e) {}
+									}
+									
+								}
+							}
+							
+							if(onMessageStoredSingle)
+							{
+								for(MessageImpl<?> message : (DequeSnapshot<MessageImpl<?>>)newMessagesSnapshot)
+								{
+									channel.touchLastWorkerAction();
+									for(ChannelManagerContainer conf : channel.getManagerContainerList())
+									{
+										try
+										{
+											if(go && conf.isImplementingIOnMessageStore())
+											{
+												((IOnMessageStore)conf.getChannelManager()).onMessageStore(message);
+											}
+										}
+										catch (Exception e) 
+										{
+											try
+											{
+												message.getScheduleResultObject().addError(e);
+											}
+											catch (Exception ie) {}		
+										}
+										catch (Error e) 
+										{
+											try
+											{
+												message.getScheduleResultObject().addError(e);
+											}
+											catch (Exception ie) {}		
+										}
+									}
+								}
+							}
+							
+							for(IOnMessageStoreResult scheduleResult : scheduledResultSet)
+							{
+								try
+								{
+									((PublishMessageResultImpl)scheduleResult).processPhaseIsFinished();
+								}
+								catch (Exception ie) {}										
+							}
+							for(MessageImpl<?> event : (DequeSnapshot<MessageImpl<?>>)newMessagesSnapshot)
+							{
+								try
+								{
+									event.setScheduleResultObject(null);
+								}
+								catch(Exception e) {}
+							}
+							
+							scheduledResultSet.clear();
+						}
+					}
+				}
+				finally
+				{
+					if(newMessagesSnapshot != null)
+					{
+						try
+						{
+							newMessagesSnapshot.close();
+						}
+						finally 
+						{
+							newMessagesSnapshot = null;
+						}
+						scheduledResultSet.clear();
+					}
+				}
+			}
+			catch (Exception e) 
+			{
+				logger.error("Exception while process newScheduledList",e);
+			}
+			catch (Error e) 
+			{
+				logger.error("Error while process newScheduledList",e);
+			}
+			
+			try
+			{
 				DequeSnapshot<String> signalSnapshot = channel.getSignalsSnapshot();
 				try
 				{
@@ -336,19 +394,22 @@ public class ChannelWorker extends Thread
 						catch(Exception ex) {}
 						catch(Error ex) {}
 						
+						signalProcessed.clear();
 						for(String signal : signalSnapshot)
 						{
+							if(signalProcessed.contains(signal))
+							{
+								continue;
+							}
 							channel.touchLastWorkerAction();
 							for(ChannelManagerContainer conf : channel.getManagerContainerList())
 							{
 								try
 								{
-									if(go)
+									
+									if(go && conf.isImplementingIOnChannelSignal())
 									{
-										if(conf.isImplementingIOnChannelSignal())
-										{
-											((IOnChannelSignal)conf.getChannelManager()).onChannelSignal(channel, signal);
-										}
+										((IOnChannelSignal)conf.getChannelManager()).onChannelSignal(channel, signal);
 									}
 								}
 								catch (Exception e) 
@@ -360,7 +421,10 @@ public class ChannelWorker extends Thread
 									logger.error("Error while process signal",e);
 								}
 							}
+							
+							signalProcessed.add(signal);
 						}
+						signalProcessed.clear();
 					}
 				}
 				finally 
@@ -416,14 +480,6 @@ public class ChannelWorker extends Thread
 								taskTimeOut = ((dueTask.getTaskControl().getTimeout() > 0) || (dueTask.getTaskControl().getHeartbeatTimeout() > 0));
 								this.currentRunningTask = dueTask;
 								
-								if(taskTimeOut)
-								{
-									if(dueTask.getTaskControl().getTimeout() > 0)
-									{
-										this.currentTimeOutTimeStamp = System.currentTimeMillis() + dueTask.getTaskControl().getTimeout();
-									}
-									this.channel.getMessageDispatcher().registerTimeOut(this.channel,dueTask);
-								}
 								if(dueTask.getTask() instanceof IPeriodicChannelTask)
 								{
 									Long periodicRepetitionInterval = ((IPeriodicChannelTask) dueTask.getTask()).getPeriodicRepetitionInterval();
@@ -481,27 +537,45 @@ public class ChannelWorker extends Thread
 									dueTask.getTaskControl().preRun();
 								}
 								
-								this.context.setDueTask(dueTask);								
-								dueTask.getTask().run(this.context);
-								
-								dueTask.getPropertyBlock().setProperty(ChannelImpl.PROPERTY_KEY_THROWED_EXCEPTION, null);
-								
-								dueTask.getTaskControl().postRun();
-								
-								this.currentTimeOutTimeStamp = null;
-								this.currentRunningTask = null;
 								if(taskTimeOut)
 								{
-									try
+									if(dueTask.getTaskControl().getTimeout() > 0)
 									{
-										this.channel.getMessageDispatcher().unregisterTimeOut(this.channel,dueTask);
+										this.currentTimeOutTimeStamp = System.currentTimeMillis() + dueTask.getTaskControl().getTimeout();
 									}
-									catch (Exception e) 
+									this.channel.getMessageDispatcher().registerTimeOut(this.channel,dueTask);
+								}
+								this.context.setDueTask(dueTask);	
+								dueTask.heartbeat();
+								
+								//
+								//	run task or service
+								//
+								
+								dueTask.getTask().run(this.context);
+								
+								
+								if(go)
+								{
+									dueTask.getPropertyBlock().setProperty(ChannelImpl.PROPERTY_KEY_THROWED_EXCEPTION, null);
+									
+									dueTask.getTaskControl().postRun();
+									
+									this.currentTimeOutTimeStamp = null;
+									this.currentRunningTask = null;
+									if(taskTimeOut)
 									{
-										this.logger.error( "eventQueue.getEventDispatcher().unregisterTimeOut(this.eventQueue,dueTask)", e);
+										try
+										{
+											this.channel.getMessageDispatcher().unregisterTimeOut(this.channel,dueTask);
+										}
+										catch (Exception e) 
+										{
+											this.logger.error( "eventQueue.getEventDispatcher().unregisterTimeOut(this.eventQueue,dueTask)", e);
+										}
 									}
 								}
-								if(! go)
+								else
 								{
 									channel.closeWorkerSnapshots();
 									return;
@@ -619,138 +693,6 @@ public class ChannelWorker extends Thread
 							{
 								this.channel.closeWorkerSnapshots();
 								return;
-							}
-							
-							try
-							{
-								removedMessagesSnapshot = channel.getRemovedMessagesSnapshot();
-								try
-								{
-									if((removedMessagesSnapshot != null) && (! removedMessagesSnapshot.isEmpty()))
-									{
-					
-										try
-										{
-											checkQueueAttach();
-										}
-										catch(Exception ex) {}
-										catch(Error ex) {}
-										
-										for(MessageImpl message : (DequeSnapshot<MessageImpl>)removedMessagesSnapshot)
-										{
-											channel.touchLastWorkerAction();
-											for(ChannelManagerContainer conf : channel.getManagerContainerList())
-											{
-												try
-												{
-													if(go)
-													{
-														if(conf.isImplementingIOnRemoveMessage())
-														{
-															((IOnMessageRemove)conf.getChannelManager()).onMessageRemove(message);
-														}
-													}
-												}
-												catch (Exception e) {}
-											}
-										}
-										
-										for(MessageImpl message : (DequeSnapshot<MessageImpl>)removedMessagesSnapshot)
-										{
-											try
-											{
-												message.dispose();
-											}
-											catch (Exception e) {}
-											catch (Error e) {}
-										}
-									}
-								}
-								finally 
-								{
-									if(removedMessagesSnapshot != null)
-									{
-										try
-										{
-											removedMessagesSnapshot.close();
-										}
-										finally 
-										{
-											removedMessagesSnapshot = null;
-										}
-									}
-								}
-							}
-							catch (Exception e) 
-							{
-								logger.error("Exception while process removedEventList",e);
-							}
-							catch (Error e) 
-							{
-								logger.error("Error while process removedEventList",e);
-							}
-							
-							try
-							{
-								DequeSnapshot<String> signalSnapshot = channel.getSignalsSnapshot();
-								try
-								{
-									if((signalSnapshot != null) && (! signalSnapshot.isEmpty()))
-									{
-					
-										try
-										{
-											checkQueueAttach();
-										}
-										catch(Exception ex) {}
-										catch(Error ex) {}
-										
-										for(String signal : signalSnapshot)
-										{
-											channel.touchLastWorkerAction();
-											for(ChannelManagerContainer conf : channel.getManagerContainerList())
-											{
-												try
-												{
-													if(go)
-													{
-														if(conf.isImplementingIOnChannelSignal())
-														{
-															((IOnChannelSignal)conf.getChannelManager()).onChannelSignal(channel, signal);
-														}
-													}
-												}
-												catch (Exception e) 
-												{
-													logger.error("Exception while process signal",e);
-												}
-												catch (Error e) 
-												{
-													logger.error("Error while process signal",e);
-												}
-											}
-										}
-									}
-								}
-								finally 
-								{
-									if(signalSnapshot != null)
-									{
-										try
-										{
-											signalSnapshot.close();
-										}
-										catch (Exception e) {}
-									}
-								}
-							}
-							catch (Exception e) 
-							{
-								logger.error("Exception while process signalList",e);
-							}
-							catch (Error e) 
-							{
-								logger.error("Error while process signalList",e);
 							}
 							
 							if(dueTask.getTaskControl().isDone())
@@ -926,8 +868,8 @@ public class ChannelWorker extends Thread
 	
 	public boolean checkTimeOut(AtomicBoolean stop)
 	{
-		TaskContainer timeOutTask = this.currentRunningTask;
-		if(timeOutTask == null)
+		TaskContainer timeOutTaskContainer = this.currentRunningTask;
+		if(timeOutTaskContainer == null)
 		{
 			return false;
 		}
@@ -935,14 +877,14 @@ public class ChannelWorker extends Thread
 		// HeartBeat TimeOut
 		
 		boolean heartBeatTimeout = false;
-		if(timeOutTask.getTaskControl().getHeartbeatTimeout() > 0)
+		if(timeOutTaskContainer.getTaskControl().getHeartbeatTimeout() > 0)
 		{
 			try
 			{
-				long lastHeartBeat = timeOutTask.getLastHeartbeat();
+				long lastHeartBeat = timeOutTaskContainer.getLastHeartbeat();
 				if(lastHeartBeat > 0)
 				{
-					if((lastHeartBeat + timeOutTask.getTaskControl().getHeartbeatTimeout() ) <= System.currentTimeMillis())
+					if((lastHeartBeat + timeOutTaskContainer.getTaskControl().getHeartbeatTimeout() ) <= System.currentTimeMillis())
 					{
 						heartBeatTimeout = true;
 					}
@@ -966,7 +908,7 @@ public class ChannelWorker extends Thread
 			
 			// check timeOut and timeOutTask again to prevent working with values don't match
 			
-			if(timeOutTask != this.currentRunningTask)
+			if(timeOutTaskContainer != this.currentRunningTask)
 			{
 				return false;
 			}
@@ -982,41 +924,60 @@ public class ChannelWorker extends Thread
 			}
 		}
 		
+		ChannelImpl channel = this.channel;
+		boolean stopFlag = timeOutTaskContainer.getTaskControl().getStopOnTimeoutFlag();
+		IDispatcherChannelTask<Object> task = timeOutTaskContainer.getTask();
+		TaskControlImpl taskControl = timeOutTaskContainer.getTaskControl();
+		Object taskState = taskControl.getTaskState();
+		timeOutTaskContainer.setTaskControl(timeOutTaskContainer.getTaskControl().copyForTimeout());
+		
 		this.go = false;
 		
 		try
 		{
-			if(timeOutTask.getTask() instanceof IDispatcherChannelService)
+			if(task instanceof IDispatcherChannelService)
 			{
-				timeOutTask.getTaskControl().timeOutService();
+				taskControl.timeOutService();
 			}
 			else
 			{
-				timeOutTask.getTaskControl().timeout();
+				taskControl.timeout();
 			}
 		}
 		catch (Exception e) {}
 		
-		for(ChannelManagerContainer conf : channel.getManagerContainerList())
+		for(ChannelManagerContainer conf : (List<ChannelManagerContainer>)channel.getManagerContainerList())
 		{
 			try
 			{
 				if(conf.getChannelManager() instanceof IOnTaskTimeout)
 				{
-					((MessageDispatcherImpl)channel.getDispatcher()).executeOnTaskTimeOut((IOnTaskTimeout)conf.getChannelManager(), this.channel, timeOutTask.getTask());
+					try
+					{
+						((MessageDispatcherImpl)channel.getDispatcher()).executeOnTaskTimeOut((IOnTaskTimeout)conf.getChannelManager(), channel, task, taskState, this);
+					}
+					catch (Exception e) {}
+					catch (Error e) {}
 				}
 			}
 			catch (Exception e) {}
+			catch (Error e) {}
 		}
 		
-		if(timeOutTask.getTaskControl().getStopOnTimeoutFlag())
+		try
+		{
+			this.context.onTimeout();
+		}
+		catch (Exception e) {}
+		
+		if(stopFlag)
 		{
 			if(Thread.currentThread() != this)
 			{
 				try
 				{
 					stop.set(true);
-					((MessageDispatcherImpl)channel.getDispatcher()).executeOnTaskStopExecuter(this, timeOutTask.getTask());
+					((MessageDispatcherImpl)channel.getDispatcher()).executeOnTaskStopExecuter(this, task);
 				}
 				catch (Exception e) {}
 				

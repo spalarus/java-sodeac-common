@@ -13,6 +13,9 @@ package org.sodeac.common.message.dispatcher.api;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
+import org.sodeac.common.snapdeque.DequeSnapshot;
+import org.sodeac.common.snapdeque.SnapshotableDeque;
+
 public interface IFeatureConfigurableManager extends 
 						IDispatcherChannelManager,
 						IOnTaskDone,
@@ -22,12 +25,19 @@ public interface IFeatureConfigurableManager extends
 						IOnChannelDetach,
 						IOnChannelSignal,
 						IOnMessageStore,
-						IOnMessageRemove
+						IOnMessageRemove,
+						IOnMessageStoreSnapshot,
+						IOnMessageRemoveSnapshot
 {
 	
 	public default boolean implementsOnMessageStore()
 	{
 		return implementsControllerMethod("onMessageStore", Void.TYPE, IMessage.class);
+	}
+	
+	public default boolean implementsOnMessageStoreSnapshot()
+	{
+		return implementsControllerMethod("onMessageStoreSnapshot", Void.TYPE, SnapshotableDeque.class);
 	}
 	
 	public default boolean implementsOnChannelSignal()
@@ -57,16 +67,24 @@ public interface IFeatureConfigurableManager extends
 	
 	public default boolean implementsOnTaskTimeout()
 	{
-		return implementsControllerMethod("onTaskTimeout", Void.TYPE, IDispatcherChannel.class, IDispatcherChannelTask.class);
+		return implementsControllerMethod("onTaskTimeout", Void.TYPE, IDispatcherChannel.class, IDispatcherChannelTask.class, Object.class, Runnable.class);
 	}
 
 	public default boolean implementsOnMessageRemove()
 	{
 		return implementsControllerMethod("onMessageRemove", Void.TYPE, IMessage.class);
 	}
+	
+	public default boolean implementsOnMessageRemoveSnapshot()
+	{
+		return implementsControllerMethod("onMessageRemoveSnapshot", Void.TYPE, SnapshotableDeque.class);
+	}
 
 	@Override
 	default void onMessageStore(IMessage message){}
+
+	@Override
+	default void onMessageStoreSnapshot(DequeSnapshot messageStoreSnapshot){}
 
 	@Override
 	default void onChannelSignal(IDispatcherChannel channel, String signal){}
@@ -84,12 +102,14 @@ public interface IFeatureConfigurableManager extends
 	default void onTaskDone(IDispatcherChannel channel,IDispatcherChannelTask task){}
 
 	@Override
-	default void onTaskTimeout(IDispatcherChannel channel, IDispatcherChannelTask task){}
+	default void onTaskTimeout(IDispatcherChannel channel, IDispatcherChannelTask task, Object taskState, Runnable interrupter){}
 
 	@Override
 	default void onMessageRemove(IMessage message) {};
 	
-	
+	@Override
+	default void onMessageRemoveSnapshot(DequeSnapshot messageRemoveSnapshot){}
+
 	default boolean implementsControllerMethod(String name,Class<?> returnType, Class<?>... parameterTypes)
 	{
 		Class<?> clazz = this.getClass();

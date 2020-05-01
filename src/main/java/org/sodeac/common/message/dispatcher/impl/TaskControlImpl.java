@@ -15,7 +15,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannel;
-import org.sodeac.common.message.dispatcher.api.IPropertyBlock;
 import org.sodeac.common.message.dispatcher.api.ITaskControl;
 
 public class TaskControlImpl implements ITaskControl
@@ -23,7 +22,7 @@ public class TaskControlImpl implements ITaskControl
 	private volatile boolean done = false;
 	private volatile boolean inTimeOut = false;
 	private volatile long executionTimeStamp = 0L;
-	private volatile long timeOutValue = TimeUnit.DAYS.toMillis(7);
+	private volatile long timeOutValue = -1; //TimeUnit.DAYS.toMillis(7);
 	private volatile long heartBeatTimeOut = -1;
 	
 	private volatile boolean stopTaskOnTimeout = false;
@@ -32,15 +31,16 @@ public class TaskControlImpl implements ITaskControl
 	
 	private ReentrantLock executionTimestampLock = null;
 	private SetTimestampRequest setTimestampRequest = null;
+	private volatile Object taskState = null;
 	
-	protected TaskControlImpl(IPropertyBlock taskPropertyBlock)
+	protected TaskControlImpl()
 	{
 		super();
 		this.executionTimeStamp = System.currentTimeMillis();
 		this.executionTimestampLock = new ReentrantLock();
 		this.setTimestampRequest = new SetTimestampRequest();
 	}
-	
+
 	public void preRun()
 	{
 		this.inRun = true;
@@ -55,6 +55,7 @@ public class TaskControlImpl implements ITaskControl
 	public void postRun()
 	{
 		this.inRun = false;
+		this.taskState = null;
 	}
 	
 	
@@ -107,6 +108,16 @@ public class TaskControlImpl implements ITaskControl
 		return this.executionTimeStamp;
 	}
 	
+	protected Object getTaskState()
+	{
+		return taskState;
+	}
+
+	protected void setTaskState(Object taskState)
+	{
+		this.taskState = taskState;
+	}
+
 	@Override
 	public boolean setExecutionTimestamp(long executionTimeStamp, boolean force)
 	{
@@ -335,5 +346,24 @@ public class TaskControlImpl implements ITaskControl
 			return PeriodicServiceTimestampPredicate.INSTANCE;
 		}
 		
+	}
+	
+	protected TaskControlImpl copyForTimeout()
+	{
+		TaskControlImpl taskControl = new TaskControlImpl();
+		taskControl.done = this.done;
+		taskControl.inTimeOut = false;
+		taskControl.executionTimeStamp = this.executionTimeStamp;
+		taskControl.timeOutValue = this.timeOutValue;
+		taskControl.heartBeatTimeOut = this.heartBeatTimeOut;
+		
+		taskControl.stopTaskOnTimeout = this.stopTaskOnTimeout;
+		taskControl.inRun = this.inRun;
+		taskControl.executionTimeStampSource = this.executionTimeStampSource;
+		
+		taskControl.executionTimestampLock = this.executionTimestampLock;
+		taskControl.setTimestampRequest = this.setTimestampRequest;
+		
+		return taskControl;
 	}
 }

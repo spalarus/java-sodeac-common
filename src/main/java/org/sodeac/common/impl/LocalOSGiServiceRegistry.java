@@ -15,8 +15,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
@@ -25,8 +25,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceEvent;
-import org.osgi.framework.ServiceListener;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.Version;
 import org.osgi.service.component.ComponentContext;
@@ -251,25 +249,16 @@ public class LocalOSGiServiceRegistry
 				for(Entry<String,List<ServiceContainer>> entry  : listsByClassName.entrySet())
 				{
 					List<ServiceContainer> list = entry.getValue();
-					LinkedList<Integer> toRemovePositions = new LinkedList<>();
-					int index = 0;
-					for(ServiceContainer serviceContainer : list)
+					
+					ListIterator<ServiceContainer> itr = list.listIterator();
+					while(itr.hasNext())
 					{
+						ServiceContainer serviceContainer = itr.next();
 						if(serviceContainer.getServiceReference() == reference)
 						{
-							toRemovePositions.addFirst(index);
+							itr.remove();
 						}
-						index++;
 					}
-					if(toRemovePositions.isEmpty())
-					{
-						continue;
-					}
-					for(Integer toRemove : toRemovePositions)
-					{
-						list.remove((int)toRemove);
-					}
-					
 					
 					if(list.isEmpty())
 					{

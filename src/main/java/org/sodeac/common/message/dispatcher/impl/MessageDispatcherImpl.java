@@ -167,7 +167,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 				throw new ChannelNotFoundException(channelId);
 			}
 			
-			channel.storeMessage(message);
+			channel.sendMessage(message);
 		}
 		finally 
 		{
@@ -333,7 +333,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 	public void registerChannelManager(IDispatcherChannelManager channelManager)
 	{
 		ChannelManagerPolicy channelManagerPolicy = new ChannelManagerPolicy();
-		channelManager.configure(channelManagerPolicy);
+		channelManager.configureChannelManagerPolicy(channelManagerPolicy);
 		
 		if(channelManagerPolicy.getConfigurationSet().isEmpty())
 		{
@@ -701,7 +701,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 	public void registerChannelService(IDispatcherChannelService channelService)
 	{
 		ChannelServicePolicy channelServicePolicy = new ChannelServicePolicy();
-		channelService.configure(channelServicePolicy);
+		channelService.configureChannelServicePolicy(channelServicePolicy);
 		
 		if(channelServicePolicy.getConfigurationSet().isEmpty())
 		{
@@ -1044,7 +1044,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 		return this.spooledChannelWorkerScheduler.scheduleChannelWorker(channel, wakeUpTime);
 	}
 	
-	protected void executeOnTaskTimeOut(IOnTaskTimeout manager, IDispatcherChannel<?> channel, IDispatcherChannelTask task)
+	protected void executeOnTaskTimeOut(IOnTaskTimeout manager, IDispatcherChannel<?> channel, IDispatcherChannelTask task, Object taskState, ChannelWorker worker)
 	{
 		try
 		{
@@ -1055,7 +1055,24 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 				{
 					try
 					{
-						manager.onTaskTimeout(channel, task);
+						manager.onTaskTimeout(channel, task, taskState, new Runnable()
+						{
+							
+							@Override
+							public void run()
+							{
+								if(worker.isAlive())
+								{
+									try
+									{
+										worker.interrupt();
+									}
+									catch (Exception e) {}
+									catch (Error e) {}
+								}
+								
+							}
+						});
 					}
 					catch (Exception e) {}
 					return task;
@@ -1063,6 +1080,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 			}).get(7, TimeUnit.SECONDS);
 		}
 		catch (Exception e) {}
+		catch (Error e) {}
 	}
 	
 	public void executeOnTaskStopExecuter(ChannelWorker worker, IDispatcherChannelTask task)

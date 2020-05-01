@@ -14,7 +14,7 @@ import java.util.List;
 
 /**
  * 
- * This object inform invoker of {@link IDispatcherChannel#storeMessageWithResult(Object)} (or related) about store of messages
+ * This object inform invoker of {@link IDispatcherChannel#sendMessageWithResult(Object)} (or related) about store of messages
  * The implementation {@link IOnMessageStore} / {@link IOnQueuedMessageList} has confirm process queued event, if it is in charge of this event type
  * 
  * @author Sebastian Palarus

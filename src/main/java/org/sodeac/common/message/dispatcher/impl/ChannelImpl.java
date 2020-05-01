@@ -11,6 +11,7 @@
 package org.sodeac.common.message.dispatcher.impl;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -216,7 +217,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 	protected volatile RegistrationTypes registrationTypes = null;
 	
 	@Override
-	public void storeMessage(T messagePayload, MessageHeader messageHeader)
+	public void sendMessage(T messagePayload, MessageHeader messageHeader)
 	{
 	    if(this.disposed)
 		{
@@ -258,7 +259,63 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 	}
 	
 	@Override
-	public Future<IOnMessageStoreResult> storeMessageWithResult(T messagePayload, MessageHeader messageHeader)
+	public void sendMessages(Collection<T> messagePayloadCollection, MessageHeader messageHeaderTemplate)
+	{
+	    if(this.disposed)
+		{
+			return;
+		}
+	    
+	    List<MessageImpl<T>> messageList = new ArrayList<>(messagePayloadCollection.size());
+	    for(T messagePayload : messagePayloadCollection)
+	    {
+	    	MessageHeader messageHeader = null;
+		    if(messageHeaderTemplate == null)
+		    {
+		    	messageHeader = MessageHeader.newInstance()
+		    		.setTimestamp(System.currentTimeMillis())
+		    		.lockHeader(MessageHeader.MESSAGE_HEADER_TIMESTAMP);
+		    }
+		    else
+		    {
+		    	messageHeader = MessageHeader.createFrom(messageHeaderTemplate,false).setTimestamp(System.currentTimeMillis());
+		    	MessageHeader.copyLocks(messageHeader, messageHeaderTemplate);
+		    }
+		    
+	    	messageList.add(new MessageImpl(messagePayload,this, messageHeader));
+	    }
+	    try
+	    {
+	    	this.messageQueue.linkAll(SnapshotableDeque.LinkMode.APPEND,messageList, n -> 
+	    	{
+	    		MessageImpl message = n.getElement();
+	    		message.setNode(n);
+	    		message.setScheduleResultObject(dummyPublishMessageResult);
+	    	});
+	    }
+	    catch (CapacityExceededException e) 
+	    {
+	    	try
+	    	{
+	    		for(MessageImpl<T> message : messageList)
+	    		{
+	    			message.dispose();
+	    		}
+	    	}
+	    	catch (Exception ex) {}
+	    	throw e;
+		}
+		
+		if(this.registrationTypes.onQueuedMessage)
+		{
+			this.newPublishedMessageQueue.addAll(messageList);
+			this.newScheduledListUpdate = true; 
+			this.notifyOrCreateWorker(-1);
+		}
+	}
+	
+	@Override
+	public Future<IOnMessageStoreResult> sendMessageWithResult(T messagePayload, MessageHeader messageHeader)
 	{
 	    if(this.disposed)
 		{
@@ -1064,7 +1121,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 				propertyBlock = (PropertyBlockImpl)this.getDispatcher().createPropertyBlock();
 			}
 			
-			TaskControlImpl taskControl = new TaskControlImpl(propertyBlock);
+			TaskControlImpl taskControl = new TaskControlImpl();
 			if(executionTimeStamp > 0)
 			{
 				taskControl.setExecutionTimeStamp(executionTimeStamp, ExecutionTimestampSource.SCHEDULE, ScheduleTimestampPredicate.getInstance());
@@ -2267,11 +2324,11 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		
 		for(ChannelManagerContainer controllerContainer : getManagerContainerList())
 		{
-			if(controllerContainer.isImplementingIOnMessageStored())
+			if(controllerContainer.isImplementingIOnMessageStore() || controllerContainer.isImplementingIOnMessageStoreSnapshot() )
 			{
 				newRegistrationTypes.onQueuedMessage = true;
 			}
-			if(controllerContainer.isImplementingIOnRemoveMessage())
+			if(controllerContainer.isImplementingIOnMessageRemove() || controllerContainer.isImplementingIOnMessageRemoveSnapshot())
 			{
 				newRegistrationTypes.onRemoveMessage = true;
 			}

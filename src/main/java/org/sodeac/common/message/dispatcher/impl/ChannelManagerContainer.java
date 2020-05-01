@@ -23,14 +23,15 @@ import org.sodeac.common.message.dispatcher.api.IOnChannelAttach;
 import org.sodeac.common.message.dispatcher.api.IOnChannelDetach;
 import org.sodeac.common.message.dispatcher.api.IOnChannelSignal;
 import org.sodeac.common.message.dispatcher.api.IOnMessageRemove;
+import org.sodeac.common.message.dispatcher.api.IOnMessageRemoveSnapshot;
 import org.sodeac.common.message.dispatcher.api.IOnMessageStore;
+import org.sodeac.common.message.dispatcher.api.IOnMessageStoreSnapshot;
 import org.sodeac.common.message.dispatcher.api.IOnTaskDone;
 import org.sodeac.common.message.dispatcher.api.IOnTaskError;
 import org.sodeac.common.message.dispatcher.api.IOnTaskTimeout;
 import org.sodeac.common.xuri.ldapfilter.Criteria;
 import org.sodeac.common.xuri.ldapfilter.CriteriaLinker;
 import org.sodeac.common.xuri.ldapfilter.IFilterItem;
-import org.sodeac.common.xuri.ldapfilter.LDAPFilterDecodingHandler;
 
 public class ChannelManagerContainer
 {
@@ -81,7 +82,9 @@ public class ChannelManagerContainer
 	private volatile boolean implementsIOnChannelDetach = false;
 	private volatile boolean implementsIOnChannelSignal = false;
 	private volatile boolean implementsIOnMessageStore = false;
-	private volatile boolean implementsIOnRemoveMessage = false;
+	private volatile boolean implementsIOnMessageRemove = false;
+	private volatile boolean implementsIOnMessageStoreSnapshot = false;
+	private volatile boolean implementsIOnMessageRemoveSnapshot = false;
 	
 	public void detectControllerImplementions()
 	{
@@ -94,8 +97,10 @@ public class ChannelManagerContainer
 			implementsIOnChannelDetach = false;
 			implementsIOnChannelSignal = false;
 			implementsIOnMessageStore = false;
-			implementsIOnRemoveMessage = false;
+			implementsIOnMessageRemove = false;
 			implementsIOnTaskTimeout = false;
+			implementsIOnMessageStoreSnapshot = false;
+			implementsIOnMessageRemoveSnapshot = false;
 			return;
 		}
 		
@@ -110,7 +115,9 @@ public class ChannelManagerContainer
 			implementsIOnChannelDetach = featureConfigurableController.implementsOnChannelDetach();
 			implementsIOnChannelSignal = featureConfigurableController.implementsOnChannelSignal();
 			implementsIOnMessageStore = featureConfigurableController.implementsOnMessageStore();
-			implementsIOnRemoveMessage = featureConfigurableController.implementsOnMessageRemove();
+			implementsIOnMessageRemove = featureConfigurableController.implementsOnMessageRemove();
+			implementsIOnMessageStoreSnapshot = featureConfigurableController.implementsOnMessageStoreSnapshot();
+			implementsIOnMessageRemoveSnapshot = featureConfigurableController.implementsOnMessageRemoveSnapshot();
 		}
 		else
 		{
@@ -121,7 +128,9 @@ public class ChannelManagerContainer
 			implementsIOnChannelDetach = this.channelController instanceof IOnChannelDetach;
 			implementsIOnChannelSignal = this.channelController instanceof IOnChannelSignal;
 			implementsIOnMessageStore = this.channelController instanceof IOnMessageStore;
-			implementsIOnRemoveMessage = this.channelController instanceof IOnMessageRemove;
+			implementsIOnMessageRemove = this.channelController instanceof IOnMessageRemove;
+			implementsIOnMessageStoreSnapshot = this.channelController instanceof IOnMessageStoreSnapshot;
+			implementsIOnMessageRemoveSnapshot = this.channelController instanceof IOnMessageRemoveSnapshot;
 		}
 	}
 	
@@ -261,14 +270,24 @@ public class ChannelManagerContainer
 		return implementsIOnChannelSignal;
 	}
 
-	public boolean isImplementingIOnMessageStored()
+	public boolean isImplementingIOnMessageStore()
 	{
 		return implementsIOnMessageStore;
 	}
 
-	public boolean isImplementingIOnRemoveMessage()
+	public boolean isImplementingIOnMessageRemove()
 	{
-		return implementsIOnRemoveMessage;
+		return implementsIOnMessageRemove;
+	}
+	
+	public boolean isImplementingIOnMessageStoreSnapshot()
+	{
+		return implementsIOnMessageStoreSnapshot;
+	}
+
+	public boolean isImplementingIOnMessageRemoveSnapshot()
+	{
+		return implementsIOnMessageRemoveSnapshot;
 	}
 
 	public boolean isImplementingIOnTaskTimeout()

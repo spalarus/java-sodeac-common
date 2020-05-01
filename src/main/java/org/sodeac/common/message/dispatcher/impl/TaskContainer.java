@@ -23,9 +23,9 @@ public class TaskContainer
 	private IDispatcherChannelTask task;
 	private String id;
 	private IPropertyBlock properties;
-	private TaskControlImpl taskControl;
+	private volatile TaskControlImpl taskControl;
 	private boolean namedTask = false;
-	private long lastHeartbeat = System.currentTimeMillis();
+	private volatile long lastHeartbeat = -1L;
 	
 	public IDispatcherChannelTask getTask()
 	{
@@ -74,6 +74,6 @@ public class TaskContainer
 	}
 	public long getLastHeartbeat() 
 	{
-		return lastHeartbeat;
+		return this.lastHeartbeat;
 	}
 }
