@@ -42,7 +42,7 @@ public interface ILifecycle
 		{
 			public interface IOnStartUpEvent extends ILifecycleEvent{}
 			public interface IConfigureEvent extends ILifecycleEvent{}
-			public interface ICheckRequirement extends ILifecycleEvent{}
+			public interface ICheckRequirement extends ILifecycleEvent{} // TODO remove, do automatically
 			public interface IBootstrapEvent extends ILifecycleEvent{}
 			public interface ILoadStateEvent extends ILifecycleEvent{}
 			public interface IHealthCheckOnStartUpEvent extends ILifecycleEvent, IHealthCheckType{}

@@ -7,6 +7,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.sodeac.common.IService.IServiceProvider;
+import org.sodeac.common.IService.IServiceReference;
 import org.sodeac.common.impl.LocalServiceRegistryImpl.RegisteredService;
 import org.sodeac.common.impl.LocalServiceRegistryImpl.ServiceController;
 import org.sodeac.common.xuri.ldapfilter.IFilterItem;
@@ -28,7 +29,7 @@ public class LocalServiceProviderImpl<S> implements IServiceProvider<S>
 		this.lock = new ReentrantLock();
 	}
 	@Override
-	public S get()
+	public IServiceReference<S> getService()
 	{
 		RegisteredService<S> registeredService = this.registeredService;
 		if(registeredService == null)
@@ -48,11 +49,11 @@ public class LocalServiceProviderImpl<S> implements IServiceProvider<S>
 			}
 			
 		}
-		return registeredService.supply();
+		return new ServiceReference(registeredService.supply());
 	}
 
 	@Override
-	public Optional<S> getOptional()
+	public Optional<IServiceReference<S>> getOptionalService()
 	{
 		// TODO Auto-generated method stub
 		return null;
@@ -70,6 +71,31 @@ public class LocalServiceProviderImpl<S> implements IServiceProvider<S>
 	{
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	public class ServiceReference implements IServiceReference<S>
+	{
+		private S service = null;
+		
+		protected ServiceReference(S service)
+		{
+			super();
+			this.service = service;
+		}
+		
+
+		@Override
+		public S get()
+		{
+			return this.service;
+		}
+
+		@Override
+		public void close() throws Exception
+		{
+			this.service = null;
+		}
+		
 	}
 
 }

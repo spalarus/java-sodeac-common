@@ -19,7 +19,7 @@ import javax.json.JsonObjectBuilder;
 import org.sodeac.common.misc.Version;
 import org.sodeac.common.xuri.URI;
 import org.sodeac.common.xuri.ldapfilter.IFilterItem;
-import org.sodeac.common.xuri.ldapfilter.LDAPFilterBuilder;
+import org.sodeac.common.xuri.ldapfilter.FilterBuilder;
 
 public interface IService
 {
@@ -28,7 +28,7 @@ public interface IService
 			.withServiceName("localserviceregistry")
 			.setFilter
 			(
-				LDAPFilterBuilder.andLinker()
+				FilterBuilder.andLinker()
 					.criteriaWithName("version").gte(new Version(1).toString())
 					.criteriaWithName("version").notGte(new Version(2).toString())
 				.build()
@@ -52,11 +52,13 @@ public interface IService
 		public void injectMembers(Object instance);
 	}
 	
+	public interface IServiceReference<S> extends Supplier<S>,AutoCloseable{}
+	
 	public interface IServiceProvider<S>
 	{
-		public S get();
+		public IServiceReference<S> getService(); // TODO getReference ??? get ServiceReference ???? 
 		
-		public Optional<S> getOptional();
+		public Optional<IServiceReference<S>> getOptionalService();
 		
 		public IServiceProvider<S> setAutoDisconnectTime(long ms);
 		
@@ -125,7 +127,7 @@ public interface IService
 			
 			public class SelectorAddressFilter
 			{
-				boolean preferencesPathItem = false;
+				private boolean preferencesPathItem = false;
 				
 				public URI build()
 				{

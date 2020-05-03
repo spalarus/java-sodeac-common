@@ -10,11 +10,11 @@
  *******************************************************************************/
 package org.sodeac.common.xuri.ldapfilter;
 
-public class LDAPFilterBuilder
+public class FilterBuilder
 {
-	private static final LDAPFilterBuilder INSTANCE = new LDAPFilterBuilder();
+	private static final FilterBuilder INSTANCE = new FilterBuilder();
 	
-	private LDAPFilterBuilder()
+	private FilterBuilder()
 	{
 		super();
 	}

@@ -12,22 +12,22 @@ public class LDAPFilterBuilderTest
 	@Test
 	public void test001SimpleTest()
 	{
-		assertEquals("value should be correct", "(A=B)", LDAPFilterBuilder.andLinker().criteriaWithName("A").eq("B").build().toString());
-		assertEquals("value should be correct", "(!(A=B))", LDAPFilterBuilder.nandLinker().criteriaWithName("A").eq("B").build().toString());
+		assertEquals("value should be correct", "(A=B)", FilterBuilder.andLinker().criteriaWithName("A").eq("B").build().toString());
+		assertEquals("value should be correct", "(!(A=B))", FilterBuilder.nandLinker().criteriaWithName("A").eq("B").build().toString());
 	}
 	
 	@Test
 	public void test002OperatorTest()
 	{
-		assertEquals("value should be correct", "(A=B)", LDAPFilterBuilder.andLinker().criteriaWithName("A").eq("B").build().toString());
-		assertEquals("value should be correct", "(A~=B)", LDAPFilterBuilder.andLinker().criteriaWithName("A").approx("B").build().toString());
-		assertEquals("value should be correct", "(A>=B)", LDAPFilterBuilder.andLinker().criteriaWithName("A").gte("B").build().toString());
-		assertEquals("value should be correct", "(A<=B)", LDAPFilterBuilder.andLinker().criteriaWithName("A").lte("B").build().toString());
+		assertEquals("value should be correct", "(A=B)", FilterBuilder.andLinker().criteriaWithName("A").eq("B").build().toString());
+		assertEquals("value should be correct", "(A~=B)", FilterBuilder.andLinker().criteriaWithName("A").approx("B").build().toString());
+		assertEquals("value should be correct", "(A>=B)", FilterBuilder.andLinker().criteriaWithName("A").gte("B").build().toString());
+		assertEquals("value should be correct", "(A<=B)", FilterBuilder.andLinker().criteriaWithName("A").lte("B").build().toString());
 		
-		assertEquals("value should be correct", "(!(A=B))", LDAPFilterBuilder.nandLinker().criteriaWithName("A").eq("B").build().toString());
-		assertEquals("value should be correct", "(!(A~=B))", LDAPFilterBuilder.nandLinker().criteriaWithName("A").approx("B").build().toString());
-		assertEquals("value should be correct", "(!(A>=B))", LDAPFilterBuilder.nandLinker().criteriaWithName("A").gte("B").build().toString());
-		assertEquals("value should be correct", "(!(A<=B))", LDAPFilterBuilder.nandLinker().criteriaWithName("A").lte("B").build().toString());
+		assertEquals("value should be correct", "(!(A=B))", FilterBuilder.nandLinker().criteriaWithName("A").eq("B").build().toString());
+		assertEquals("value should be correct", "(!(A~=B))", FilterBuilder.nandLinker().criteriaWithName("A").approx("B").build().toString());
+		assertEquals("value should be correct", "(!(A>=B))", FilterBuilder.nandLinker().criteriaWithName("A").gte("B").build().toString());
+		assertEquals("value should be correct", "(!(A<=B))", FilterBuilder.nandLinker().criteriaWithName("A").lte("B").build().toString());
 	}
 	
 	@Test
@@ -36,7 +36,7 @@ public class LDAPFilterBuilderTest
 		assertEquals
 		(
 			"value should be correct", "(&(A=B)(C=D))", 
-			LDAPFilterBuilder.andLinker()
+			FilterBuilder.andLinker()
 				.criteriaWithName("A").eq("B")
 				.criteriaWithName("C").eq("D")
 			.build().toString()
@@ -45,7 +45,7 @@ public class LDAPFilterBuilderTest
 		assertEquals
 		(
 			"value should be correct", "(!(&(A=B)(C=D)))", 
-			LDAPFilterBuilder.nandLinker()
+			FilterBuilder.nandLinker()
 				.criteriaWithName("A").eq("B")
 				.criteriaWithName("C").eq("D")
 			.build().toString()
@@ -54,7 +54,7 @@ public class LDAPFilterBuilderTest
 		assertEquals
 		(
 			"value should be correct", "(|(A=B)(C=D))", 
-			LDAPFilterBuilder.orLinker()
+			FilterBuilder.orLinker()
 				.criteriaWithName("A").eq("B")
 				.criteriaWithName("C").eq("D")
 			.build().toString()
@@ -63,7 +63,7 @@ public class LDAPFilterBuilderTest
 		assertEquals
 		(
 			"value should be correct", "(!(|(A=B)(C=D)))", 
-			LDAPFilterBuilder.norLinker()
+			FilterBuilder.norLinker()
 				.criteriaWithName("A").eq("B")
 				.criteriaWithName("C").eq("D")
 			.build().toString()
@@ -76,7 +76,7 @@ public class LDAPFilterBuilderTest
 		assertEquals
 		(
 			"value should be correct", "(&(abc=123)(xyz=abc)(&(ABC<=1)(!(ABC<=1000)))(xyzF=abcA))", 
-			LDAPFilterBuilder.andLinker()
+			FilterBuilder.andLinker()
 				.criteriaWithName("abc").eq("123")
 				.criteriaWithName("xyz").eq("abc")
 				.nestedAndLinker()
@@ -90,7 +90,7 @@ public class LDAPFilterBuilderTest
 		assertEquals
 		(
 			"value should be correct", "(&(abc=123)(xyz=abc)(!(&(ABC<=1)(!(ABC<=1000))))(xyzF=abcA))", 
-			LDAPFilterBuilder.andLinker()
+			FilterBuilder.andLinker()
 				.criteriaWithName("abc").eq("123")
 				.criteriaWithName("xyz").eq("abc")
 				.nestedNandLinker()
@@ -104,7 +104,7 @@ public class LDAPFilterBuilderTest
 		assertEquals
 		(
 			"value should be correct", "(&(abc=123)(xyz=abc)(|(ABC<=1)(!(ABC<=1000)))(xyzF=abcA))", 
-			LDAPFilterBuilder.andLinker()
+			FilterBuilder.andLinker()
 				.criteriaWithName("abc").eq("123")
 				.criteriaWithName("xyz").eq("abc")
 				.nestedOrLinker()
@@ -118,7 +118,7 @@ public class LDAPFilterBuilderTest
 		assertEquals
 		(
 			"value should be correct", "(&(abc=123)(xyz=abc)(!(|(ABC<=1)(!(ABC<=1000))))(xyzF=abcA))", 
-			LDAPFilterBuilder.andLinker()
+			FilterBuilder.andLinker()
 				.criteriaWithName("abc").eq("123")
 				.criteriaWithName("xyz").eq("abc")
 				.nestedNorLinker()
@@ -133,7 +133,7 @@ public class LDAPFilterBuilderTest
 	@Test
 	public void test004EscapeTest()
 	{
-		Criteria criteria = (Criteria)LDAPFilterBuilder.andLinker().
+		Criteria criteria = (Criteria)FilterBuilder.andLinker().
 			criteriaWithName("A").eq("Please store the file in temp directory ( C:\\Temp )")
 		.build();
 		

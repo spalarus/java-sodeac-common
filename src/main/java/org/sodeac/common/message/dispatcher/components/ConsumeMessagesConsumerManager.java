@@ -39,12 +39,12 @@ import org.sodeac.common.message.dispatcher.api.IDispatcherChannelSystemService;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelTask;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelTaskContext;
 import org.sodeac.common.xuri.ldapfilter.IFilterItem;
-import org.sodeac.common.xuri.ldapfilter.LDAPFilterBuilder;
+import org.sodeac.common.xuri.ldapfilter.FilterBuilder;
 
 @Component(service={IDispatcherChannelSystemManager.class,IDispatcherChannelSystemService.class})
 public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemManager, IOnChannelAttach<Object>, IOnTaskTimeout<Object>, IOnMessageStoreSnapshot<Object>, IOnMessageRemoveSnapshot<Object>, IOnChannelSignal<Object>, IDispatcherChannelSystemService<Object>
 {
-	public static final IFilterItem MATCH_FILTER = LDAPFilterBuilder.andLinker().criteriaWithName(ConsumeMessagesConsumerManager.class.getCanonicalName()).eq(Boolean.TRUE.toString()).build();
+	public static final IFilterItem MATCH_FILTER = FilterBuilder.andLinker().criteriaWithName(ConsumeMessagesConsumerManager.class.getCanonicalName()).eq(Boolean.TRUE.toString()).build();
 	public static final String MATCH_NAME = "Consume Messages Consumer Manager";
 	public static final String SERVICE_NAME = "Consume Messages Consumer Service";
 	public static final String SERVICE_ID = ConsumeMessagesConsumerManager.class.getCanonicalName() + ".Service";

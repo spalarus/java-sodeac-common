@@ -14,7 +14,7 @@ import java.util.Map;
 
 import org.sodeac.common.misc.Driver.IDriver;
 import org.sodeac.common.xuri.ldapfilter.IFilterItem;
-import org.sodeac.common.xuri.ldapfilter.LDAPFilterBuilder;
+import org.sodeac.common.xuri.ldapfilter.FilterBuilder;
 
 /**
  * Channel components are services bounded to any number of {@link IDispatcherChannel}s.
@@ -34,6 +34,6 @@ public interface IDispatcherChannelComponent
 	@SuppressWarnings("rawtypes")
 	public static IFilterItem getAdapterMatchFilter(Class adapterClass)
 	{
-		return LDAPFilterBuilder.andLinker().criteriaWithName(adapterClass.getCanonicalName()).eq("*").build();
+		return FilterBuilder.andLinker().criteriaWithName(adapterClass.getCanonicalName()).eq("*").build();
 	}
 }

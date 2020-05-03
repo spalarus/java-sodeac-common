@@ -13,7 +13,7 @@ import org.sodeac.common.IService.ServiceRegistrationAddress;
 import org.sodeac.common.IService.ServiceSelectorAddress;
 import org.sodeac.common.misc.Version;
 import org.sodeac.common.xuri.URI;
-import org.sodeac.common.xuri.ldapfilter.LDAPFilterBuilder;
+import org.sodeac.common.xuri.ldapfilter.FilterBuilder;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class LocalServiceTest
@@ -39,18 +39,18 @@ public class LocalServiceTest
 					.withServiceName("TestService")
 					.setFilter
 					(
-						LDAPFilterBuilder.andLinker()
+						FilterBuilder.andLinker()
 							.criteriaWithName("version").gte(new Version(1).toString())
 							.criteriaWithName("version").notGte(new Version(2).toString())
 						.build()
 					)
 					.scoreThePreferenceFilter
 					(
-						LDAPFilterBuilder.andLinker().criteriaWithName("version").gte(new Version(1,5).toString()).build()
+						FilterBuilder.andLinker().criteriaWithName("version").gte(new Version(1,5).toString()).build()
 					).with(1000).points()
 					.scoreThePreferenceFilter
 					(
-						LDAPFilterBuilder.andLinker().criteriaWithName("writable").eq(Boolean.TRUE.toString()).build()
+						FilterBuilder.andLinker().criteriaWithName("writable").eq(Boolean.TRUE.toString()).build()
 					).with(2000).points()
 				.build();
 		
@@ -65,7 +65,7 @@ public class LocalServiceTest
 		IServiceRegistry serviceRegistry1 = LocalService.getLocalServiceRegistryImpl();
 		assertNotNull("value should no be null",serviceRegistry1);
 		
-		IServiceRegistry serviceRegistry2 = LocalService.getServiceProvider(IServiceRegistry.class, IService.URI_SERVICE_LOCATOR_SERVICE_REGISTRY).get();
+		IServiceRegistry serviceRegistry2 = LocalService.getServiceProvider(IServiceRegistry.class, IService.URI_SERVICE_LOCATOR_SERVICE_REGISTRY).getService().get();
 		assertNotNull("value should no be null",serviceRegistry2);
 		
 		assertSame("value shuld be correct",serviceRegistry1, serviceRegistry2);
