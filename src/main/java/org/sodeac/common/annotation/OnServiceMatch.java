@@ -10,24 +10,28 @@
  *******************************************************************************/
 package org.sodeac.common.annotation;
 
-import static java.lang.annotation.ElementType.TYPE;
+import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 import java.lang.annotation.Documented;
-import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
+import java.util.function.Consumer;
 
 import org.sodeac.common.IService;
+import org.sodeac.common.IService.IServiceReference;
 
 @Documented
 @Retention(RUNTIME)
-@Target(TYPE)
-@Repeatable(value=ServiceRegistrations.class)
-public @interface ServiceRegistration
+@Target(FIELD)
+public @interface OnServiceMatch
 {
-	String name() default IService.REPLACED_BY_CLASS_NAME;
-	String domain() default IService.REPLACED_BY_PACKAGE_NAME;
-	Version version() default @Version(major = -1, minor = -1, service= -1);
-	Class<?>[] serviceType();
+	Class<? extends Consumer<IService.IServiceReference<?>>> trigger() default NoTrigger.class;
+	int order() default 1080;
+	
+	public class NoTrigger implements Consumer<IService.IServiceReference<?>>
+	{
+		@Override
+		public void accept(IServiceReference<?> t){}
+	}
 }

@@ -2,7 +2,6 @@ package org.sodeac.common.impl;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -53,13 +52,6 @@ public class LocalServiceProviderImpl<S> implements IServiceProvider<S>
 	}
 
 	@Override
-	public Optional<IServiceReference<S>> getOptionalService()
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public IServiceProvider<S> setAutoDisconnectTime(long ms)
 	{
 		// TODO Auto-generated method stub
@@ -95,7 +87,28 @@ public class LocalServiceProviderImpl<S> implements IServiceProvider<S>
 		{
 			this.service = null;
 		}
+
+
+		@Override
+		public IServiceReference<S> getServiceProvider()
+		{
+			// TODO Auto-generated method stub
+			return null;
+		}
 		
+	}
+
+	@Override
+	public Object getClient()
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public boolean isMatched()
+	{
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 }

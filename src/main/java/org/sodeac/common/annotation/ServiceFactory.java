@@ -14,20 +14,27 @@ import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 import java.lang.annotation.Documented;
-import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
+import java.util.function.Function;
 
-import org.sodeac.common.IService;
+import org.sodeac.common.IService.IFactoryEnvironment;
+import org.sodeac.common.impl.LocalServiceRegistryImpl;
 
 @Documented
 @Retention(RUNTIME)
 @Target(TYPE)
-@Repeatable(value=ServiceRegistrations.class)
-public @interface ServiceRegistration
+public @interface ServiceFactory
 {
-	String name() default IService.REPLACED_BY_CLASS_NAME;
-	String domain() default IService.REPLACED_BY_PACKAGE_NAME;
-	Version version() default @Version(major = -1, minor = -1, service= -1);
-	Class<?>[] serviceType();
+	int minSize() default 1;
+	int maxSize() default 1;
+	int initialSize() default 0;
+	boolean shared() default true;
+	boolean requireConfiguration() default false;
+	Class<? extends Function<IFactoryEnvironment<?>,?>> factoryClass() default LocalServiceRegistryImpl.DefaultFactory.class;
+	ServiceRegistration[] registration() default{};
+	StringProperty[] stringProperty() default{};
+	BooleanProperty[] booleanProperty() default{};
+	DecimalProperty[] decimalProperty() default{};
+	IntegerProperty[] integerProperty() default{};
 }

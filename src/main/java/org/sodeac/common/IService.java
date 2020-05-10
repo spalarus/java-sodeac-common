@@ -10,7 +10,6 @@
  *******************************************************************************/
 package org.sodeac.common;
 
-import java.util.Optional;
 import java.util.function.Supplier;
 
 import javax.json.Json;
@@ -35,6 +34,9 @@ public interface IService
 			)
 			.build();
 	
+	public static final String REPLACED_BY_CLASS_NAME = "<REPLACED__BY__CLASS__NAME>";
+	public static final String REPLACED_BY_PACKAGE_NAME = "<REPLACED__BY__PACKAGE__NAME>";
+	
 	/**
 	 * Get service provider 
 	 * 
@@ -52,17 +54,34 @@ public interface IService
 		public void injectMembers(Object instance);
 	}
 	
-	public interface IServiceReference<S> extends Supplier<S>,AutoCloseable{}
+	public interface IServiceReference<S> extends Supplier<S>,AutoCloseable
+	{
+		public IServiceReference<S> getServiceProvider();
+	}
 	
 	public interface IServiceProvider<S>
 	{
 		public IServiceReference<S> getService(); // TODO getReference ??? get ServiceReference ???? 
 		
-		public Optional<IServiceReference<S>> getOptionalService();
+		// TODO public Optional<IServiceReference<S>> getOptionalService();
 		
 		public IServiceProvider<S> setAutoDisconnectTime(long ms);
 		
 		public IServiceProvider<S> disconnect();
+		
+		public Object getClient();
+		
+		public boolean isMatched();
+	}
+	
+	public interface IOnServiceReferenceAttach<S>
+	{
+		public void onServiceReferenceAttach(IServiceReference<S> serviceReference);
+	}
+	
+	public interface IOnServiceReferenceDetach<S>
+	{
+		public void onServiceReferenceDetach(IServiceReference<S> serviceReference);
 	}
 	
 	public interface IServiceRegistry
@@ -94,6 +113,15 @@ public interface IService
 			public void close(); // no IServiceProvider.get() ... anymore / providers update to another Service
 			public void dispose(); // hard unregister
 		}
+	}
+	
+	public interface IFactoryEnvironment<S>
+	{
+		public Class<?> getReferenceClass();
+		public Class<S> getServiceClass();
+		public Object getConfiguration();
+		public IServiceProvider<S> getInitialServiceProvider();
+		public boolean isRequireConfiguration();
 	}
 	
 	public class ServiceSelectorAddress

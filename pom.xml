@@ -7,7 +7,7 @@
   <version>0.6.1</version>
   
   <name>Sodeac Common</name>
-  <description>Helper tools for sodeac project</description>
+  <description>Core framework for sodeac project</description>
   <packaging>bundle</packaging>
   
  <properties>
@@ -164,7 +164,7 @@
         <version>4.1.0</version>
         <configuration>
           <instructions>
-          	<Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
+          	<Bundle-SymbolicName>${project.artifactId};singleton:=true</Bundle-SymbolicName>
             <Bundle-Version>${bundle.version}</Bundle-Version>
             <Bundle-RequiredExecutionEnvironment>JavaSE-1.8</Bundle-RequiredExecutionEnvironment>
             <Bundle-ActivationPolicy>lazy</Bundle-ActivationPolicy>
@@ -219,15 +219,16 @@
             <phase>generate-sources</phase>
             <configuration></configuration>
             <goals>
+              <goal>generate-typedtree-beans</goal>
               <goal>generate-service-descriptor</goal>
             </goals>
           </execution>
         </executions>
       </plugin-->
     </plugins>
-    <pluginManagement>
+    <!--pluginManagement>
     	<plugins>
-    		<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
+    		<- for Eclipse m2e settings only /  has no effect to plain maven ->
     		<plugin>
     			<groupId>org.eclipse.m2e</groupId>
     			<artifactId>lifecycle-mapping</artifactId>
@@ -248,6 +249,9 @@
     									<goal>
     										generate-service-descriptor
     									</goal>
+    									<goal>
+    										generate-typedtree-beans
+    									</goal>
     								</goals>
     							</pluginExecutionFilter>
     							<action>
@@ -259,7 +263,7 @@
     			</configuration>
     		</plugin>
     	</plugins>
-    </pluginManagement>
+    </pluginManagement-->
   </build>
   
   <profiles>

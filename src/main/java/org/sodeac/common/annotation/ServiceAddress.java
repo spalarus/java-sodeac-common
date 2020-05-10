@@ -22,7 +22,7 @@ import java.lang.annotation.Target;
 @Target(FIELD)
 public @interface ServiceAddress
 {
-	String servicename();
+	String name();
 	String domain();
 	Version minVersion() default @Version(major = 0, minor = 0);
 	Version maxVersion() default @Version(major = Integer.MAX_VALUE, minor = Integer.MAX_VALUE, service = Integer.MAX_VALUE);

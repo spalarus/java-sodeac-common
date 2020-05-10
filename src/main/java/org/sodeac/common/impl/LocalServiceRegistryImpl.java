@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.sodeac.common.impl;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +20,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.json.JsonNumber;
@@ -26,10 +29,12 @@ import javax.json.JsonString;
 import javax.json.JsonValue;
 import javax.json.JsonValue.ValueType;
 
+import org.sodeac.common.IService.IFactoryEnvironment;
 import org.sodeac.common.IService.IServiceProvider;
 import org.sodeac.common.IService.IServiceRegistry;
 import org.sodeac.common.IService.ServiceRegistrationAddress;
 import org.sodeac.common.function.ConplierBean;
+import org.sodeac.common.misc.RuntimeWrappedException;
 import org.sodeac.common.misc.Version;
 import org.sodeac.common.xuri.IExtension;
 import org.sodeac.common.xuri.PathSegment;
@@ -504,5 +509,74 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 			}
 		}
 		
+	}
+	
+	public static class DefaultFactory implements Function<IFactoryEnvironment<?>, Object>
+	{
+
+		@Override
+		public Object apply(IFactoryEnvironment<?> t)
+		{
+			try
+			{
+				Class<?> serviceClass = t.getServiceClass();
+				
+				constr:
+				for(Constructor constructor : serviceClass.getDeclaredConstructors())
+				{
+					if(! constructor.isAccessible())
+					{
+						continue;
+					}
+					
+					int configurationParameter = -1;
+					boolean unknownParameter = false;
+					int index = 0;
+					param:
+					for(Type type : constructor.getGenericParameterTypes())
+					{
+						if(t.getConfiguration() != null)
+						{
+							if(((Class)type).isInstance(t.getConfiguration()))
+							{
+								configurationParameter = index;
+								continue param;
+							}
+						}
+						
+						unknownParameter = true;
+					}
+					
+					if(unknownParameter)
+					{
+						continue constr;
+					}
+					
+					if(configurationParameter > -1)
+					{
+						return constructor.newInstance(t.getConfiguration());
+					}
+				}
+				
+				if(t.isRequireConfiguration())
+				{
+					return null;
+				}
+				
+				return t.getServiceClass().newInstance();
+			}
+			catch (RuntimeException e) 
+			{
+				throw e;
+			}
+			catch (Exception e) 
+			{
+				throw new RuntimeWrappedException(e);
+			}
+			catch (Error e) 
+			{
+				throw new RuntimeWrappedException(e);
+			}
+		}
 	}
 }

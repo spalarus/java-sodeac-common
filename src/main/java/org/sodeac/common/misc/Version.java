@@ -62,6 +62,15 @@ public class Version implements Comparable<Version>
 		return this.major + "." + this.minor + "." + this.service;
 	}
 	
+	public static Version fromAnnotation(org.sodeac.common.annotation.Version version)
+	{
+		if(version.major() == -1 && version.minor() == -1 && version.service() == -1)
+		{
+			return null;
+		}
+		return new Version(version.major(),version.minor(),version.service());
+	}
+	
 	public static Version fromString(String versionText)
 	{
 		int major = 1;
