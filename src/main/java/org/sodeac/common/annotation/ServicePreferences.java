@@ -20,11 +20,7 @@ import java.lang.annotation.Target;
 @Documented
 @Retention(RUNTIME)
 @Target(FIELD)
-public @interface ServiceAddress
+public @interface ServicePreferences
 {
-	String name() default "";
-	String domain() default "";
-	Version minVersion() default @Version(major = -1, minor = -1, service = -1);
-	Version notBeforeVersion() default @Version(major = -1, minor = -1, service = -1);
-	String filter() default "";
+	ServicePreference[] value();
 }

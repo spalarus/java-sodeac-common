@@ -18,15 +18,12 @@ import org.sodeac.common.IService.IServiceProvider;
 import org.sodeac.common.annotation.ServiceFactory;
 import org.sodeac.common.annotation.ServiceRegistration;
 import org.sodeac.common.annotation.ServiceSatisfiedCheck;
-import org.sodeac.common.annotation.StringProperty;
 import org.sodeac.common.annotation.Version;
 import org.sodeac.common.jdbc.TypedTreeJDBCCruder;
 
 @ServiceFactory(factoryClass=NodeConfigurationImpl.LocalServiceFactory.class)
-@ServiceRegistration(serviceType= {INodeConfiguration.class,String.class})
+@ServiceRegistration(serviceType=INodeConfiguration.class)
 @Version(major=0,minor=6)
-@StringProperty(key="id",value="default")
-@StringProperty(key="name",value="Default")
 public class NodeConfigurationImpl implements INodeConfiguration
 {
 	private NodeConfigurationImpl()

@@ -14,17 +14,16 @@ import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 import java.lang.annotation.Documented;
+import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 @Documented
 @Retention(RUNTIME)
 @Target(FIELD)
-public @interface ServiceAddress
+@Repeatable(value=ServicePreferences.class)
+public @interface ServicePreference
 {
-	String name() default "";
-	String domain() default "";
-	Version minVersion() default @Version(major = -1, minor = -1, service = -1);
-	Version notBeforeVersion() default @Version(major = -1, minor = -1, service = -1);
-	String filter() default "";
+	int score();
+	String filter();
 }
