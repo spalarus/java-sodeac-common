@@ -171,6 +171,7 @@
             <Implementation-Build>${scmBranch}@r${buildNumber}</Implementation-Build>
             <Export-Package>
             	org.sodeac.common;version="${bundle.version}",
+            	org.sodeac.common.annotation;version="${bundle.version}",
             	org.sodeac.common.expression;version="${bundle.version}",
             	org.sodeac.common.snapdeque;version="${bundle.version}",
             	org.sodeac.common.function;version="${bundle.version}",
