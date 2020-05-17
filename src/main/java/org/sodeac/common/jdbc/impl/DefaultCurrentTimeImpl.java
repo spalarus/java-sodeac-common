@@ -11,7 +11,15 @@
 package org.sodeac.common.jdbc.impl;
 
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.sodeac.common.jdbc.schemax.IDefaultCurrentTime;
+import org.sodeac.common.misc.OSGiDriverRegistry;
 
-@Component(service=IDefaultCurrentTime.class,immediate=true)
-public class DefaultCurrentTimeImpl implements IDefaultCurrentTime{}
+@Component(service=IDefaultCurrentTime.class,property="defaultdriver=true")
+public class DefaultCurrentTimeImpl implements IDefaultCurrentTime
+{
+	@Reference(cardinality=ReferenceCardinality.MANDATORY,policy=ReferencePolicy.STATIC)
+	protected volatile OSGiDriverRegistry internalBootstrapDep;
+}

@@ -18,7 +18,6 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 
-import org.osgi.service.component.annotations.Component;
 import org.sodeac.common.xuri.ComponentType;
 import org.sodeac.common.xuri.ExtensionHandleObject;
 import org.sodeac.common.xuri.FormatException;
@@ -30,7 +29,6 @@ import org.sodeac.common.xuri.IDecodingExtensionHandler;
  * @author Sebastian Palarus
  *
  */
-@Component(service=IDecodingExtensionHandler.class,immediate=true)
 public class JsonDecodingHandler implements IDecodingExtensionHandler<JsonObject>, Serializable
 {
 	

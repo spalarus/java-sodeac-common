@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -17,15 +17,21 @@ import java.sql.SQLException;
 import java.util.Map;
 
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
+import org.sodeac.common.misc.OSGiDriverRegistry;
 import org.sodeac.common.misc.Driver.IDriver;
 import org.sodeac.common.model.dbschema.DBSchemaNodeType;
 import org.sodeac.common.model.dbschema.TableNodeType;
 import org.sodeac.common.typedtree.BranchNode;
 
-@Component(service=IDBSchemaUtilsDriver.class,immediate=true)
+@Component(service=IDBSchemaUtilsDriver.class,property= {"defaultdriver=true","type=h2"})
 public class H2DBUtilDriver implements IDBSchemaUtilsDriver
 {
+	@Reference(cardinality=ReferenceCardinality.MANDATORY,policy=ReferencePolicy.STATIC)
+	protected volatile OSGiDriverRegistry internalBootstrapDep;
 
 	@Override
 	public int driverIsApplicableFor(Map<String, Object> properties)

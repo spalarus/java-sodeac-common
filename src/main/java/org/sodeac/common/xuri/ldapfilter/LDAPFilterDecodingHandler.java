@@ -13,7 +13,6 @@ package org.sodeac.common.xuri.ldapfilter;
 import java.io.Serializable;
 import java.util.LinkedList;
 
-import org.osgi.service.component.annotations.Component;
 import org.sodeac.common.xuri.ComponentType;
 import org.sodeac.common.xuri.ExtensionHandleObject;
 import org.sodeac.common.xuri.FormatException;
@@ -27,7 +26,6 @@ import org.sodeac.common.xuri.IDecodingExtensionHandler;
  * @version 1.0
  *
  */
-@Component(service=IDecodingExtensionHandler.class,immediate=true)
 public class LDAPFilterDecodingHandler implements IDecodingExtensionHandler<IFilterItem>, Serializable
 {
 	/**

@@ -18,18 +18,24 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.sodeac.common.jdbc.IColumnType;
 import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
 import org.sodeac.common.misc.Driver;
+import org.sodeac.common.misc.OSGiDriverRegistry;
 import org.sodeac.common.misc.Driver.IDriver;
 import org.sodeac.common.model.dbschema.ColumnNodeType;
 import org.sodeac.common.model.dbschema.DBSchemaNodeType;
 import org.sodeac.common.model.dbschema.TableNodeType;
 import org.sodeac.common.typedtree.BranchNode;
 
-@Component(service=IDBSchemaUtilsDriver.class,immediate=true)
+@Component(service=IDBSchemaUtilsDriver.class,property= {"defaultdriver=true","type=postgresql"})
 public class PGDBUtilDriver implements IDBSchemaUtilsDriver
 {
+	@Reference(cardinality=ReferenceCardinality.MANDATORY,policy=ReferencePolicy.STATIC)
+	protected volatile OSGiDriverRegistry internalBootstrapDep;
 
 	@Override
 	public int driverIsApplicableFor(Map<String, Object> properties)

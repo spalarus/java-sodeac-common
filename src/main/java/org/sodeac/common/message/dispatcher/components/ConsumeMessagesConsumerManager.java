@@ -20,6 +20,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
 
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.sodeac.common.message.dispatcher.api.ComponentBindingSetup;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannel;
 import org.sodeac.common.message.dispatcher.api.IMessage;
@@ -32,6 +35,7 @@ import org.sodeac.common.message.dispatcher.components.ConsumeMessagesPlannerMan
 import org.sodeac.common.message.dispatcher.setup.MessageConsumerFeature.ConsumerRule;
 import org.sodeac.common.message.dispatcher.setup.MessageConsumerFeature.SpecialErrorHandlerDefinition;
 import org.sodeac.common.message.dispatcher.setup.MessageDispatcherChannelSetup.MessageConsumeHelper;
+import org.sodeac.common.misc.OSGiDriverRegistry;
 import org.sodeac.common.misc.RuntimeWrappedException;
 import org.sodeac.common.snapdeque.DequeSnapshot;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelSystemManager;
@@ -41,9 +45,12 @@ import org.sodeac.common.message.dispatcher.api.IDispatcherChannelTaskContext;
 import org.sodeac.common.xuri.ldapfilter.IFilterItem;
 import org.sodeac.common.xuri.ldapfilter.FilterBuilder;
 
-@Component(service={IDispatcherChannelSystemManager.class,IDispatcherChannelSystemService.class})
+@Component(service={IDispatcherChannelSystemManager.class,IDispatcherChannelSystemService.class}, property= {"type=consume-messages","role=consumer"})
 public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemManager, IOnChannelAttach<Object>, IOnTaskTimeout<Object>, IOnMessageStoreSnapshot<Object>, IOnMessageRemoveSnapshot<Object>, IOnChannelSignal<Object>, IDispatcherChannelSystemService<Object>
 {
+	@Reference(cardinality=ReferenceCardinality.MANDATORY,policy=ReferencePolicy.STATIC)
+	protected volatile OSGiDriverRegistry internalBootstrapDep;
+	
 	public static final IFilterItem MATCH_FILTER = FilterBuilder.andLinker().criteriaWithName(ConsumeMessagesConsumerManager.class.getCanonicalName()).eq(Boolean.TRUE.toString()).build();
 	public static final String MATCH_NAME = "Consume Messages Consumer Manager";
 	public static final String SERVICE_NAME = "Consume Messages Consumer Service";

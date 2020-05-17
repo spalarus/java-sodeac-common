@@ -14,7 +14,11 @@ import java.io.Serializable;
 import java.util.Map;
 
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.sodeac.common.misc.Driver.IDriver;
+import org.sodeac.common.misc.OSGiDriverRegistry;
 import org.sodeac.common.xuri.IDecodingExtensionHandler;
 import org.sodeac.common.xuri.IEncodingExtensionHandler;
 import org.sodeac.common.xuri.IExtension;
@@ -26,9 +30,13 @@ import org.sodeac.common.xuri.IExtension;
  * @since 1.0
  * @version 1.0
  */
-@Component(service=IExtension.class,immediate=true)
+@Component(service=IExtension.class,property="type=" + LDAPFilterExtension.TYPE)
 public class LDAPFilterExtension implements IExtension<IFilterItem>, Serializable
 {
+	
+	@Reference(cardinality=ReferenceCardinality.MANDATORY,policy=ReferencePolicy.STATIC)
+	protected volatile OSGiDriverRegistry internalBootstrapDep;
+	
 	/**
 	 * 
 	 */

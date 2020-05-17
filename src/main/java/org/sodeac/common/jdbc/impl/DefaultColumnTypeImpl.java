@@ -20,7 +20,11 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.sodeac.common.misc.Driver;
+import org.sodeac.common.misc.OSGiDriverRegistry;
 import org.sodeac.common.misc.Driver.IDriver;
 import org.sodeac.common.model.dbschema.ColumnNodeType;
 import org.sodeac.common.model.dbschema.DBSchemaNodeType;
@@ -30,9 +34,12 @@ import org.sodeac.common.jdbc.IColumnType;
 import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
 import org.sodeac.common.jdbc.IDefaultValueExpressionDriver;
 
-@Component(name="DefaultColumnType", service=IColumnType.class)
+@Component(name="DefaultColumnType", service=IColumnType.class, property="defaultdriver=true")
 public class DefaultColumnTypeImpl implements IColumnType
 {
+	@Reference(cardinality=ReferenceCardinality.MANDATORY,policy=ReferencePolicy.STATIC)
+	protected volatile OSGiDriverRegistry internalBootstrapDep;
+	
 	private static Set<String> supportedTypes;
 	
 	static

@@ -6,6 +6,8 @@
     </factory>
   </factories>
   <references>
-    <reference name="cruderProvider" service-type="org.sodeac.common.jdbc.TypedTreeJDBCCruder" service-name="TypedTreeJDBCCruder" service-domain="org.sodeac.common.jdbc"></reference>
+    <reference name="cruderProvider" service-type="org.sodeac.common.jdbc.TypedTreeJDBCCruder" service-name="TypedTreeJDBCCruder" service-domain="org.sodeac.common.jdbc" service-min-version="1.0.0" service-version-not-before="2.0.0" service-filter="(x=a)">
+      <preference score="1000">l=n</preference>
+    </reference>
   </references>
 </servicecomponent>

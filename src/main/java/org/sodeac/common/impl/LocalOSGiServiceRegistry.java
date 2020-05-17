@@ -31,12 +31,18 @@ import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
 @Component(immediate=true,service=LocalOSGiServiceRegistry.class)
 public class LocalOSGiServiceRegistry
 {
+	@Reference(cardinality=ReferenceCardinality.MANDATORY,policy=ReferencePolicy.STATIC)
+	protected volatile InternalDriverLoaded internalBootstrapDep;
+	
 	private ComponentContext componentContext;
 	protected static LocalOSGiServiceRegistry INSTANCE;
 	private Lock lock;
@@ -55,13 +61,14 @@ public class LocalOSGiServiceRegistry
 		LocalOSGiServiceRegistry.INSTANCE = this;
 		
 		LocalService.getLocalServiceRegistryImpl();
-		/*componentContext.getBundleContext().addServiceListener(new ServiceListener()
+		
+		/*componentContext.getBundleContext().addBundleListener(new SynchronousBundleListener()
 		{
 			
 			@Override
-			public void serviceChanged(ServiceEvent event)
+			public void bundleChanged(BundleEvent event)
 			{
-				System.out.println(event.getType() + " / " + event.getSource() + " / " + event.getServiceReference());
+				System.out.println(event.getType() + " / " + event.getSource() + " / " + event.getBundle() + " / " + event.getOrigin());
 				
 			}
 		});*/

@@ -234,6 +234,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		private volatile Connection mainConnection = null;
 		private volatile IDBSchemaUtilsDriver mainUtilsDriver = null;
 		private Map<String,PreparedStatement> preparedStatementCache = new HashMap<String,PreparedStatement>();
+		private Map<String,PreparedStatement> preparedStatementResultSetCache = new HashMap<String,PreparedStatement>();
 		private boolean isPostgreSQL = false;
 		private boolean isH2 = false;
 		
@@ -280,6 +281,16 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				}
 				catch (Exception e) {}
 			}
+			for(PreparedStatement preparedStatement : this.preparedStatementResultSetCache.values())
+			{
+				try
+				{
+					preparedStatement.close();
+				}
+				catch (Exception e) {}
+				catch (Error e) {}
+			}
+			this.preparedStatementResultSetCache.clear();
 			for(PreparedStatement preparedStatement : this.preparedStatementCache.values())
 			{
 				try
@@ -287,6 +298,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 					preparedStatement.close();
 				}
 				catch (Exception e) {}
+				catch (Error e) {}
 			}
 			this.preparedStatementCache.clear();
 			try
@@ -691,6 +703,20 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				this.values = null;
 				this.type = null;
 				this.childType = null;
+			}
+			
+			public PreparedStatement getPreparedStatement(String sql, int resultSetType,int resultSetConcurrency) throws SQLException
+			{
+				String key = "_" + resultSetType + "_" + resultSetConcurrency + "_" + sql; 
+				
+				PreparedStatement preparedStatement = Session.this.preparedStatementResultSetCache.get(key);
+				if((preparedStatement != null) && (! preparedStatement.isClosed()))
+				{
+					return preparedStatement;
+				}
+				preparedStatement = connection.prepareStatement(sql,resultSetType,resultSetConcurrency);
+				Session.this.preparedStatementResultSetCache.put(key,preparedStatement);
+				return preparedStatement;				
 			}
 			
 			public PreparedStatement getPreparedStatement(String sql, boolean returnGeneratedKey) throws SQLException

@@ -22,7 +22,7 @@ import org.sodeac.common.message.dispatcher.api.IDispatcherChannelSystemManager;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelSystemService;
 import org.sodeac.common.misc.OSGiDriverRegistry;
 
-@Component(immediate=true)
+@Component(immediate=true,service=MessageDispatcherManagerComponent.class)
 public class MessageDispatcherManagerComponent
 {
 	

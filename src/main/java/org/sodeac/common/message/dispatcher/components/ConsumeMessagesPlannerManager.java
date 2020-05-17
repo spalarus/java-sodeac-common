@@ -21,6 +21,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.sodeac.common.message.dispatcher.api.ComponentBindingSetup;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannel;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelComponent;
@@ -32,15 +35,19 @@ import org.sodeac.common.message.dispatcher.components.ConsumeMessagesConsumerMa
 import org.sodeac.common.message.dispatcher.setup.MessageConsumerFeature;
 import org.sodeac.common.message.dispatcher.setup.MessageConsumerFeature.ConsumerRule;
 import org.sodeac.common.message.dispatcher.setup.MessageConsumerFeature.ConsumerRule.TriggerByMessageAgeMode;
+import org.sodeac.common.misc.OSGiDriverRegistry;
 import org.sodeac.common.snapdeque.DequeSnapshot;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelSystemManager;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelSystemService;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannelTaskContext;
 import org.sodeac.common.xuri.ldapfilter.IFilterItem;
 
-@Component(service={IDispatcherChannelSystemManager.class,IDispatcherChannelSystemService.class})
+@Component(service={IDispatcherChannelSystemManager.class,IDispatcherChannelSystemService.class}, property= {"type=consume-messages","role=planner"})
 public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemManager,IOnChannelAttach<Object>, IOnChannelDetach<Object>, IDispatcherChannelSystemService<Object>
 {
+	@Reference(cardinality=ReferenceCardinality.MANDATORY,policy=ReferencePolicy.STATIC)
+	protected volatile OSGiDriverRegistry internalBootstrapDep;
+	
 	public static final IFilterItem MATCH_FILTER = IDispatcherChannelComponent.getAdapterMatchFilter(MessageConsumerFeature.MessageConsumerFeatureConfiguration.class);
 	
 	public static final String MANAGER_NAME = "Consume Messages Planner Manager";
