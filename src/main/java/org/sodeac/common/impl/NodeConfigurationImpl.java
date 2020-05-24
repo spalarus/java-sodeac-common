@@ -33,15 +33,15 @@ public class NodeConfigurationImpl implements INodeConfiguration
 		super();
 	}
 	
-	@ServiceAddress(domain="org.sodeac.common.jdbc",name="TypedTreeJDBCCruder",filter="(x=a)",minVersion= @Version(major=1,minor=0), notBeforeVersion=@Version(major=2,minor=0))
+	@ServiceAddress(domain="org.sodeac.common.jdbc",name="TypedTreeJDBCCruder",filter="(x=a)",minVersion=@Version(major=1,minor=0), beforeVersion=@Version(major=2,minor=0))
 	@ServicePreference(score=1000,filter=("l=n"))
 	@ServiceSatisfiedCheck(trigger=ServiceSatisfiedCheck.MatchRequired.class)
 	protected volatile IServiceProvider<TypedTreeJDBCCruder> cruderProvider;
 	
-	protected static class LocalServiceFactory implements Function<IFactoryEnvironment<?>,INodeConfiguration>
+	protected static class LocalServiceFactory implements Function<IFactoryEnvironment<?,?>,INodeConfiguration>
 	{
 		@Override
-		public INodeConfiguration apply(IFactoryEnvironment<?> t)
+		public INodeConfiguration apply(IFactoryEnvironment<?,?> t)
 		{
 			NodeConfigurationImpl nodeConfigurationImpl = new NodeConfigurationImpl();
 			return nodeConfigurationImpl;

@@ -46,7 +46,7 @@ import org.sodeac.common.typedtree.annotation.IgnoreIfFalse;
 import org.sodeac.common.typedtree.annotation.IgnoreIfNull;
 import org.sodeac.common.typedtree.annotation.IgnoreIfTrue;
 import org.sodeac.common.typedtree.annotation.Transient;
-import org.sodeac.common.typedtree.annotation.Version;
+import org.sodeac.common.annotation.Version;
 import org.sodeac.common.typedtree.annotation.XMLNodeList;
 
 // quick and dirty - poc

@@ -26,15 +26,17 @@ import org.sodeac.common.impl.LocalServiceRegistryImpl;
 @Target(TYPE)
 public @interface ServiceFactory
 {
-	int minSize() default 1;
+	int lowerScalingLimit() default 1;
 	int maxSize() default 1;
-	int initialSize() default 0;
+	int initialScaling() default 0;
 	boolean shared() default true;
-	boolean requireConfiguration() default false;
-	Class<? extends Function<IFactoryEnvironment<?>,?>> factoryClass() default LocalServiceRegistryImpl.DefaultFactory.class;
-	ServiceRegistration[] registration() default{};
+	Class<?> requiredConfigurationClass() default NoRequiredConfiguration.class;
+	Class<? extends Function<IFactoryEnvironment<?,?>,?>> factoryClass() default LocalServiceRegistryImpl.DefaultFactory.class;
+	ServiceRegistration[] registrations() default{};
 	StringProperty[] stringProperty() default{};
 	BooleanProperty[] booleanProperty() default{};
 	DecimalProperty[] decimalProperty() default{};
 	IntegerProperty[] integerProperty() default{};
+	
+	public class NoRequiredConfiguration{}
 }

@@ -32,6 +32,7 @@ import javax.json.JsonValue.ValueType;
 import org.sodeac.common.IService.IFactoryEnvironment;
 import org.sodeac.common.IService.IServiceProvider;
 import org.sodeac.common.IService.IServiceRegistry;
+import org.sodeac.common.IService.ServiceFactoryPolicy;
 import org.sodeac.common.IService.ServiceRegistrationAddress;
 import org.sodeac.common.function.ConplierBean;
 import org.sodeac.common.misc.RuntimeWrappedException;
@@ -75,11 +76,21 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 			if(instance == null)
 			{
 				instance = new LocalServiceRegistryImpl();
+				ConplierBean<IServiceRegistry> registrySupplier = new ConplierBean<>(instance);
 				instance.registerService
 				(
-					IServiceRegistry.class,
-					ServiceRegistrationAddress.newBuilder().forDomain("sodeac.org").withServiceName("localserviceregistry").andVersion(1, 0, 0).addOption("systemservice", true).build(), 
-					new ConplierBean<>(instance)
+					ServiceFactoryPolicy.newBuilder()
+						.defineServiceAsSingletonWithAutoCreation()
+						.supplyServiceInstanceToMultipleServiceClients()
+						.applyFactory(e -> registrySupplier.get()).forNewServiceInstance()
+						.addOption("systemservice", true)
+					.build(),
+					ServiceRegistrationAddress.newBuilder()
+						.forDomain("sodeac.org")
+						.withServiceName("localserviceregistry")
+						.andVersion(1, 0, 0)
+						.addType(IServiceRegistry.class)
+					.build()
 				);
 				INSTANCE = instance;
 			}
@@ -88,13 +99,20 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 	}
 	
 	@Override
-	public <S> IServiceRegistration registerService(Class<S> type, URI address, Supplier<? extends S> serviceReference)
+	public IServiceRegistration registerService(ServiceFactoryPolicy serviceFactoryPolicy,ServiceRegistrationAddress... serviceRegistrationAddresses)
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	/*@Override
+	public <S> IServiceRegistration registerService(Class<S> type, URI address,Function<IFactoryEnvironment<S>,S> serviceFactory)
 	{
 		Objects.requireNonNull(type, "Missing type");
 		Objects.requireNonNull(address, "Missing address");
-		Objects.requireNonNull(serviceReference, "Missing service reference");
+		Objects.requireNonNull(serviceFactory, "Missing service reference");
 		
-		RegisteredService service = new RegisteredService<>(type, address, serviceReference);
+		RegisteredService service = new RegisteredService<>(type, address, serviceFactory);
 		ServiceController serviceController = null;
 		lock.lock();
 		try
@@ -128,7 +146,7 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 		serviceController.addService(service);
 		
 		return service.serviceRegistration;
-	}
+	}*/
 	
 	protected <S> IServiceProvider<S> getServiceProvider(Class<S> type, URI serviceAddress)
 	{
@@ -358,7 +376,7 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 						return;
 					}
 					
-					if(check.serviceReference == registeredService.serviceReference)
+					if(check.serviceFactory == registeredService.serviceFactory)
 					{
 						return;
 					}
@@ -375,12 +393,12 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 	
 	protected class RegisteredService<S>
 	{
-		protected RegisteredService(Class<S> type, URI address, Supplier<? extends S> serviceReference)
+		protected RegisteredService(Class<S> type, URI address, Function<IFactoryEnvironment<S,?>,S> serviceFactory)
 		{
 			super();
 			this.registrationAddress = address;
 			this.type = type;
-			this.serviceReference = serviceReference;
+			this.serviceFactory = serviceFactory;
 			this.parse();
 		}
 		
@@ -476,7 +494,7 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 		}
 		
 		private URI registrationAddress = null;
-		private Supplier<? extends S> serviceReference = null;
+		private Function<IFactoryEnvironment<S,?>,S> serviceFactory = null;
 		private Class<S> type = null;
 		
 		private String domain = null;
@@ -490,7 +508,7 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 		
 		protected <S> S supply()
 		{
-			return (S)this.serviceReference.get();
+			return (S)this.serviceFactory.apply(null); // TODO  IFactoryEnvironment
 		}
 		
 		protected class ServiceRegistration implements IServiceRegistration
@@ -511,11 +529,11 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 		
 	}
 	
-	public static class DefaultFactory implements Function<IFactoryEnvironment<?>, Object>
+	public static class DefaultFactory implements Function<IFactoryEnvironment<?,?>, Object>
 	{
 
 		@Override
-		public Object apply(IFactoryEnvironment<?> t)
+		public Object apply(IFactoryEnvironment<?,?> t)
 		{
 			try
 			{

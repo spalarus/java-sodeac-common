@@ -4,7 +4,7 @@ import org.sodeac.common.typedtree.BranchNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.TypedTreeMetaModel;
 import org.sodeac.common.typedtree.annotation.Domain;
-import org.sodeac.common.typedtree.annotation.Version;
+import org.sodeac.common.annotation.Version;
 
 @Domain(name="test.sodeac.org",module="minimerchandisemanagement")
 @Version(major=0,minor=6)

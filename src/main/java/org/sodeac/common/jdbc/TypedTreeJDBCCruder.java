@@ -37,6 +37,7 @@ import javax.sql.DataSource;
 import org.sodeac.common.IService.IFactoryEnvironment;
 import org.sodeac.common.annotation.ServiceFactory;
 import org.sodeac.common.annotation.ServiceRegistration;
+import org.sodeac.common.annotation.StringProperty;
 import org.sodeac.common.function.ConplierBean;
 import org.sodeac.common.function.ExceptionCatchedConsumer;
 import org.sodeac.common.jdbc.TypedTreeJDBCCruder.ConvertEvent.ConvertEventProvider;
@@ -61,6 +62,7 @@ import org.sodeac.common.typedtree.annotation.SQLColumn.SQLColumnType;
 
 @ServiceFactory(factoryClass=TypedTreeJDBCCruder.LocalServiceFactory.class)
 @ServiceRegistration(serviceType=TypedTreeJDBCCruder.class)
+@StringProperty(key="a",value="b")
 public class TypedTreeJDBCCruder implements AutoCloseable 
 {
 	protected TypedTreeJDBCCruder()
@@ -78,10 +80,10 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 		return new TypedTreeJDBCCruder();
 	}
 	
-	protected static class LocalServiceFactory implements Function<IFactoryEnvironment<?>,TypedTreeJDBCCruder>
+	protected static class LocalServiceFactory implements Function<IFactoryEnvironment<?,?>,TypedTreeJDBCCruder>
 	{
 		@Override
-		public TypedTreeJDBCCruder apply(IFactoryEnvironment<?> t)
+		public TypedTreeJDBCCruder apply(IFactoryEnvironment<?,?> t)
 		{
 			TypedTreeJDBCCruder cruder = TypedTreeJDBCCruder.get();
 			cruder.softclose = true;
