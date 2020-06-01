@@ -178,7 +178,6 @@ public class MessageDispatcherManagerImpl implements IMessageDispatcherManager
 		lock.lock();
 		try
 		{
-			System.out.println("---- Register Manager " + channelManager + " " + this.registeredDispatcher.size());
 			for(MessageDispatcherImpl messageDispatcherImpl : this.registeredDispatcher.values())
 			{
 				messageDispatcherImpl.registerChannelManager(channelManager);
@@ -195,7 +194,6 @@ public class MessageDispatcherManagerImpl implements IMessageDispatcherManager
 		lock.lock();
 		try
 		{
-			System.out.println("---- UnRegister Manager " + channelManager + " " + this.registeredDispatcher.size());
 			for(MessageDispatcherImpl messageDispatcherImpl : this.registeredDispatcher.values())
 			{
 				messageDispatcherImpl.unregisterChannelManager(channelManager);

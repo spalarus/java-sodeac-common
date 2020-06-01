@@ -13,8 +13,10 @@ package org.sodeac.common;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -104,11 +106,27 @@ public interface IService
 		 * 
 		 * register a service
 		 * 
+		 * @param serviceName jmx name of Service
+		 * @param serviceImplementationClass class of service instance
 		 * @param serviceFactoryPolicy policy to manage service instance
 		 * @param serviceRegistrationAddresses addresses at which the service is registered
 		 * @return registration object
 		 */
-		public IServiceRegistration registerService(ServiceFactoryPolicy serviceFactoryPolicy, ServiceRegistrationAddress... serviceRegistrationAddresses);		
+		public IServiceRegistration registerService(String serviceName , Class<?> serviceImplementationClass, ServiceFactoryPolicy serviceFactoryPolicy, ServiceRegistrationAddress... serviceRegistrationAddresses);
+		
+		/**
+		 * 
+		 * register a service
+		 * 
+		 * @param serviceImplementationClass class of service instance
+		 * @param serviceFactoryPolicy policy to manage service instance
+		 * @param serviceRegistrationAddresses addresses at which the service is registered
+		 * @return registration object
+		 */
+		public default IServiceRegistration registerService(Class<?> serviceImplementationClass, ServiceFactoryPolicy serviceFactoryPolicy, ServiceRegistrationAddress... serviceRegistrationAddresses)
+		{
+			return registerService(null, serviceImplementationClass, serviceFactoryPolicy, serviceRegistrationAddresses);
+		}
 		
 		
 		/**
@@ -298,8 +316,6 @@ public interface IService
 		{
 			return options;
 		}
-
-
 
 		public static class FactoryPolicyBuilder
 		{
@@ -556,7 +572,7 @@ public interface IService
 		private String domain = null;
 		private String name = null;
 		private Version version = null;
-		private List<Class<?>> types = null;
+		private Set<Class<?>> types = null;
 		
 		public String getDomain()
 		{
@@ -573,7 +589,7 @@ public interface IService
 			return version;
 		}
 
-		public List<Class<?>> getTypes()
+		public Set<Class<?>> getTypes()
 		{
 			return types;
 		}
@@ -628,7 +644,7 @@ public interface IService
 							address.domain = ServiceRegistrationAddressBuilder.this.domain;
 							address.name = ServiceRegistrationAddressBuilder.this.name;
 							address.version = ServiceRegistrationAddressBuilder.this.version;
-							address.types = Collections.unmodifiableList(new ArrayList<Class<?>>(ServiceRegistrationAddressBuilder.this.types));
+							address.types = Collections.unmodifiableSet(new HashSet<Class<?>>(ServiceRegistrationAddressBuilder.this.types));
 							return address;
 						}
 					}

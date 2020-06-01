@@ -121,6 +121,11 @@ public class MessageHeader implements Serializable
 	private volatile String boundedContext = null;
 	private volatile boolean boundedContextLocked = false;
 	
+	private volatile String accessToken = null; // TODO // grant token for permissionSet ??  
+	private volatile String idToken = null; // TODO
+	private volatile String refreshToken = null; // TODO
+	
+	
 	private volatile String destination = null;
 	private volatile boolean destinationLocked = false;
 	

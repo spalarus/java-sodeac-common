@@ -580,6 +580,39 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			return node;
 		}
 		
+		public PreparedStatement getCachedPreparedStatement(String sql, int resultSetType,int resultSetConcurrency) throws SQLException
+		{
+			String key = "_" + resultSetType + "_" + resultSetConcurrency + "_" + sql; 
+			
+			PreparedStatement preparedStatement = this.preparedStatementResultSetCache.get(key);
+			if((preparedStatement != null) && (! preparedStatement.isClosed()))
+			{
+				return preparedStatement;
+			}
+			preparedStatement = mainConnection.prepareStatement(sql,resultSetType,resultSetConcurrency);
+			this.preparedStatementResultSetCache.put(key,preparedStatement);
+			return preparedStatement;				
+		}
+		
+		public PreparedStatement getCachedPreparedStatement(String sql, boolean returnGeneratedKey) throws SQLException
+		{
+			PreparedStatement preparedStatement = this.preparedStatementCache.get(sql);
+			if((preparedStatement != null) && (! preparedStatement.isClosed()))
+			{
+				return preparedStatement;
+			}
+			if(returnGeneratedKey)
+			{
+				preparedStatement = mainConnection.prepareStatement(sql,Statement.RETURN_GENERATED_KEYS);
+			}
+			else
+			{
+				preparedStatement = mainConnection.prepareStatement(sql);
+			}
+			this.preparedStatementCache.put(sql,preparedStatement);
+			return preparedStatement;
+		}
+		
 		public void flush()throws SQLException
 		{
 			
@@ -709,35 +742,12 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			
 			public PreparedStatement getPreparedStatement(String sql, int resultSetType,int resultSetConcurrency) throws SQLException
 			{
-				String key = "_" + resultSetType + "_" + resultSetConcurrency + "_" + sql; 
-				
-				PreparedStatement preparedStatement = Session.this.preparedStatementResultSetCache.get(key);
-				if((preparedStatement != null) && (! preparedStatement.isClosed()))
-				{
-					return preparedStatement;
-				}
-				preparedStatement = connection.prepareStatement(sql,resultSetType,resultSetConcurrency);
-				Session.this.preparedStatementResultSetCache.put(key,preparedStatement);
-				return preparedStatement;				
+				return Session.this.getCachedPreparedStatement(sql, resultSetType, resultSetConcurrency);
 			}
 			
 			public PreparedStatement getPreparedStatement(String sql, boolean returnGeneratedKey) throws SQLException
 			{
-				PreparedStatement preparedStatement = Session.this.preparedStatementCache.get(sql);
-				if((preparedStatement != null) && (! preparedStatement.isClosed()))
-				{
-					return preparedStatement;
-				}
-				if(returnGeneratedKey)
-				{
-					preparedStatement = connection.prepareStatement(sql,Statement.RETURN_GENERATED_KEYS);
-				}
-				else
-				{
-					preparedStatement = connection.prepareStatement(sql);
-				}
-				Session.this.preparedStatementCache.put(sql,preparedStatement);
-				return preparedStatement;
+				return Session.this.getCachedPreparedStatement(sql, returnGeneratedKey);
 			}
 		}
 	}

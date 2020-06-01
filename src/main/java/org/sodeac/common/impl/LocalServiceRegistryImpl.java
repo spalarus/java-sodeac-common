@@ -10,14 +10,18 @@
  *******************************************************************************/
 package org.sodeac.common.impl;
 
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -28,13 +32,19 @@ import javax.json.JsonObject;
 import javax.json.JsonString;
 import javax.json.JsonValue;
 import javax.json.JsonValue.ValueType;
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.StandardMBean;
 
+import org.osgi.service.log.LogService;
 import org.sodeac.common.IService.IFactoryEnvironment;
 import org.sodeac.common.IService.IServiceProvider;
 import org.sodeac.common.IService.IServiceRegistry;
 import org.sodeac.common.IService.ServiceFactoryPolicy;
 import org.sodeac.common.IService.ServiceRegistrationAddress;
 import org.sodeac.common.function.ConplierBean;
+import org.sodeac.common.impl.JMXBeans.ServiceRegistrationMBean;
 import org.sodeac.common.misc.RuntimeWrappedException;
 import org.sodeac.common.misc.Version;
 import org.sodeac.common.xuri.IExtension;
@@ -54,12 +64,23 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 	private static LocalServiceRegistryImpl INSTANCE = null;
 	private Lock lock;
 	
-	private Map<String,Map<String,Map<Class,ServiceController>>> registeredServices = null;
+	private List<RegisteredService> registeredServices = null;
+	private String scope = "local";
+	private UUID instance = null;
+	
+	// TODO unloadedBundles => String,String,String,Set<Long> , domain,name,typeName,BundleList
+	
+	// TODO activateBundle(long id), deactivateBundle(long id)
+	// OSGi :> startBundle, if in unloadedBundles List =>
+	// NonOSGi => search
+	
+	private Map<String,Map<String,Map<Class,ServiceController>>> addressIndex = null;
 	private LocalServiceRegistryImpl()
 	{
 		super();
 		this.lock = new ReentrantLock();
-		this.registeredServices = new HashMap<>();
+		this.addressIndex = new HashMap<>();
+		this.registeredServices = new ArrayList<>();
 	}
 	
 	protected static LocalServiceRegistryImpl get()
@@ -79,6 +100,8 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 				ConplierBean<IServiceRegistry> registrySupplier = new ConplierBean<>(instance);
 				instance.registerService
 				(
+					"org.sodeac.ServiceRegistry",
+					LocalServiceRegistryImpl.class,
 					ServiceFactoryPolicy.newBuilder()
 						.defineServiceAsSingletonWithAutoCreation()
 						.supplyServiceInstanceToMultipleServiceClients()
@@ -99,10 +122,127 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 	}
 	
 	@Override
-	public IServiceRegistration registerService(ServiceFactoryPolicy serviceFactoryPolicy,ServiceRegistrationAddress... serviceRegistrationAddresses)
+	public IServiceRegistration registerService(String serviceName, Class<?> serviceImplementationClass, ServiceFactoryPolicy serviceFactoryPolicy, ServiceRegistrationAddress... serviceRegistrationAddresses)
 	{
-		// TODO Auto-generated method stub
-		return null;
+		Objects.requireNonNull(serviceImplementationClass, "service implementation class not defined");
+		Objects.requireNonNull(serviceFactoryPolicy, "service factory policy not defined");
+		
+		if((serviceName == null) || serviceName.isEmpty())
+		{
+			serviceName = serviceImplementationClass.getCanonicalName();
+		}
+		
+		RegisteredService registeredService = new RegisteredService(serviceImplementationClass,serviceFactoryPolicy,serviceRegistrationAddresses);
+		
+		lock.lock();
+		try
+		{
+			this.registeredServices.add(registeredService);
+			
+			try
+			{
+				MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+				String objectName = getObjectNamePrefix() + ",grouping=by-registration,service=" + serviceName + "-" + registeredService.getIdString();
+				
+				ObjectName controllerObjectName = new ObjectName(objectName);
+				
+				try
+				{
+					mBeanServer.registerMBean(new StandardMBean(registeredService, ServiceRegistrationMBean.class), controllerObjectName);
+				}
+				catch (Exception e) 
+				{
+					// TODO
+					e.printStackTrace();
+				}
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+			}
+			
+			for(RegisteredService.Address address : registeredService.serviceRegistrationAddresseList)
+			{
+				
+				Map<String,Map<Class,ServiceController>> byDomain = this.addressIndex.get(address.serviceRegistrationAddress.getDomain());
+				if(byDomain == null)
+				{
+					byDomain = new HashMap<>();
+					this.addressIndex.put(address.serviceRegistrationAddress.getDomain(), byDomain);
+				}
+				Map<Class,ServiceController> byServiceName = byDomain.get(address.serviceRegistrationAddress.getName());
+				if(byServiceName == null)
+				{
+					byServiceName = new HashMap<>();
+					byDomain.put(address.serviceRegistrationAddress.getName(),byServiceName);
+				}
+				if(address.serviceRegistrationAddress.getTypes().isEmpty())
+				{
+					ServiceController serviceController = byServiceName.get(serviceImplementationClass);
+					if(serviceController == null)
+					{
+						serviceController = new ServiceController(serviceImplementationClass);
+						byServiceName.put(serviceImplementationClass, serviceController);
+					}
+					serviceController.addRegisteredService(address);
+					
+					MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+					String objectName = getObjectNamePrefix() + ",grouping=by-registration,service=" + serviceName + "-" + registeredService.getIdString()
+						+ ",address=" + address.serviceRegistrationAddress.getDomain() + "-" + address.serviceRegistrationAddress.getName() + "-" + serviceImplementationClass.getCanonicalName() + "-0";
+					
+					try
+					{
+						ObjectName controllerObjectName = new ObjectName(objectName);
+						mBeanServer.registerMBean(new StandardMBean(registeredService, ServiceRegistrationMBean.class), controllerObjectName);
+						// TODO in Address
+					}
+					catch (Exception e) 
+					{
+						// TODO
+						e.printStackTrace();
+					}
+				}
+				else
+				{
+					for(Class type : address.serviceRegistrationAddress.getTypes())
+					{
+						ServiceController serviceController = byServiceName.get(type);
+						if(serviceController == null)
+						{
+							serviceController = new ServiceController(type);
+							byServiceName.put(type, serviceController);
+						}
+						serviceController.addRegisteredService(address);
+						
+						MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+						String objectName = getObjectNamePrefix() + ",grouping=by-registration,service=" + serviceName + "-" + registeredService.getIdString()
+							+ ",address=" + address.serviceRegistrationAddress.getDomain() + "-" + address.serviceRegistrationAddress.getName() 
+							+ "-" + type.getCanonicalName() + "-" + UUID.randomUUID().toString();
+						
+						try
+						{
+							ObjectName controllerObjectName = new ObjectName(objectName);
+							mBeanServer.registerMBean(new StandardMBean(registeredService, ServiceRegistrationMBean.class), controllerObjectName);
+							// TODO in Address
+						}
+						catch (Exception e) 
+						{
+							// TODO
+							e.printStackTrace();
+						}
+						
+						// TODO
+					}
+				}
+			}
+			
+		}
+		finally 
+		{
+			lock.unlock();
+		}
+		
+		return registeredService.serviceRegistration;
 	}
 	
 	/*@Override
@@ -235,11 +375,11 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 		lock.lock();
 		try
 		{
-			Map<String,Map<Class,ServiceController>> byDomain = this.registeredServices.get(domain);
+			Map<String,Map<Class,ServiceController>> byDomain = this.addressIndex.get(domain);
 			if(byDomain == null)
 			{
 				byDomain = new HashMap<>();
-				this.registeredServices.put(domain, byDomain);
+				this.addressIndex.put(domain, byDomain);
 			}
 			Map<Class,ServiceController> byServiceName = byDomain.get(serviceName);
 			if(byServiceName == null)
@@ -267,6 +407,15 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 		return serviceProvider;
 	}
 	
+	public String getObjectNamePrefix()
+	{
+		if(instance == null)
+		{
+			return "org.sodeac:sodeacproject=service-registry,scope=" + this.scope ;
+		}
+		return "org.sodeac:sodeacproject=service-registry,scope=" + this.scope +",instance=" + this.instance ;
+	}
+	
 	protected class ServiceController
 	{
 		public ServiceController(Class type)
@@ -278,12 +427,47 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 		
 		private Lock lock = null;
 		private Class type = null;
-		private List<RegisteredService> serviceList = new ArrayList<>();
+		private List<RegisteredService.Address> serviceList = new ArrayList<>();
 		private List<LocalServiceProviderImpl> localServiceProvider = new ArrayList<>();
+		
+		protected void addRegisteredService(RegisteredService.Address serviceRegistrationAddress)
+		{
+			this.lock.lock();
+			try
+			{
+				this.serviceList.add(serviceRegistrationAddress);
+				// TODO re-check bindings
+			}
+			finally 
+			{
+				this.lock.unlock();
+			}
+		}
+		
+		protected void removeRegisteredService(RegisteredService.Address serviceRegistrationAddress)
+		{
+			this.lock.lock();
+			try
+			{
+				ListIterator<RegisteredService.Address> iteratror = this.serviceList.listIterator();
+				while(iteratror.hasNext())
+				{
+					if(iteratror.next() == serviceRegistrationAddress)
+					{
+						iteratror.remove();
+					}
+				}
+				// TODO re-check bindings
+			}
+			finally 
+			{
+				this.lock.unlock();
+			}
+		}
 		
 		protected RegisteredService getRegisteredService(List<IFilterItem> filterList, Map<Long,List<IFilterItem>> preferencesList)
 		{
-			List<RegisteredService> copy = null;
+			List<RegisteredService.Address> copy = null;
 			this.lock.lock();
 			try
 			{
@@ -301,9 +485,9 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 			}
 			
 			long bestScore = Long.MIN_VALUE;
-			RegisteredService bestService = null;
+			RegisteredService.Address bestService = null;
 			
-			for(RegisteredService registeredService : copy)
+			for(RegisteredService.Address registeredService : copy)
 			{
 				if(filterList != null)
 				{
@@ -360,40 +544,103 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 			copy.clear();
 			copy = null;
 			
-			return bestService;
+			return bestService.getRegisteredService();
 			
-		}
-		
-		private void addService(RegisteredService registeredService)
-		{
-			this.lock.lock();
-			try
-			{
-				for(RegisteredService check : this.serviceList)
-				{
-					if(check == this.serviceList)
-					{
-						return;
-					}
-					
-					if(check.serviceFactory == registeredService.serviceFactory)
-					{
-						return;
-					}
-				}
-				
-				this.serviceList.add(registeredService);
-			}
-			finally 
-			{
-				this.lock.unlock();
-			}
 		}
 	}
 	
-	protected class RegisteredService<S>
+	protected class RegisteredService implements ServiceRegistrationMBean
 	{
-		protected RegisteredService(Class<S> type, URI address, Function<IFactoryEnvironment<S,?>,S> serviceFactory)
+		private RegisteredService(Class<?> serviceImplementationClass, ServiceFactoryPolicy serviceFactoryPolicy, ServiceRegistrationAddress... serviceRegistrationAddresses) 
+		{
+			super();
+			this.id = UUID.randomUUID();
+			this.serviceImplementationClass = serviceImplementationClass;
+			this.serviceName = this.serviceImplementationClass.getCanonicalName();
+			this.serviceFactoryPolicy = serviceFactoryPolicy;
+			this.serviceRegistrationAddresseList = new ArrayList<>();
+			this.options = new HashMap<>();
+			for(Entry<String,Object> entry : serviceFactoryPolicy.getOptions().entrySet())
+			{
+				this.options.put(entry.getKey(), new DefaultMatchableWrapper(entry.getValue()));
+			}
+			
+			if(serviceRegistrationAddresses != null)
+			{
+				for(ServiceRegistrationAddress serviceRegistrationAddress : serviceRegistrationAddresses)
+				{
+					if(serviceRegistrationAddress == null)
+					{
+						continue;
+					}
+					
+					this.serviceRegistrationAddresseList.add(new Address(serviceRegistrationAddress));
+				}
+			}
+			
+		}
+		
+		private UUID id = null;
+		private long bundleId = -1;
+		private String symbolicName = "non.osgi";
+		private Version version = new Version(1);
+		private Class<?> serviceImplementationClass = null;
+		private String serviceName = null;
+		private ServiceFactoryPolicy serviceFactoryPolicy = null;
+		private List<Address> serviceRegistrationAddresseList = null;
+		private ServiceRegistration serviceRegistration = null;
+		private Map<String,IMatchable> options = null;
+		
+		protected Object supply()
+		{
+			return this.serviceFactoryPolicy.getFactory().apply(null); // TODO  IFactoryEnvironment
+		}
+		
+		protected class Address
+		{
+			protected Address(ServiceRegistrationAddress serviceRegistrationAddress)
+			{
+				super();
+				this.serviceRegistrationAddress = serviceRegistrationAddress;
+				this.options = new HashMap<>(RegisteredService.this.options);
+				this.options.put("version", new DefaultMatchableWrapper(this.serviceRegistrationAddress.getVersion()));
+			}
+			
+			public RegisteredService getRegisteredService()
+			{
+				return RegisteredService.this;
+			}
+			
+			private ServiceRegistrationAddress serviceRegistrationAddress;
+			private Map<String,IMatchable> options = null;
+		}
+		
+		protected class ServiceRegistration implements IServiceRegistration
+		{
+
+			@Override
+			public void close()
+			{
+				// TODO Auto-generated method stub
+			}
+
+			@Override
+			public void dispose()
+			{
+				// TODO Auto-generated method stub		
+			}
+		}
+
+		@Override
+		public String getIdString()
+		{
+			return this.id.toString();
+		}
+	}
+	
+	/*protected class RegisteredServiceX<S>
+	{
+		protected RegisteredServiceX(Class<S> type, URI address, Function<IFactoryEnvironment<S,?>,S> serviceFactory)
 		{
 			super();
 			this.registrationAddress = address;
@@ -527,7 +774,7 @@ public class LocalServiceRegistryImpl implements IServiceRegistry
 			}
 		}
 		
-	}
+	}*/
 	
 	public static class DefaultFactory implements Function<IFactoryEnvironment<?,?>, Object>
 	{

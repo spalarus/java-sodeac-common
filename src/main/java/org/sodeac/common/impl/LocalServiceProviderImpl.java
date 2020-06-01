@@ -17,7 +17,7 @@ public class LocalServiceProviderImpl<S> implements IServiceProvider<S>
 	private List<IFilterItem> filterList = null;
 	private Map<Long,List<IFilterItem>> preferencesList = null;
 	private Lock lock = null;
-	private volatile RegisteredService<S> registeredService = null;
+	private volatile RegisteredService registeredService = null;
 	
 	protected LocalServiceProviderImpl(ServiceController serviceController, List<IFilterItem> filterList, Map<Long,List<IFilterItem>> preferencesList)
 	{
@@ -28,9 +28,9 @@ public class LocalServiceProviderImpl<S> implements IServiceProvider<S>
 		this.lock = new ReentrantLock();
 	}
 	@Override
-	public IServiceReference<S> getService()
+	public IServiceReference getService() // TODO  Type ????
 	{
-		RegisteredService<S> registeredService = this.registeredService;
+		RegisteredService registeredService = this.registeredService;
 		if(registeredService == null)
 		{
 			this.lock.lock();
@@ -48,7 +48,7 @@ public class LocalServiceProviderImpl<S> implements IServiceProvider<S>
 			}
 			
 		}
-		return new ServiceReference(registeredService.supply());
+		return new ServiceReference(null);//registeredService.supply()); // TODO
 	}
 
 	@Override

@@ -8,6 +8,7 @@
   
   <name>Sodeac Common</name>
   <description>Core framework for sodeac project</description>
+  <packaging>bundle</packaging>
   
  <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

@@ -27,7 +27,7 @@ import org.sodeac.common.impl.LocalServiceRegistryImpl;
 public @interface ServiceFactory
 {
 	int lowerScalingLimit() default 1;
-	int maxSize() default 1;
+	int upperScalingLimit() default 1;
 	int initialScaling() default 0;
 	boolean shared() default true;
 	Class<?> requiredConfigurationClass() default NoRequiredConfiguration.class;

@@ -10,9 +10,11 @@
  *******************************************************************************/
 package org.sodeac.common.impl;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -25,7 +27,9 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleEvent;
 import org.osgi.framework.ServiceReference;
+import org.osgi.framework.SynchronousBundleListener;
 import org.osgi.framework.Version;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
@@ -62,16 +66,28 @@ public class LocalOSGiServiceRegistry
 		
 		LocalService.getLocalServiceRegistryImpl();
 		
-		/*componentContext.getBundleContext().addBundleListener(new SynchronousBundleListener()
+		// TODO Find Bundles
+		
+		componentContext.getBundleContext().addBundleListener(new SynchronousBundleListener()
 		{
 			
 			@Override
 			public void bundleChanged(BundleEvent event)
 			{
-				System.out.println(event.getType() + " / " + event.getSource() + " / " + event.getBundle() + " / " + event.getOrigin());
+				//System.out.println(event.getType() + " / " + event.getSource() + " / " + event.getBundle() + " / " + event.getOrigin());
+				Bundle bundle = event.getBundle();
+				Enumeration<URL> entries = bundle.findEntries("SDC-INF/servicecomponents/", "*.xml", false);
+	        	if(entries == null)
+	        	{
+	        		return;
+	        	}
+	        	/*while(entries.hasMoreElements())
+	        	{
+	        		System.out.println("\t" + entries.nextElement());
+	        	}*/
 				
 			}
-		});*/
+		});
 	}
 	
 	@Deactivate
