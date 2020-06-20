@@ -191,7 +191,12 @@
             	org.sodeac.common.jdbc.schemax;version="${bundle.version}"
             </Export-Package>
             <Private-Package>
-            	org.opends*
+            	org.sodeac.common.message.dispatcher.impl,
+            	org.sodeac.common.message.dispatcher.components,
+            	org.sodeac.common.message.service.impl,
+            	org.sodeac.common.local.service.impl,
+            	org.sodeac.common.jdbc.impl,
+            	org.sodeac.common.impl
             </Private-Package>
             <Import-Package>
             	org.slf4j;version="[1.7,2)";resolution:=optional,
