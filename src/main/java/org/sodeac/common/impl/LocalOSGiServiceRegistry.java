@@ -68,26 +68,27 @@ public class LocalOSGiServiceRegistry
 		
 		// TODO Find Bundles
 		
-		componentContext.getBundleContext().addBundleListener(new SynchronousBundleListener()
+		/*componentContext.getBundleContext().addBundleListener(new SynchronousBundleListener()
 		{
 			
 			@Override
 			public void bundleChanged(BundleEvent event)
 			{
 				//System.out.println(event.getType() + " / " + event.getSource() + " / " + event.getBundle() + " / " + event.getOrigin());
+				
 				Bundle bundle = event.getBundle();
-				Enumeration<URL> entries = bundle.findEntries("SDC-INF/servicecomponents/", "*.xml", false);
+				Enumeration<URL> entries = bundle.findEntries("SDC-INF/servicecomponents/", "*.xml", false); // TODO possible NPE in uninstall events
 	        	if(entries == null)
 	        	{
 	        		return;
 	        	}
-	        	/*while(entries.hasMoreElements())
+	        	while(entries.hasMoreElements())
 	        	{
 	        		System.out.println("\t" + entries.nextElement());
-	        	}*/
+	        	}
 				
 			}
-		});
+		});*/
 	}
 	
 	@Deactivate

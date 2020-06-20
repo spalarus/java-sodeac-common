@@ -27,6 +27,7 @@ import java.util.function.Function;
 import org.sodeac.common.function.ConplierBean;
 import org.sodeac.common.jdbc.ResultSetParseHelper.ResultSetParseHelperBuilder.NodeConfiguration;
 import org.sodeac.common.jdbc.ResultSetParseHelper.ResultSetParseHelperBuilder.ParsePhase;
+import org.sodeac.common.misc.RuntimeWrappedException;
 
 /**
  * 
@@ -329,13 +330,28 @@ public class ResultSetParseHelper implements AutoCloseable
 					{
 						cursor.mainObject = null;
 					}
-					if((currentId == null) && (configuration.recordParserIfNull != null))
+					try
 					{
-						object = configuration.recordParserIfNull.parse(cursor);
+						if((currentId == null) && (configuration.recordParserIfNull != null))
+						{
+							object = configuration.recordParserIfNull.parse(cursor);
+						}
+						else if((currentId != null) && (configuration.recordParser != null))
+						{
+							object = configuration.recordParser.parse(cursor);
+						}
 					}
-					else if((currentId != null) && (configuration.recordParser != null))
+					catch (Exception e) 
 					{
-						object = configuration.recordParser.parse(cursor);
+						if(e instanceof RuntimeException)
+						{
+							throw (RuntimeException)e;
+						}
+						throw new RuntimeWrappedException(e);
+					}
+					catch (Error e) 
+					{
+						throw new RuntimeWrappedException(e);
 					}
 					objects.put(currentId, object);
 					this.lastObject = object;
@@ -953,7 +969,7 @@ public class ResultSetParseHelper implements AutoCloseable
 		 * 
 		 * @throws Exception
 		 */
-		public B parse(Cursor<I, M, P> cursor) throws SQLException;
+		public B parse(Cursor<I, M, P> cursor) throws Exception;
 		
 	}
 }
