@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -11,6 +11,8 @@
 package org.sodeac.common.typedtree;
 
 import java.lang.reflect.Field;
+
+import org.sodeac.common.typedtree.annotation.Transient;
 
 /**
  * A leaf node type defines a simple child node. This kind of child type can not include other child nodes. But for serialization reasons it is recommend to restrict the type of node to one of the following list:
@@ -41,6 +43,7 @@ public class LeafNodeType<P extends BranchNodeMetaModel, T> implements INodeType
 	private String name = null;
 	private Field field = null;
 	private int hashCode = 1;
+	private boolean transientFlag = false;
 	
 	/**
 	 * Constructor for leaf node type.
@@ -55,6 +58,7 @@ public class LeafNodeType<P extends BranchNodeMetaModel, T> implements INodeType
 		this.typeClass = typeClass;
 		this.name = field.getName();
 		this.field = field;
+		this.transientFlag = field.getAnnotation(Transient.class) != null;
 		
 		// generate hashcode
 		
@@ -105,5 +109,11 @@ public class LeafNodeType<P extends BranchNodeMetaModel, T> implements INodeType
 	public String toString()
 	{
 		return getClass().getSimpleName() + " " + this.getNodeName();
+	}
+
+	@Override
+	public boolean isTransient()
+	{
+		return transientFlag;
 	}
 }

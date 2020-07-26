@@ -12,6 +12,7 @@ package org.sodeac.common.model.logging;
 
 import javax.xml.bind.annotation.XmlElement;
 
+import org.sodeac.common.annotation.GenerateBow;
 import org.sodeac.common.model.CommonGenericPropertyNodeType;
 import org.sodeac.common.typedtree.BranchNodeType;
 import org.sodeac.common.typedtree.LeafNodeType;
@@ -25,6 +26,7 @@ import org.sodeac.common.typedtree.annotation.Association.AssociationType;
 
 @SQLTable(name="sdc_log_property",updatable= false)
 @TypedTreeModel(modelClass=LoggingTreeModel.class)
+@GenerateBow
 public class LogPropertyNodeType extends CommonGenericPropertyNodeType
 {
 	static{ModelRegistry.getBranchNodeMetaModel(LogPropertyNodeType.class);}

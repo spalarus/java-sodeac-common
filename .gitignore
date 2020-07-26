@@ -7,3 +7,4 @@
 /.classpath
 /.project
 /spoon.classpath-app.tmp
+/src/generated/

@@ -118,6 +118,7 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 		private volatile long sequnceOID = 0L;
 		private volatile boolean disableAllListener = false;
 		private Class<? extends TypedTreeMetaModel<?>> modelClass = null;
+		private boolean childs = false;
 		
 		/**
 		 * Constructor of root node.
@@ -126,7 +127,7 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 		 */
 		protected RootBranchNode(BranchNodeType<P,R> type, Class<? extends TypedTreeMetaModel<?>> modelClass)
 		{
-			super(null,null,new NodeContainer(type));
+			super(null,null,new NodeContainer(type,-1));
 			
 			this.modelClass = modelClass;
 			this.nodeSynchronized = false;
@@ -149,6 +150,16 @@ public class TypedTreeMetaModel<T extends TypedTreeMetaModel> extends BranchNode
 		protected WriteLock getWriteLock()
 		{
 			return writeLock;
+		}
+		
+		protected void setHasChilds()
+		{
+			this.childs = true;
+		}
+
+		protected boolean hasChilds()
+		{
+			return childs;
 		}
 
 		@Override

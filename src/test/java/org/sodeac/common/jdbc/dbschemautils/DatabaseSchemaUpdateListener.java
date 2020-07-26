@@ -12,10 +12,10 @@ package org.sodeac.common.jdbc.dbschemautils;
 
 import java.sql.SQLException;
 
-import org.sodeac.common.function.ExceptionConsumer;
+import org.sodeac.common.function.ExceptionCatchedConsumer;
 import org.sodeac.common.jdbc.DBSchemaUtils.DBSchemaEvent;
 
-public class DatabaseSchemaUpdateListener implements ExceptionConsumer<DBSchemaEvent>
+public class DatabaseSchemaUpdateListener implements ExceptionCatchedConsumer<DBSchemaEvent>
 {
 	
 	private IDatabaseSchemaUpdateListener intern = null;

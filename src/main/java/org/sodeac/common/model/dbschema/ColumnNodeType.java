@@ -10,6 +10,7 @@
  *******************************************************************************/
 package org.sodeac.common.model.dbschema;
 
+import org.sodeac.common.annotation.GenerateBow;
 import org.sodeac.common.jdbc.IDefaultValueExpressionDriver;
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.BranchNodeType;
@@ -18,6 +19,7 @@ import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 
 @TypedTreeModel(modelClass=DBSchemaTreeModel.class)
+@GenerateBow(buildAlias=true)
 public class ColumnNodeType extends BranchNodeMetaModel
 {
 	static{ModelRegistry.getBranchNodeMetaModel(ColumnNodeType.class);}

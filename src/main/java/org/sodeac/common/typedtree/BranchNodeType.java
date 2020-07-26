@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -12,7 +12,7 @@ package org.sodeac.common.typedtree;
 
 import java.lang.reflect.Field;
 
-import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
+import org.sodeac.common.typedtree.annotation.Transient;
 
 /**
  * A branch node type defines a single complex node as child node of parent node. This node type can defines new child nodes again.
@@ -29,6 +29,7 @@ public class BranchNodeType<P extends BranchNodeMetaModel, T extends BranchNodeM
 	private String name = null;
 	private Field field = null;
 	private int hashCode = 1;
+	private boolean transientFlag = false;
 	
 	/**
 	 * Constructor for branch node type.
@@ -43,6 +44,7 @@ public class BranchNodeType<P extends BranchNodeMetaModel, T extends BranchNodeM
 		this.typeClass = typeClass;
 		this.name = field.getName();
 		this.field = field;
+		this.transientFlag = field.getAnnotation(Transient.class) != null;
 		
 		// generate hashcode
 		
@@ -111,5 +113,11 @@ public class BranchNodeType<P extends BranchNodeMetaModel, T extends BranchNodeM
 	public String toString()
 	{
 		return getClass().getSimpleName() + " " + this.getNodeName();
+	}
+
+	@Override
+	public boolean isTransient()
+	{
+		return transientFlag;
 	}
 }

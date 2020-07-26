@@ -19,6 +19,7 @@ import java.util.function.Consumer;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 
+import org.sodeac.common.annotation.GenerateBow;
 import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
 import org.sodeac.common.jdbc.TypedTreeJDBCCruder;
 import org.sodeac.common.jdbc.TypedTreeJDBCCruder.ConvertEvent;
@@ -40,6 +41,7 @@ import org.sodeac.common.typedtree.annotation.SQLSequence;
 import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 
 @TypedTreeModel(modelClass=CoreTreeModel.class)
+@GenerateBow
 public class CommonBaseBranchNodeType extends BranchNodeMetaModel
 {
 	static{ModelRegistry.getBranchNodeMetaModel(CoreTreeModel.class);}

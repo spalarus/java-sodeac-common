@@ -12,12 +12,14 @@ package org.sodeac.common.model;
 
 import javax.xml.bind.annotation.XmlAttribute;
 
+import org.sodeac.common.annotation.GenerateBow;
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.LeafNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 
 @TypedTreeModel(modelClass=CoreTreeModel.class)
+@GenerateBow
 public class CommonListChunkBaseBranchNodeType extends BranchNodeMetaModel
 {
 	static{ModelRegistry.getBranchNodeMetaModel(CommonListChunkBaseBranchNodeType.class);}

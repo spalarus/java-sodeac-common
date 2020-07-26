@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -10,7 +10,14 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
+
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.stream.XMLStreamWriter;
+
+import org.sodeac.common.typedtree.BranchNode.NodeContainer;
 
 /**
  * A node type defines the type of node.
@@ -45,6 +52,8 @@ public interface INodeType<P extends BranchNodeMetaModel, T>
 	
 	public Field referencedByField();
 	
+	public boolean isTransient();
+	
 	/**
 	 * 
 	 * @return default instance of node value
@@ -60,4 +69,8 @@ public interface INodeType<P extends BranchNodeMetaModel, T>
 			throw new RuntimeException(e);
 		}
 	}
+	
+	//public default void serialize(XMLStreamWriter writer, NodeContainer nodeContainer, SerializerOptions serializationOptions) throws IOException, XMLStreamException {} ;
+	
+	//public default void deserialize(XMLStreamReader reader, NodeContainer nodeContainer, BranchNode<? extends BranchNodeMetaModel, ? extends BranchNodeMetaModel> parent, SerializerOptions serializationOptions) throws IOException, XMLStreamException {}; 
 }

@@ -10,6 +10,7 @@
  *******************************************************************************/
 package org.sodeac.common.model;
 
+import org.sodeac.common.annotation.GenerateBow;
 import org.sodeac.common.typedtree.BranchNodeListType;
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.ModelRegistry;
@@ -17,6 +18,7 @@ import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 import org.sodeac.common.typedtree.annotation.XMLNodeList;
 
 @TypedTreeModel(modelClass=CoreTreeModel.class)
+@GenerateBow
 public class StacktraceNodeType extends BranchNodeMetaModel
 {
 	static{ModelRegistry.getBranchNodeMetaModel(StacktraceNodeType.class);}

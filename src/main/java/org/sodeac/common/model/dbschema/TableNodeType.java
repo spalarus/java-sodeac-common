@@ -11,7 +11,11 @@
 package org.sodeac.common.model.dbschema;
 
 import org.sodeac.common.jdbc.DBSchemaUtils.DBSchemaEvent;
-import org.sodeac.common.function.ExceptionConsumer;
+import org.sodeac.common.annotation.BowMethod;
+import org.sodeac.common.annotation.BowMethod.ReturnBowMode;
+import org.sodeac.common.annotation.BowParameter;
+import org.sodeac.common.annotation.GenerateBow;
+import org.sodeac.common.function.ExceptionCatchedConsumer;
 import org.sodeac.common.jdbc.IColumnType;
 import org.sodeac.common.jdbc.schemax.IDefaultCurrentDate;
 import org.sodeac.common.jdbc.schemax.IDefaultCurrentTime;
@@ -22,7 +26,10 @@ import org.sodeac.common.typedtree.BranchNodeListType;
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.LeafNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
+import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 
+@TypedTreeModel(modelClass=DBSchemaTreeModel.class)
+@GenerateBow(buildAlias=true)
 public class TableNodeType extends BranchNodeMetaModel
 {
 	static{ModelRegistry.getBranchNodeMetaModel(TableNodeType.class);}
@@ -35,7 +42,8 @@ public class TableNodeType extends BranchNodeMetaModel
 	public static volatile BranchNodeListType<TableNodeType,IndexNodeType> indices;
 	public static volatile BranchNodeListType<TableNodeType,EventConsumerNodeType> consumers;
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createCharColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable, int length)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createCharColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,boolean nullable, int length)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.CHAR.name())
@@ -44,7 +52,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.nullable, nullable);
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createVarcharColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable, int length)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createVarcharColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,boolean nullable, int length)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.VARCHAR.name())
@@ -53,7 +62,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.nullable, nullable);
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createClobColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createClobColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.CLOB.name())
@@ -61,7 +71,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.nullable, nullable);
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createUUIDColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createUUIDColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.UUID.name())
@@ -69,7 +80,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.nullable, nullable);
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createBooleanColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createBooleanColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.BOOLEAN.name())
@@ -77,7 +89,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.nullable, nullable);
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createBooleanColumnWithDefault(BranchNode<?, TableNodeType> table, String columnName,boolean defaultValue)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createBooleanColumnWithDefault(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,boolean defaultValue)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.BOOLEAN.name())
@@ -86,7 +99,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.defaultStaticValue, new Boolean(defaultValue).toString());
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createSmallIntColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createSmallIntColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.SMALLINT.name())
@@ -94,7 +108,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.nullable, nullable);
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createSmallIntColumn(BranchNode<?, TableNodeType> table, String columnName,short defaultValue)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createSmallIntColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,short defaultValue)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.SMALLINT.name())
@@ -103,7 +118,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.defaultStaticValue, new Short(defaultValue).toString());
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createIntegerColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createIntegerColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.INTEGER.name())
@@ -111,7 +127,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.nullable, nullable);
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createIntegerColumn(BranchNode<?, TableNodeType> table, String columnName,int defaultValue)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createIntegerColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,int defaultValue)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.INTEGER.name())
@@ -120,7 +137,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.defaultStaticValue, new Integer(defaultValue).toString());
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createBigIntColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createBigIntColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.BIGINT.name())
@@ -128,7 +146,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.nullable, nullable);
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createBigIntAutoIncrementColumn(BranchNode<?, TableNodeType> table, String columnName,String sequenceName)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createBigIntAutoIncrementColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,String sequenceName)
 	{
 		BranchNode<TableNodeType, ColumnNodeType> column = table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.BIGINT.name())
@@ -145,7 +164,8 @@ public class TableNodeType extends BranchNodeMetaModel
 		return column;
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createBigIntColumn(BranchNode<?, TableNodeType> table, String columnName,long defaultValue)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createBigIntColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,long defaultValue)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.BIGINT.name())
@@ -154,7 +174,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.defaultStaticValue, new Long(defaultValue).toString());
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createRealColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createRealColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.REAL.name())
@@ -162,7 +183,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.nullable, nullable);
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createRealColumn(BranchNode<?, TableNodeType> table, String columnName,float defaultValue)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createRealColumn( @BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,float defaultValue)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.REAL.name())
@@ -171,7 +193,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.defaultStaticValue, new Float(defaultValue).toString());
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createDoubleColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createDoubleColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.DOUBLE.name())
@@ -179,7 +202,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.nullable, nullable);
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createDoubleColumn(BranchNode<?, TableNodeType> table, String columnName,double defaultValue)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createDoubleColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,double defaultValue)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.DOUBLE.name())
@@ -188,7 +212,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.defaultStaticValue, new Double(defaultValue).toString());
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createTimeColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createTimeColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.TIME.name())
@@ -196,7 +221,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.nullable, nullable);
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createTimeColumnDefaultCurrent(BranchNode<?, TableNodeType> table, String columnName)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createTimeColumnDefaultCurrent(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.TIME.name())
@@ -205,7 +231,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.defaultValueClass,IDefaultCurrentTime.class);
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createDateColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createDateColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.DATE.name())
@@ -213,7 +240,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.nullable, nullable);
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createDateColumnDefaultCurrent(BranchNode<?, TableNodeType> table, String columnName)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createDateColumnDefaultCurrent(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.DATE.name())
@@ -222,7 +250,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.defaultValueClass,IDefaultCurrentDate.class);
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createTimestampColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createTimestampColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.TIMESTAMP.name())
@@ -230,7 +259,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.nullable, nullable);
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createTimestampColumnDefaultCurrent(BranchNode<?, TableNodeType> table, String columnName)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createTimestampColumnDefaultCurrent(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.TIMESTAMP.name())
@@ -239,7 +269,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.defaultValueClass,IDefaultCurrentTimestamp.class);
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createBinaryColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createBinaryColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.BINARY.name())
@@ -247,7 +278,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.nullable, nullable);
 	}
 	
-	public static BranchNode<TableNodeType, ColumnNodeType> createBlobColumn(BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createBlobColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,boolean nullable)
 	{
 		return table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.BLOB.name())
@@ -255,7 +287,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.nullable, nullable);
 	}
 	
-	public static BranchNode<TableNodeType, IndexNodeType> createIndex(BranchNode<?, TableNodeType> table, boolean unique, String keyName, String... columnNames )
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, IndexNodeType> createIndex(@BowParameter(self=true) BranchNode<?, TableNodeType> table, boolean unique, String keyName, String... columnNames )
 	{
 		if(columnNames == null)
 		{
@@ -276,7 +309,8 @@ public class TableNodeType extends BranchNodeMetaModel
 		return index;
 	}
 	
-	public static void addConsumer(BranchNode<?, TableNodeType> table, ExceptionConsumer<DBSchemaEvent> consumer)
+	@BowMethod
+	public static void addConsumer(BranchNode<?, TableNodeType> table, ExceptionCatchedConsumer<DBSchemaEvent> consumer)
 	{
 		table.create(TableNodeType.consumers).setValue(EventConsumerNodeType.eventConsumer, consumer);
 	}

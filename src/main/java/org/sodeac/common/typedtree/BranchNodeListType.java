@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -11,6 +11,8 @@
 package org.sodeac.common.typedtree;
 
 import java.lang.reflect.Field;
+
+import org.sodeac.common.typedtree.annotation.Transient;
 
 /**
  * A branch node list type defines a multiple complex node. This node type can defines new child nodes of type {@link LeafNodeType}, {@link BranchNodeType} and {@link BranchNodeListType} again.
@@ -27,6 +29,7 @@ public class BranchNodeListType<P extends BranchNodeMetaModel, T extends BranchN
 	private String name = null;
 	private Field field = null;
 	private int hashCode = 1;
+	private boolean transientFlag = false;
 	
 	/**
 	 * Constructor for branch node list type.
@@ -41,6 +44,7 @@ public class BranchNodeListType<P extends BranchNodeMetaModel, T extends BranchN
 		this.typeClass = typeClass;
 		this.name = field.getName();
 		this.field = field;
+		this.transientFlag = field.getAnnotation(Transient.class) != null;
 		
 		// generate hashcode
 		
@@ -108,5 +112,11 @@ public class BranchNodeListType<P extends BranchNodeMetaModel, T extends BranchN
 	public String toString()
 	{
 		return getClass().getSimpleName() + " " + this.getNodeName();
+	}
+
+	@Override
+	public boolean isTransient()
+	{
+		return transientFlag;
 	}
 }

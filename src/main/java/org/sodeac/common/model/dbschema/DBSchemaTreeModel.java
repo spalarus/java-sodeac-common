@@ -14,16 +14,25 @@ import org.sodeac.common.typedtree.BranchNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.TypedTreeMetaModel;
 import org.sodeac.common.typedtree.annotation.Domain;
+
+import java.util.function.Consumer;
+
+import org.sodeac.common.annotation.BowMethod;
+import org.sodeac.common.annotation.BowParameter;
+import org.sodeac.common.annotation.BowParameter.AutomaticConsumer;
+import org.sodeac.common.annotation.GenerateBowFactory;
 import org.sodeac.common.annotation.Version;
 
 @Domain(name="sodeac.org",module="dbschema")
 @Version(major=0,minor=6)
+@GenerateBowFactory
 public class DBSchemaTreeModel extends TypedTreeMetaModel<DBSchemaTreeModel> 
 {
 	static{ModelRegistry.getTypedTreeMetaModel(DBSchemaTreeModel.class);}
 	
 	public static volatile BranchNodeType<DBSchemaTreeModel,DBSchemaNodeType> schema;
 	
+	@BowMethod(convertReturnValueToBow=true, name="createSchema", createBowFromReturnValue=true)
 	public static RootBranchNode<DBSchemaTreeModel, DBSchemaNodeType> newSchema(String name)
 	{
 		RootBranchNode<DBSchemaTreeModel, DBSchemaNodeType> schema = ModelRegistry.getTypedTreeMetaModel(DBSchemaTreeModel.class).createRootNode(DBSchemaTreeModel.schema);
@@ -34,7 +43,18 @@ public class DBSchemaTreeModel extends TypedTreeMetaModel<DBSchemaTreeModel>
 	
 	public static RootBranchNode<DBSchemaTreeModel, DBSchemaNodeType> newSchema(String name, String dbmsSchemaName)
 	{
+		return newSchema(name, dbmsSchemaName, null);
+	}
+	
+	@BowMethod(convertReturnValueToBow=true, name="createSchema")
+	protected static RootBranchNode<DBSchemaTreeModel, DBSchemaNodeType> newSchema(String name, String dbmsSchemaName, @BowParameter(automaticConsumerMode=AutomaticConsumer.NEW_BOW_BY_RETURNTYPE) Consumer<RootBranchNode<DBSchemaTreeModel, DBSchemaNodeType>> onRootNodeCreated)
+	{
 		RootBranchNode<DBSchemaTreeModel, DBSchemaNodeType> schema = ModelRegistry.getTypedTreeMetaModel(DBSchemaTreeModel.class).createRootNode(DBSchemaTreeModel.schema);
+		
+		if(onRootNodeCreated != null)
+		{
+			onRootNodeCreated.accept(schema);
+		}
 		
 		schema
 			.setValue(DBSchemaNodeType.name, name)

@@ -3,6 +3,7 @@ package org.sodeac.common.model;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 
+import org.sodeac.common.annotation.GenerateBow;
 import org.sodeac.common.typedtree.LeafNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.annotation.IgnoreIfNull;
@@ -12,6 +13,7 @@ import org.sodeac.common.typedtree.annotation.SQLIndex;
 import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 
 @TypedTreeModel(modelClass=CoreTreeModel.class)
+@GenerateBow
 public class CommonGenericPropertyNodeType extends CommonBaseBranchNodeType
 {
 	static{ModelRegistry.getBranchNodeMetaModel(CommonGenericPropertyNodeType.class);}

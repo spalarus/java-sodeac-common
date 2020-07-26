@@ -11,10 +11,12 @@
 package org.sodeac.common.model.logging;
 
 import java.util.Date;
+import java.util.UUID;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 
+import org.sodeac.common.annotation.GenerateBow;
 import org.sodeac.common.jdbc.schemax.IDefaultBySequence;
 import org.sodeac.common.model.CommonBaseBranchNodeType;
 import org.sodeac.common.typedtree.BranchNodeListType;
@@ -22,6 +24,7 @@ import org.sodeac.common.typedtree.LeafNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.annotation.Association;
 import org.sodeac.common.typedtree.annotation.SQLColumn;
+import org.sodeac.common.typedtree.annotation.SQLPrimaryKey;
 import org.sodeac.common.typedtree.annotation.SQLReferencedByColumn;
 import org.sodeac.common.typedtree.annotation.SQLSequence;
 import org.sodeac.common.typedtree.annotation.SQLTable;
@@ -33,9 +36,15 @@ import org.sodeac.common.typedtree.annotation.SQLColumn.SQLColumnType;
 
 @SQLTable(name="sdc_log_event",updatable= false)
 @TypedTreeModel(modelClass=LoggingTreeModel.class)
+@GenerateBow
 public class LogEventNodeType extends CommonBaseBranchNodeType
 {
 	static{ModelRegistry.getBranchNodeMetaModel(LogEventNodeType.class);}
+	
+	@SQLColumn(name="id",type=SQLColumnType.UUID,nullable=false,updatable=false,onInsert=GenerateUUIDIfNull.class)
+	@SQLPrimaryKey
+	@XmlAttribute(name="id")
+	public static volatile LeafNodeType<LogEventNodeType,UUID> id;
 	
 	@SQLColumn(name="log_type",type=SQLColumnType.VARCHAR, nullable=false, length=540)
 	@XmlAttribute(name="type")

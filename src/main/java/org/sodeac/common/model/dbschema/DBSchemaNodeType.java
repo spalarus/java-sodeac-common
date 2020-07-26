@@ -10,7 +10,10 @@
  *******************************************************************************/
 package org.sodeac.common.model.dbschema;
 
-import org.sodeac.common.function.ExceptionConsumer;
+import org.sodeac.common.annotation.BowMethod;
+import org.sodeac.common.annotation.BowParameter;
+import org.sodeac.common.annotation.GenerateBow;
+import org.sodeac.common.function.ExceptionCatchedConsumer;
 import org.sodeac.common.jdbc.DBSchemaUtils.DBSchemaEvent;
 import org.sodeac.common.typedtree.BranchNode;
 import org.sodeac.common.typedtree.BranchNodeListType;
@@ -20,6 +23,7 @@ import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 
 @TypedTreeModel(modelClass=DBSchemaTreeModel.class)
+@GenerateBow
 public class DBSchemaNodeType extends BranchNodeMetaModel
 {
 	static{ModelRegistry.getBranchNodeMetaModel(DBSchemaNodeType.class);}
@@ -33,7 +37,8 @@ public class DBSchemaNodeType extends BranchNodeMetaModel
 	public static volatile BranchNodeListType<DBSchemaNodeType,TableNodeType> tables;
 	public static volatile BranchNodeListType<DBSchemaNodeType,EventConsumerNodeType> consumers;
 	
-	public static void addConsumer(BranchNode<?, DBSchemaNodeType> schema, ExceptionConsumer<DBSchemaEvent> consumer)
+	@BowMethod
+	public static void addConsumer(@BowParameter(self=true) BranchNode<?, DBSchemaNodeType> schema, ExceptionCatchedConsumer<DBSchemaEvent> consumer)
 	{
 		schema.create(DBSchemaNodeType.consumers).setValue(EventConsumerNodeType.eventConsumer, consumer);
 	}

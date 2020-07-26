@@ -10,13 +10,20 @@
  *******************************************************************************/
 package org.sodeac.common.model.logging;
 
+import org.sodeac.common.annotation.BowMethod;
+import org.sodeac.common.annotation.BowMethod.ReturnBowMode;
+import org.sodeac.common.annotation.GenerateBow;
+import org.sodeac.common.annotation.BowParameter;
 import org.sodeac.common.model.CommonListChunkBaseBranchNodeType;
 import org.sodeac.common.typedtree.BranchNode;
 import org.sodeac.common.typedtree.BranchNodeListType;
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.ModelRegistry;
+import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 import org.sodeac.common.typedtree.annotation.XMLNodeList;
 
+@TypedTreeModel(modelClass=LoggingTreeModel.class)
+@GenerateBow
 public class LogEventListChunkNodeType extends CommonListChunkBaseBranchNodeType
 {
 	static{ModelRegistry.getBranchNodeMetaModel(LogEventListChunkNodeType.class);}
@@ -24,14 +31,15 @@ public class LogEventListChunkNodeType extends CommonListChunkBaseBranchNodeType
 	@XMLNodeList(childElementName="LogEvent", listElement=false)
 	public static volatile BranchNodeListType<LogEventListChunkNodeType, LogEventNodeType> chunk;
 	
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.SELF)
 	public static void addLogToEventListChunk
 	(
-		BranchNode<? extends BranchNodeMetaModel, LogEventListChunkNodeType> chunkNode,
-		BranchNode<?extends BranchNodeMetaModel, ? extends LogEventNodeType> logEventNode
+		@BowParameter(self=true) BranchNode<? extends BranchNodeMetaModel, LogEventListChunkNodeType> chunkNodeList,
+		@BowParameter(convertToBow=true, name="logEventBow") BranchNode<? extends BranchNodeMetaModel, LogEventNodeType> logEventNode
 	)
 	{
-		Integer itemSize = chunkNode.getValue(LogEventListChunkNodeType.itemSize); if(itemSize == null) {itemSize = 0;}
-		chunkNode.create(LogEventListChunkNodeType.chunk).copyFrom(logEventNode);
-		chunkNode.setValue(LogEventListChunkNodeType.itemSize, itemSize.intValue() + 1);
+		Integer itemSize = chunkNodeList.getValue(LogEventListChunkNodeType.itemSize); if(itemSize == null) {itemSize = 0;}
+		chunkNodeList.create(LogEventListChunkNodeType.chunk).copyFrom(logEventNode);
+		chunkNodeList.setValue(LogEventListChunkNodeType.itemSize, itemSize.intValue() + 1);
 	}
 }

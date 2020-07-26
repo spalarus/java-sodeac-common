@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<servicecomponent xmlns="http://www.sodeac.org/xmlns/serviceregistration/v1.0.0">
+<servicecomponent xmlns="http://www.sodeac.org/xmlns/serviceregistration/v1.0.0" type="org.sodeac.common">
   <factories>
     <factory lower-scaling-limit="1" upper-scaling-limit="1" initial-scaling="0" shared="true" class="org.sodeac.common.jdbc.TypedTreeJDBCCruder$LocalServiceFactory">
       <property key="a" type="string">b</property>

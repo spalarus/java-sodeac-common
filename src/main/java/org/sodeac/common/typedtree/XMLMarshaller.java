@@ -14,18 +14,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.text.DecimalFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
-import java.util.TimeZone;
-import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -47,6 +41,7 @@ import org.sodeac.common.typedtree.annotation.IgnoreIfNull;
 import org.sodeac.common.typedtree.annotation.IgnoreIfTrue;
 import org.sodeac.common.typedtree.annotation.Transient;
 import org.sodeac.common.annotation.Version;
+import org.sodeac.common.misc.StringConverter;
 import org.sodeac.common.typedtree.annotation.XMLNodeList;
 
 // quick and dirty - poc
@@ -55,8 +50,8 @@ public class XMLMarshaller
 	private String mainNamespace;
 	
 	private Map<Class<? extends BranchNodeMetaModel>,XMLNodeMarshaller> nodeMarshallerIndex;
-	private Map<String,Function<Object, String>> toStringIndex = new HashMap<String,Function<Object, String>>();
-	private Map<String,Function<String, Object>> fromStringIndex = new HashMap<String,Function<String, Object>>();
+	private Map<String,Function<Object, String>> toStringIndex = StringConverter.toStringIndex();
+	private Map<String,Function<String, Object>> fromStringIndex = StringConverter.fromStringIndex();
 	
 	
 	protected XMLMarshaller(String namespace)
@@ -64,65 +59,6 @@ public class XMLMarshaller
 		super();
 		this.mainNamespace = namespace;
 		this.nodeMarshallerIndex = new HashMap<Class<? extends BranchNodeMetaModel>, XMLMarshaller.XMLNodeMarshaller>();
-		
-		toStringIndex.put(String.class.getCanonicalName(), p -> (String)p);
-		fromStringIndex.put(String.class.getCanonicalName(), p -> p);
-		
-		toStringIndex.put(String.class.getCanonicalName(), p -> (String)p);
-		fromStringIndex.put(String.class.getCanonicalName(), p -> p);
-		
-		toStringIndex.put(Long.class.getCanonicalName(), p -> Long.toString((Long)p));
-		fromStringIndex.put(Long.class.getCanonicalName(), p -> Long.parseLong(p));
-		
-		toStringIndex.put(Integer.class.getCanonicalName(), p -> Integer.toString((Integer)p));
-		fromStringIndex.put(Integer.class.getCanonicalName(), p -> Integer.parseInt(p));
-		
-		toStringIndex.put(Double.class.getCanonicalName(), p -> Double.toString((Double)p));
-		fromStringIndex.put(Double.class.getCanonicalName(), p -> Double.parseDouble(p));
-		
-		toStringIndex.put(Boolean.class.getCanonicalName(), p -> Boolean.toString((Boolean)p));
-		fromStringIndex.put(Boolean.class.getCanonicalName(), p -> Boolean.parseBoolean(p));
-		
-		toStringIndex.put(Date.class.getCanonicalName(), p -> 
-		{
-			Date date = (Date)p;
-			SimpleDateFormat ISO8601Local = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-			TimeZone timeZone = TimeZone.getDefault(); //local JVM time zone
-			ISO8601Local.setTimeZone(timeZone);
-			
-			DecimalFormat twoDigits = new DecimalFormat("00");
-			
-			int offset = ISO8601Local.getTimeZone().getOffset(date.getTime());
-			String sign = "+";
-			
-			if (offset < 0)
-			{
-				offset = -offset;
-				sign = "-";
-			}
-			int hours = offset / 3600000;
-			int minutes = (offset - hours * 3600000) / 60000;
-			
-			String ISO8601Now = ISO8601Local.format(date) + sign + twoDigits.format(hours) + ":" + twoDigits.format(minutes);
-			return ISO8601Now; 
-		});
-		fromStringIndex.put(Date.class.getCanonicalName(), p -> 
-		{
-			try
-			{
-				SimpleDateFormat ISO8601Local = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-				TimeZone timeZone = TimeZone.getDefault(); //local JVM time zone
-				ISO8601Local.setTimeZone(timeZone);
-				return ISO8601Local.parse(p); 
-			}
-			catch (ParseException e) 
-			{
-				throw new RuntimeException(e);
-			}
-		});
-		
-		toStringIndex.put(UUID.class.getCanonicalName(), p -> ((UUID)p).toString());
-		fromStringIndex.put(UUID.class.getCanonicalName(), p -> UUID.fromString(p));
 	}
 	
 	protected void publish(BranchNodeMetaModel model)

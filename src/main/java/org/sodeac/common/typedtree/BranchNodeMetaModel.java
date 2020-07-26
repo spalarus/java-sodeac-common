@@ -11,7 +11,6 @@
 package org.sodeac.common.typedtree;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -22,11 +21,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-
-import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
-import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 
 /**
  * A branch node meta model defines type and cardinality of child nodes.
@@ -54,13 +49,52 @@ public class BranchNodeMetaModel
 			classList.addFirst(currentSuperClass);
 			currentSuperClass = currentSuperClass.getSuperclass();
 		}
-		
 		List<Field> fieldList = new ArrayList<>();
+		
+		Map<String,Set<LeafNodeType>> leafNodeIndex = new HashMap<>();
+		Map<String,Set<BranchNodeType>> branchNodeIndex = new HashMap<>();
+		Map<String,Set<BranchNodeListType>> branchNodeListIndex = new HashMap<>();
 		
 		for(Class modelClass : classList)
 		{
 			for(Field field : modelClass.getDeclaredFields())
 			{
+				INodeType staticNodeTypeInstance = getStaticFieldInstance(field);
+				if(staticNodeTypeInstance == null)
+				{
+					continue;
+				}
+				String name = staticNodeTypeInstance.getNodeName();
+				if(staticNodeTypeInstance instanceof LeafNodeType)
+				{
+					Set<LeafNodeType> nodeIndex = leafNodeIndex.get(name);
+					if(nodeIndex == null)
+					{
+						nodeIndex = new HashSet<>();
+						leafNodeIndex.put(name, nodeIndex);
+					}
+					nodeIndex.add((LeafNodeType)staticNodeTypeInstance);
+				}
+				else if(staticNodeTypeInstance instanceof BranchNodeType)
+				{
+					Set<BranchNodeType> nodeIndex = branchNodeIndex.get(name);
+					if(nodeIndex == null)
+					{
+						nodeIndex = new HashSet<>();
+						branchNodeIndex.put(name, nodeIndex);
+					}
+					nodeIndex.add((BranchNodeType)staticNodeTypeInstance);
+				}
+				else if(staticNodeTypeInstance instanceof BranchNodeListType)
+				{
+					Set<BranchNodeListType> nodeIndex = branchNodeListIndex.get(name);
+					if(nodeIndex == null)
+					{
+						nodeIndex = new HashSet<>();
+						branchNodeListIndex.put(name, nodeIndex);
+					}
+					nodeIndex.add((BranchNodeListType)staticNodeTypeInstance);
+				}
 				int pos = -1;
 				int idx = 0;
 				for(Field existingField : fieldList)
@@ -84,58 +118,10 @@ public class BranchNodeMetaModel
 		}
 		for(Field field : fieldList)
 		{
-			Class<?> modelClass = field.getDeclaringClass();
-			boolean isField = false;
-			for(Class<?> clazz : field.getType().getInterfaces())
+			INodeType staticNodeTypeInstance = getStaticFieldInstance(field);
+			if(staticNodeTypeInstance != null)
 			{
-				if(clazz == INodeType.class)
-				{
-					isField = true;
-					break;
-				}
-			}
-			if(! isField)
-			{
-				continue;
-			}
-			Type type = field.getGenericType();
-			Class<?> fieldClass = field.getType();
-			int fieldModifier = field.getModifiers();
-			
-			if((type instanceof ParameterizedType) && ((fieldClass == LeafNodeType.class) || (fieldClass == BranchNodeType.class) || (fieldClass == BranchNodeListType.class) ))
-			{
-				ParameterizedType pType = (ParameterizedType)type;
-				if((pType.getActualTypeArguments() != null) && (pType.getActualTypeArguments().length == 2))
-				{
-					if(pType.getActualTypeArguments()[0] == modelClass)
-					{
-						
-						Type type2 = pType.getActualTypeArguments()[1];
-						
-						try
-						{
-							if(Modifier.isStatic(fieldModifier) && (! Modifier.isFinal(fieldModifier)))
-							{
-								if(field.get(null) == null)
-								{
-									if(type2 instanceof ParameterizedType)
-									{
-										ParameterizedType pType2 = (ParameterizedType)type2;
-										type2 = pType2.getRawType();
-									}
-									Object nodeType = fieldClass.getConstructor(Class.class,Class.class, Field.class).newInstance(modelClass,type2,field);
-									field.set(null, nodeType);
-								}
-							}
-							
-							list.add((INodeType)field.get(this));
-						}
-						catch (Exception e) 
-						{
-							throw new RuntimeException(e);
-						}
-					}
-				}
+				list.add(staticNodeTypeInstance);
 			}
 		}
 		
@@ -150,24 +136,53 @@ public class BranchNodeMetaModel
 		this.nodeTypeNames = new String[this.nodeTypeList.size()];
 		Map<String,Integer> nodeTypeIndexByName = new HashMap<String,Integer>();
 		Map<Object,Integer> nodeTypeIndexByClass = new HashMap<Object,Integer>();
+		Map<Object,Object> nodeTypeIndexByHidden = new HashMap<Object,Object>();
 		for(int i = 0; i < this.nodeTypeList.size(); i++)
 		{
 			INodeType staticNodeTypeInstance = this.nodeTypeList.get(i);
-			this.nodeTypeNames[i] = staticNodeTypeInstance.getNodeName();
-			nodeTypeIndexByName.put(staticNodeTypeInstance.getNodeName(), i);
+			String name = staticNodeTypeInstance.getNodeName();
+			this.nodeTypeNames[i] = name;
+			nodeTypeIndexByName.put(name, i);
 			nodeTypeIndexByClass.put(staticNodeTypeInstance, i);
 			
 			if(staticNodeTypeInstance instanceof LeafNodeType)
 			{
 				this.leafNodeTypeList.add((LeafNodeType)staticNodeTypeInstance);
+				Set<LeafNodeType> nodeIndex = leafNodeIndex.get(name);
+				for(LeafNodeType node : nodeIndex)
+				{
+					if(node != staticNodeTypeInstance)
+					{
+						nodeTypeIndexByClass.put(node, i);
+						nodeTypeIndexByHidden.put(node, staticNodeTypeInstance);
+					}
+				}
 			}
 			if(staticNodeTypeInstance instanceof BranchNodeType)
 			{
 				this.branchNodeTypeList.add((BranchNodeType)staticNodeTypeInstance);
+				Set<BranchNodeType> nodeIndex = branchNodeIndex.get(name);
+				for(BranchNodeType node : nodeIndex)
+				{
+					if(node != staticNodeTypeInstance)
+					{
+						nodeTypeIndexByClass.put(node, i);
+						nodeTypeIndexByHidden.put(node, staticNodeTypeInstance);
+					}
+				}
 			}
 			if(staticNodeTypeInstance instanceof BranchNodeListType)
 			{
 				this.branchNodeListTypeList.add((BranchNodeListType)staticNodeTypeInstance);
+				Set<BranchNodeListType> nodeIndex = branchNodeListIndex.get(name);
+				for(BranchNodeListType node : nodeIndex)
+				{
+					if(node != staticNodeTypeInstance)
+					{
+						nodeTypeIndexByClass.put(node, i);
+						nodeTypeIndexByHidden.put(node, staticNodeTypeInstance);
+					}
+				}
 			}
 		}
 		this.leafNodeTypeList = Collections.unmodifiableList(this.leafNodeTypeList);
@@ -175,6 +190,7 @@ public class BranchNodeMetaModel
 		this.branchNodeListTypeList = Collections.unmodifiableList(this.branchNodeListTypeList);
 		this.nodeTypeIndexByName = Collections.unmodifiableMap(nodeTypeIndexByName);
 		this.nodeTypeIndexByClass = Collections.unmodifiableMap(nodeTypeIndexByClass);
+		this.nodeTypeIndexByHidden = Collections.unmodifiableMap(nodeTypeIndexByHidden);
 	}
 	
 	protected volatile BranchNodeType<? extends BranchNodeMetaModel,? extends BranchNodeMetaModel> anonymous;
@@ -186,6 +202,7 @@ public class BranchNodeMetaModel
 	private List<BranchNodeListType> branchNodeListTypeList = null;
 	private Map<String, Integer> nodeTypeIndexByName = null;
 	private Map<Object, Integer> nodeTypeIndexByClass = null;
+	private Map<Object,Object> nodeTypeIndexByHidden = null;
 	
 	protected String[] getNodeTypeNames()
 	{
@@ -215,6 +232,66 @@ public class BranchNodeMetaModel
 	{
 		return nodeTypeIndexByClass;
 	}
+	public Map<Object, Object> getNodeTypeIndexByHidden()
+	{
+		return nodeTypeIndexByHidden;
+	}
 	
-	
+	protected static INodeType getStaticFieldInstance(Field field)
+	{
+		Class<?> modelClass = field.getDeclaringClass();
+		boolean isField = false;
+		for(Class<?> clazz : field.getType().getInterfaces())
+		{
+			if(clazz == INodeType.class)
+			{
+				isField = true;
+				break;
+			}
+		}
+		if(! isField)
+		{
+			return null;
+		}
+		Type type = field.getGenericType();
+		Class<?> fieldClass = field.getType();
+		int fieldModifier = field.getModifiers();
+		
+		if((type instanceof ParameterizedType) && ((fieldClass == LeafNodeType.class) || (fieldClass == BranchNodeType.class) || (fieldClass == BranchNodeListType.class) ))
+		{
+			ParameterizedType pType = (ParameterizedType)type;
+			if((pType.getActualTypeArguments() != null) && (pType.getActualTypeArguments().length == 2))
+			{
+				if(pType.getActualTypeArguments()[0] == modelClass)
+				{
+					
+					Type type2 = pType.getActualTypeArguments()[1];
+					
+					try
+					{
+						if(Modifier.isStatic(fieldModifier) && (! Modifier.isFinal(fieldModifier)))
+						{
+							if(field.get(null) == null)
+							{
+								if(type2 instanceof ParameterizedType)
+								{
+									ParameterizedType pType2 = (ParameterizedType)type2;
+									type2 = pType2.getRawType();
+								}
+								Object nodeType = fieldClass.getConstructor(Class.class,Class.class, Field.class).newInstance(modelClass,type2,field);
+								field.set(null, nodeType);
+							}
+							return (INodeType)field.get(null);
+						}
+					}
+					catch (Exception e) 
+					{
+						throw new RuntimeException(e);
+					}
+				}
+			}
+		}
+		
+		return null;
+	}
 }

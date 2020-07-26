@@ -10,12 +10,14 @@
  *******************************************************************************/
 package org.sodeac.common.model;
 
+import org.sodeac.common.annotation.GenerateBow;
 import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.LeafNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 
 @TypedTreeModel(modelClass=CoreTreeModel.class)
+@GenerateBow
 public class VersionNodeType extends BranchNodeMetaModel
 {
 	static{ModelRegistry.getBranchNodeMetaModel(VersionNodeType.class);}

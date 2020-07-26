@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.Map.Entry;
 
 import org.sodeac.common.ILogService;
-import org.sodeac.common.function.ExceptionConsumer;
+import org.sodeac.common.function.ExceptionCatchedConsumer;
 import org.sodeac.common.impl.LogServiceImpl;
 import org.sodeac.common.misc.Driver;
 import org.sodeac.common.model.dbschema.ColumnNodeType;
@@ -96,7 +96,7 @@ public class DBSchemaUtils
 			
 			for(BranchNode<DBSchemaNodeType, EventConsumerNodeType> consumerNode : schema.getUnmodifiableNodeList(DBSchemaNodeType.consumers))
 			{
-				ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+				ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 				if(consumer == null)
 				{
 					continue;
@@ -239,7 +239,7 @@ public class DBSchemaUtils
 				
 				for(BranchNode<DBSchemaNodeType, EventConsumerNodeType> consumerNode : schema.getUnmodifiableNodeList(DBSchemaNodeType.consumers))
 				{
-					ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+					ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 					if(consumer == null)
 					{
 						continue;
@@ -273,7 +273,7 @@ public class DBSchemaUtils
 					event.setPhaseType(PhaseType.PRE);
 					event.setException(null);
 					
-					ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+					ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 					if(consumer == null)
 					{
 						continue;
@@ -324,7 +324,7 @@ public class DBSchemaUtils
 				
 				for(BranchNode<DBSchemaNodeType, EventConsumerNodeType> consumerNode : schema.getUnmodifiableNodeList(DBSchemaNodeType.consumers))
 				{
-					ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+					ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 					if(consumer == null)
 					{
 						continue;
@@ -502,7 +502,7 @@ public class DBSchemaUtils
 			
 			for(BranchNode<DBSchemaNodeType, EventConsumerNodeType> consumerNode : schema.getUnmodifiableNodeList(DBSchemaNodeType.consumers))
 			{
-				ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+				ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 				if(consumer == null)
 				{
 					continue;
@@ -1249,7 +1249,7 @@ public class DBSchemaUtils
 					
 					for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 					{
-						ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+						ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 						if(consumer == null)
 						{
 							continue;
@@ -1301,7 +1301,7 @@ public class DBSchemaUtils
 						
 						for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 						{
-							ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+							ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 							if(consumer == null)
 							{
 								continue;
@@ -1371,7 +1371,7 @@ public class DBSchemaUtils
 						
 						for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 						{
-							ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+							ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 							if(consumer == null)
 							{
 								continue;
@@ -1431,7 +1431,7 @@ public class DBSchemaUtils
 				
 				for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 				{
-					ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+					ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 					if(consumer == null)
 					{
 						continue;
@@ -1532,7 +1532,7 @@ public class DBSchemaUtils
 						
 						for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 						{
-							ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+							ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 							if(consumer == null)
 							{
 								continue;
@@ -1599,7 +1599,7 @@ public class DBSchemaUtils
 						
 						for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 						{
-							ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+							ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 							if(consumer == null)
 							{
 								continue;
@@ -1721,7 +1721,7 @@ public class DBSchemaUtils
 								
 								for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 								{
-									ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+									ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 									if(consumer == null)
 									{
 										continue;
@@ -1788,7 +1788,7 @@ public class DBSchemaUtils
 								
 								for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 								{
-									ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+									ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 									if(consumer == null)
 									{
 										continue;
@@ -1905,7 +1905,7 @@ public class DBSchemaUtils
 					
 					for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 					{
-						ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+						ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 						if(consumer == null)
 						{
 							continue;
@@ -1966,7 +1966,7 @@ public class DBSchemaUtils
 						
 						for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 						{
-							ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+							ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 							if(consumer == null)
 							{
 								continue;
@@ -2037,7 +2037,7 @@ public class DBSchemaUtils
 						
 						for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 						{
-							ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+							ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 							if(consumer == null)
 							{
 								continue;
@@ -2098,7 +2098,7 @@ public class DBSchemaUtils
 				
 				for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 				{
-					ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+					ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 					if(consumer == null)
 					{
 						continue;
@@ -2203,7 +2203,7 @@ public class DBSchemaUtils
 							
 							for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 							{
-								ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+								ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 								if(consumer == null)
 								{
 									continue;
@@ -2250,7 +2250,7 @@ public class DBSchemaUtils
 							
 							for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 							{
-								ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+								ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 								if(consumer == null)
 								{
 									continue;
@@ -2302,7 +2302,7 @@ public class DBSchemaUtils
 							
 							for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 							{
-								ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+								ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 								if(consumer == null)
 								{
 									continue;
@@ -2354,7 +2354,7 @@ public class DBSchemaUtils
 							
 							for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 							{
-								ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+								ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 								if(consumer == null)
 								{
 									continue;
@@ -2426,7 +2426,7 @@ public class DBSchemaUtils
 							
 							for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 							{
-								ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+								ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 								if(consumer == null)
 								{
 									continue;
@@ -2468,7 +2468,7 @@ public class DBSchemaUtils
 							
 							for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 							{
-								ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+								ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 								if(consumer == null)
 								{
 									continue;
@@ -2515,7 +2515,7 @@ public class DBSchemaUtils
 							
 							for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 							{
-								ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+								ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 								if(consumer == null)
 								{
 									continue;
@@ -2561,7 +2561,7 @@ public class DBSchemaUtils
 							
 							for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 							{
-								ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+								ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 								if(consumer == null)
 								{
 									continue;
@@ -2670,7 +2670,7 @@ public class DBSchemaUtils
 						
 						for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 						{
-							ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+							ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 							if(consumer == null)
 							{
 								continue;
@@ -2738,7 +2738,7 @@ public class DBSchemaUtils
 						
 						for(BranchNode<TableNodeType, EventConsumerNodeType> consumerNode : table.getUnmodifiableNodeList(TableNodeType.consumers))
 						{
-							ExceptionConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
+							ExceptionCatchedConsumer<DBSchemaUtils.DBSchemaEvent> consumer = consumerNode.getValue(EventConsumerNodeType.eventConsumer);
 							if(consumer == null)
 							{
 								continue;
