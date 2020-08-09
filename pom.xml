@@ -213,7 +213,7 @@
       <plugin>
         <groupId>org.sodeac</groupId>
         <artifactId>org.sodeac.mvn.plugin</artifactId>
-        <version>0.0.2</version>
+        <version>0.0.4</version>
         <executions>
           <execution>
             <phase>generate-sources</phase>

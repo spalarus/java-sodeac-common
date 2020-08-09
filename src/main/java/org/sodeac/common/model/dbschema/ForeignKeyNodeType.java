@@ -17,7 +17,7 @@ import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 
 @TypedTreeModel(modelClass=DBSchemaTreeModel.class)
-@GenerateBow
+@GenerateBow(buildAlias=true)
 public class ForeignKeyNodeType extends BranchNodeMetaModel
 {
 	static{ModelRegistry.getBranchNodeMetaModel(ForeignKeyNodeType.class);}

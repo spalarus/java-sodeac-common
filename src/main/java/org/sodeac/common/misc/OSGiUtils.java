@@ -14,6 +14,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -21,6 +22,7 @@ import java.util.function.BiConsumer;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
+import org.osgi.framework.wiring.BundleWiring;
 import org.sodeac.common.misc.Driver.IDriver;
 
 public class OSGiUtils 
@@ -94,6 +96,15 @@ public class OSGiUtils
 		return InternalUtils.loadPackageInputStream(fileName, packageClass);
 	}
 	
+	public static Class loadClass(String canonicalName, String bundleSymbolicName, String bundleVersion)
+	{
+		if(! isOSGi())
+		{
+			return null;
+		}
+		return InternalUtils.loadClass(canonicalName, bundleSymbolicName, bundleVersion);
+	}
+	
 	private static class InternalUtils
 	{
 		private static boolean test()
@@ -135,6 +146,94 @@ public class OSGiUtils
 				return null;
 			}
 			return bundle.getVersion().toString();
+		}
+		
+		private static Class loadClass(String canonicalName, String bundleSymbolicName, String bundleVersion)
+		{
+			Version version = null;
+			try
+			{
+				if((bundleVersion != null) && (! bundleVersion.isEmpty()))
+				{
+					version = Version.fromString(bundleVersion);
+				}
+			}
+			catch (Exception e) {}
+			
+			if((bundleSymbolicName == null) || bundleSymbolicName.isEmpty())
+			{
+				try
+				{
+					return Class.forName(canonicalName);
+				}
+				catch (ClassNotFoundException e)
+				{
+					throw new RuntimeWrappedException(e);
+				}
+			}
+			
+			Bundle bestBundle = null;
+			
+			for (final Bundle bundle : org.osgi.framework.FrameworkUtil.getBundle(OSGiUtils.class).getBundleContext().getBundles())
+			{
+				if(! bundle.getSymbolicName().equals(bundleSymbolicName))
+				{
+					continue;
+				}
+				if((version != null) && (version.getMajor() != bundle.getVersion().getMajor()))
+				{
+					continue;
+				}
+				boolean classExists = true;
+				try
+				{
+					BundleWiring wiring = bundle.adapt(BundleWiring.class);
+					if (wiring != null)
+					{
+						classExists = false;
+						Collection<String> localResources = wiring.listResources("/", "*class", BundleWiring.LISTRESOURCES_RECURSE | BundleWiring.LISTRESOURCES_LOCAL);
+						
+						for (String resource:localResources)
+						{
+							if(canonicalName.equals(resource.substring(0, resource.length() - ".class".length()).replace('$', '.').replace('/', '.')))
+							{
+								classExists = true;
+							}
+						}
+					}
+				}
+				catch (Exception e) {}
+				
+				if(! classExists)
+				{
+					continue;
+				}
+				
+				if(bestBundle == null)
+				{
+					bestBundle = bundle;
+					continue;
+				}
+				
+				if(bestBundle.getVersion().compareTo(bundle.getVersion()) < 0)
+				{
+					bestBundle = bundle;
+				}
+				
+			}
+			
+			if(bestBundle != null)
+			{
+				try
+				{
+					return bestBundle.loadClass(canonicalName);
+				} 
+				catch (ClassNotFoundException e)
+				{
+					throw new RuntimeWrappedException(e);
+				}
+			}
+			return null;
 		}
 		
 		private static String loadPackageFileAsString(String fileName, Class<?> packageClass) throws IOException

@@ -17,7 +17,7 @@ import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 
 @TypedTreeModel(modelClass=DBSchemaTreeModel.class)
-@GenerateBow
+@GenerateBow(buildAlias=true)
 public class SequenceNodeType extends BranchNodeMetaModel
 {
 	static{ModelRegistry.getBranchNodeMetaModel(SequenceNodeType.class);}

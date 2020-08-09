@@ -10,17 +10,14 @@
  *******************************************************************************/
 package org.sodeac.common.misc;
 
-import java.text.DecimalFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.function.Function;
 
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class StringConverter
 {
 	private static Map<String,Function<Object, String>> toStringIndex = null;
@@ -34,61 +31,29 @@ public class StringConverter
 		toString.put(String.class.getCanonicalName(), p -> (String)p);
 		fromString.put(String.class.getCanonicalName(), p -> p);
 		
-		toString.put(String.class.getCanonicalName(), p -> (String)p);
-		fromString.put(String.class.getCanonicalName(), p -> p);
+		toString.put(Long.class.getCanonicalName(), (Function)Converter.LongToString);
+		fromString.put(Long.class.getCanonicalName(), (Function)Converter.StringToLong);
 		
-		toString.put(Long.class.getCanonicalName(), p -> Long.toString((Long)p));
-		fromString.put(Long.class.getCanonicalName(), p -> Long.parseLong(p));
+		toString.put(Integer.class.getCanonicalName(), (Function)Converter.IntegerToString);
+		fromString.put(Integer.class.getCanonicalName(), (Function)Converter.StringToInteger);
 		
-		toString.put(Integer.class.getCanonicalName(), p -> Integer.toString((Integer)p));
-		fromString.put(Integer.class.getCanonicalName(), p -> Integer.parseInt(p));
+		toString.put(Double.class.getCanonicalName(), (Function)Converter.DoubleToString);
+		fromString.put(Double.class.getCanonicalName(), (Function)Converter.StringToDouble);
 		
-		toString.put(Double.class.getCanonicalName(), p -> Double.toString((Double)p));
-		fromString.put(Double.class.getCanonicalName(), p -> Double.parseDouble(p));
+		toString.put(Boolean.class.getCanonicalName(), (Function)Converter.BooleanToString);
+		fromString.put(Boolean.class.getCanonicalName(),  (Function)Converter.StringToBoolean);
 		
-		toString.put(Boolean.class.getCanonicalName(), p -> Boolean.toString((Boolean)p));
-		fromString.put(Boolean.class.getCanonicalName(), p -> Boolean.parseBoolean(p));
+		toString.put(Date.class.getCanonicalName(), (Function)Converter.DateToISO8601);
+		fromString.put(Date.class.getCanonicalName(), (Function)Converter.ISO8601ToDate);
 		
-		toString.put(Date.class.getCanonicalName(), p -> 
-		{
-			Date date = (Date)p;
-			SimpleDateFormat ISO8601Local = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-			TimeZone timeZone = TimeZone.getDefault(); //local JVM time zone
-			ISO8601Local.setTimeZone(timeZone);
-			
-			DecimalFormat twoDigits = new DecimalFormat("00");
-			
-			int offset = ISO8601Local.getTimeZone().getOffset(date.getTime());
-			String sign = "+";
-			
-			if (offset < 0)
-			{
-				offset = -offset;
-				sign = "-";
-			}
-			int hours = offset / 3600000;
-			int minutes = (offset - hours * 3600000) / 60000;
-			
-			String ISO8601Now = ISO8601Local.format(date) + sign + twoDigits.format(hours) + ":" + twoDigits.format(minutes);
-			return ISO8601Now; 
-		});
-		fromString.put(Date.class.getCanonicalName(), p -> 
-		{
-			try
-			{
-				SimpleDateFormat ISO8601Local = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-				TimeZone timeZone = TimeZone.getDefault(); //local JVM time zone
-				ISO8601Local.setTimeZone(timeZone);
-				return ISO8601Local.parse(p); 
-			}
-			catch (ParseException e) 
-			{
-				throw new RuntimeException(e);
-			}
-		});
+		toString.put(UUID.class.getCanonicalName(), (Function)Converter.UUIDToString);
+		fromString.put(UUID.class.getCanonicalName(), (Function)Converter.StringToUUID);
 		
-		toString.put(UUID.class.getCanonicalName(), p -> ((UUID)p).toString());
-		fromString.put(UUID.class.getCanonicalName(), p -> UUID.fromString(p));
+		toString.put(Version.class.getCanonicalName(), (Function)Converter.VersionToString);
+		fromString.put(Version.class.getCanonicalName(), (Function)Converter.StringToVersion);
+		
+		toString.put(Class.class.getCanonicalName(), (Function)Converter.ClassToString);
+		fromString.put(Class.class.getCanonicalName(), (Function)Converter.StringToClass);
 		
 		StringConverter.fromStringIndex = Collections.unmodifiableMap(fromString);
 		StringConverter.toStringIndex = Collections.unmodifiableMap(toString);
