@@ -64,7 +64,7 @@ public class Converter
 	public static final Function<String, Version> StringToVersion = p -> p == null || p.isEmpty() ? null : Version.fromString(p);
 	public static final Function<Version, String> VersionToString = p -> p == null ? EMPTY_STRING : p.toString();
 	
-	private static final SimpleDateFormat ISO8601_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+	/*private static final SimpleDateFormat ISO8601_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
 	private static final DecimalFormat TWO_DIGITS_FORMAT = new DecimalFormat("00");
 	
 	public static final Function<String, Date> ISO8601ToDate = p -> 
@@ -105,6 +105,44 @@ public class Converter
 		int minutes = (offset - hours * 3600000) / 60000;
 		
 		return ISO8601_FORMAT.format(p) + sign + TWO_DIGITS_FORMAT.format(hours) + ":" + TWO_DIGITS_FORMAT.format(minutes);
+	};*/
+	
+	public static final Function<String, Date> ISO8601ToDate = p -> 
+	{
+		try
+		{
+			SimpleDateFormat ISO8601Local = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+			TimeZone timeZone = TimeZone.getDefault(); //local JVM time zone
+			ISO8601Local.setTimeZone(timeZone);
+			return ISO8601Local.parse(p); 
+		}
+		catch (ParseException e) 
+		{
+			throw new RuntimeException(e);
+		}
+	};
+	
+	public static final Function<Date, String> DateToISO8601 = p -> 
+	{
+		SimpleDateFormat ISO8601Local = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+		TimeZone timeZone = TimeZone.getDefault(); //local JVM time zone
+		ISO8601Local.setTimeZone(timeZone);
+		
+		DecimalFormat twoDigits = new DecimalFormat("00");
+		
+		int offset = ISO8601Local.getTimeZone().getOffset(p.getTime());
+		String sign = "+";
+		
+		if (offset < 0)
+		{
+			offset = -offset;
+			sign = "-";
+		}
+		int hours = offset / 3600000;
+		int minutes = (offset - hours * 3600000) / 60000;
+		
+		String ISO8601Now = ISO8601Local.format(p) + sign + twoDigits.format(hours) + ":" + twoDigits.format(minutes);
+		return ISO8601Now; 
 	};
 	
 	public static final Function<String, Class> StringToClass = p -> 
