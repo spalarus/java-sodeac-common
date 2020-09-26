@@ -55,6 +55,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 	private int positionInList = -1;
 	private volatile ModifyListenerRegistration<T> modifyListenerRegistration = null;
 	private BranchNodeToObjectWrapper bow = null;
+	private volatile Node.PayloadLevel payloadLevel = null;
 	
 	protected static final Function<BranchNode,BranchNodeToObjectWrapper> FnBowFromBranchNode = n -> n.getBow();
 	
@@ -77,7 +78,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 				super.rootLinked = true;	// self root
 			}
 			
-			this.model = ModelRegistry.DEFAULT_INSTANCE.getCachedBranchNodeMetaModel(modelType);
+			this.model = ModelRegistry.DEFAULT_INSTANCE.getCachedBranchNodeMetaModel(modelType); // TODO from NodeContainer
 			
 			this.nodeContainerList = new ArrayList<>();
 			for(int i = 0; i < this.model.getNodeTypeNames().length; i++)
@@ -134,6 +135,16 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		return this.model;
 	}
 	
+	protected Node.PayloadLevel getPayloadLevel()
+	{
+		return payloadLevel;
+	}
+
+	protected void setPayloadLevel(Node.PayloadLevel payloadLevel)
+	{
+		this.payloadLevel = payloadLevel;
+	}
+
 	protected void setHasChilds(){}
 	
 	/**
@@ -185,6 +196,11 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 							}
 							container.nodeListenerList.clear();
 						}
+						
+						if(container.meta != null)
+						{
+							container.meta.dispose();
+						}
 					}
 					finally 
 					{
@@ -196,6 +212,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 						container.unmodifiableNodeListSnapshot = null;
 						container.unmodifiableBowListSnapshot = null;
 						container.nodeListenerList = null;
+						container.meta = null;
 					}
 				}
 				nodeContainerList.clear();
@@ -2449,6 +2466,38 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		}
 	}
 	
+	public static class NodeMeta
+	{
+		private volatile Boolean defined = null;
+		private volatile Node.PayloadLevel requiredPayloadLevel = null;
+		
+		public Boolean isDefined()
+		{
+			return defined;
+		}
+
+		public NodeMeta setDefined(boolean defined)
+		{
+			this.defined = defined ? Boolean.TRUE : Boolean.FALSE;
+			return this;
+		}
+		
+		protected Node.PayloadLevel getRequiredPayloadLevel()
+		{
+			return requiredPayloadLevel;
+		}
+
+		protected void setRequiredPayloadLevel(Node.PayloadLevel requiredPayloadLevel)
+		{
+			this.requiredPayloadLevel = requiredPayloadLevel;
+		}
+
+		public void dispose()
+		{
+			this.defined = null;
+			this.requiredPayloadLevel = null;
+		}
+	}
 	
 	protected static class NodeContainer
 	{
@@ -2469,6 +2518,7 @@ public class BranchNode<P extends BranchNodeMetaModel, T extends BranchNodeMetaM
 		private volatile List unmodifiableNodeListSnapshot = null;
 		private volatile List unmodifiableBowListSnapshot = null;
 		private volatile List<IChildNodeListener> nodeListenerList = null;
+		private volatile NodeMeta meta = null;
 		
 		protected INodeType getNodeType()
 		{
