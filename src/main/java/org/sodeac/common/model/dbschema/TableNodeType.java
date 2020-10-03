@@ -20,6 +20,7 @@ import org.sodeac.common.jdbc.IColumnType;
 import org.sodeac.common.jdbc.schemax.IDefaultCurrentDate;
 import org.sodeac.common.jdbc.schemax.IDefaultCurrentTime;
 import org.sodeac.common.jdbc.schemax.IDefaultCurrentTimestamp;
+import org.sodeac.common.jdbc.schemax.IDefaultUUID;
 import org.sodeac.common.jdbc.schemax.IDefaultBySequence;
 import org.sodeac.common.typedtree.BranchNode;
 import org.sodeac.common.typedtree.BranchNodeListType;
@@ -78,6 +79,16 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.UUID.name())
 			.setValue(ColumnNodeType.name, columnName)
 			.setValue(ColumnNodeType.nullable, nullable);
+	}
+	
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createUUIDColumnDefaultAuto(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName)
+	{
+		return table.create(TableNodeType.columns)
+			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.UUID.name())
+			.setValue(ColumnNodeType.name, columnName)
+			.setValue(ColumnNodeType.nullable, false)
+			.setValue(ColumnNodeType.defaultValueClass,IDefaultUUID.class);
 	}
 	
 	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)

@@ -1,0 +1,2 @@
+org.sodeac.common.jdbc.impl.H2DefaultUUID
+org.sodeac.common.jdbc.impl.PGDefaultUUID

@@ -42,6 +42,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -1051,6 +1052,62 @@ public class ColumnTypeTextTest
 			prepStat.close();
 			
 			assertEquals("rset should contains correct counts of entries", 2, count);
+		}
+		finally 
+		{
+			try {rset.close();}catch (Exception e) {}
+			try {prepStat.close();}catch (Exception e) {}
+		}
+	}
+	
+	@Test
+	public void test000342uuidAuto() throws SQLException, ClassNotFoundException, IOException 
+	{
+		if(! testConnection.enabled)
+		{
+			return;
+		}
+		Connection connection = testConnection.connection;
+		DBSchemaUtils dbSchemaUtils = DBSchemaUtils.get(connection);
+		
+		// create spec
+		BranchNode<DBSchemaTreeModel, DBSchemaNodeType> schema = DBSchemaTreeModel.newSchema(databaseID,testConnection.dbmsSchemaName);
+		
+		BranchNode<DBSchemaNodeType, TableNodeType> table1 = schema.create(DBSchemaNodeType.tables).setValue(TableNodeType.name, "TableColUUID");
+		
+		TableNodeType.createUUIDColumnDefaultAuto(table1, columnUUIDName);
+		TableNodeType.createVarcharColumn(table1, "col1", false, 12);
+		
+		dbSchemaUtils.adaptSchema(schema);
+		
+		PreparedStatement prepStat = null;
+		ResultSet rset = null;
+		try
+		{
+			connection.setAutoCommit(false);
+			
+			prepStat = connection.prepareStatement("insert into TableColUUID (col1) values ('val1')",Statement.RETURN_GENERATED_KEYS);
+			prepStat.executeUpdate();
+			
+			ResultSet generatedKeys = prepStat.getGeneratedKeys();
+			generatedKeys.next();
+			UUID newID = UUID.fromString(generatedKeys.getString(1));
+			generatedKeys.close();
+			prepStat.close();
+			connection.commit();
+			
+			int count = 0;
+			prepStat = connection.prepareStatement("select " + columnUUIDName + " from TableColUUID ");
+			rset = prepStat.executeQuery();
+			while( rset.next())
+			{
+				count++;
+				assertEquals("value should be correct", newID, rset.getObject(1));
+			}
+			rset.close();
+			prepStat.close();
+			
+			assertEquals("rset should contains correct counts of entries", 1, count);
 		}
 		finally 
 		{

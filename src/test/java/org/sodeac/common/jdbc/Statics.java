@@ -78,7 +78,7 @@ public class Statics
 							return testConnection;
 						}
 						
-						// docker run --name postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=sodeac -d -p 5432:5432 postgres
+						// docker run --name postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=sodeac -d -p 5432:5432 postgres:12
 						
 						// docker exec -it postgres bash:
 						// mkdir /var/lib/postgresql/data/sodeacdata
@@ -91,7 +91,10 @@ public class Statics
 						// CREATE USER sodeac with SUPERUSER CREATEDB CREATEROLE INHERIT REPLICATION LOGIN PASSWORD 'sodeac';
 						// CREATE TABLESPACE sodeacdata OWNER sodeac LOCATION '//var//lib//postgresql//data//sodeacdata';
 						// CREATE TABLESPACE sodeacindex OWNER sodeac LOCATION '//var//lib//postgresql//data//sodeacindex';
-						// 
+						// CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+						
+						// psql -h 127.0.0.1 -U sodeac --dbname=sodeac
+						// CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 						
 						
 						// CREATE SCHEMA IF NOT EXISTS sodeac1 AUTHORIZATION sodeac;
