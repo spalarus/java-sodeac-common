@@ -15,6 +15,8 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -24,7 +26,13 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+import javax.crypto.CipherOutputStream;
+import javax.crypto.spec.SecretKeySpec;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
@@ -63,6 +71,8 @@ public class Converter
 	
 	public static final Function<String, Version> StringToVersion = p -> p == null || p.isEmpty() ? null : Version.fromString(p);
 	public static final Function<Version, String> VersionToString = p -> p == null ? EMPTY_STRING : p.toString();
+	
+	private static final String DEFAULT_KEY = "sdc://identifier.specs/org.sodeac.encryption/key/default";
 	
 	/*private static final SimpleDateFormat ISO8601_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
 	private static final DecimalFormat TWO_DIGITS_FORMAT = new DecimalFormat("00");
@@ -357,5 +367,60 @@ public class Converter
 			bigDecimal = bigDecimal.setScale(d, RoundingMode.HALF_UP);
 		}
 		return bigDecimal.doubleValue();
+	};
+	
+	static final BiFunction<InputStream,String,InputStream> CryptedInputStreamToInputStream = (s,k) ->
+	{
+		if((k == null) || k.isEmpty())
+		{
+			k = DEFAULT_KEY;
+		}
+		
+		try
+		{
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			byte[] encodedKey = digest.digest(DEFAULT_KEY.getBytes(StandardCharsets.UTF_8));
+			
+			Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+			SecretKeySpec keySpec = new SecretKeySpec(encodedKey, "AES");
+			cipher.init(Cipher.DECRYPT_MODE, keySpec);
+			
+			return new GZIPInputStream(new CipherInputStream(s, cipher));
+		}
+		catch(RuntimeException e)
+		{
+			throw e;
+		}
+		catch(Exception e)
+		{
+			throw new RuntimeWrappedException(e);
+		}
+	};
+	static final BiFunction<OutputStream,String,OutputStream> OutputStreamToCryptedOutputStream = (s,k) ->
+	{
+		if((k == null) || k.isEmpty())
+		{
+			k = DEFAULT_KEY;
+		}
+		
+		try
+		{
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			byte[] encodedKey = digest.digest(DEFAULT_KEY.getBytes(StandardCharsets.UTF_8));
+			
+			Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+			SecretKeySpec keySpec = new SecretKeySpec(encodedKey, "AES");
+			cipher.init(Cipher.ENCRYPT_MODE, keySpec);
+			
+			return new GZIPOutputStream(new CipherOutputStream(s, cipher));
+		}
+		catch(RuntimeException e)
+		{
+			throw e;
+		}
+		catch(Exception e)
+		{
+			throw new RuntimeWrappedException(e);
+		}
 	};
 }
