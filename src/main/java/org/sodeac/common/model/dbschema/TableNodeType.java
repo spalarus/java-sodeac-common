@@ -160,6 +160,12 @@ public class TableNodeType extends BranchNodeMetaModel
 	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
 	public static BranchNode<TableNodeType, ColumnNodeType> createBigIntAutoIncrementColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,String sequenceName)
 	{
+		return createBigIntAutoIncrementColumn(table, columnName, sequenceName, null);
+	}
+	
+	@BowMethod(convertReturnValueToBow=true,returnBowMode=ReturnBowMode.NESTED_BOW)
+	public static BranchNode<TableNodeType, ColumnNodeType> createBigIntAutoIncrementColumn(@BowParameter(self=true) BranchNode<?, TableNodeType> table, String columnName,String sequenceName, Long cache)
+	{
 		BranchNode<TableNodeType, ColumnNodeType> column = table.create(TableNodeType.columns)
 			.setValue(ColumnNodeType.columnType, IColumnType.ColumnType.BIGINT.name())
 			.setValue(ColumnNodeType.name, columnName)
@@ -170,7 +176,8 @@ public class TableNodeType extends BranchNodeMetaModel
 			.setValue(SequenceNodeType.name, sequenceName)
 			.setValue(SequenceNodeType.min, 1L)
 			.setValue(SequenceNodeType.max, Long.MAX_VALUE)
-			.setValue(SequenceNodeType.cycle, false);
+			.setValue(SequenceNodeType.cycle, false)
+			.setValue(SequenceNodeType.cache, cache);
 		
 		return column;
 	}

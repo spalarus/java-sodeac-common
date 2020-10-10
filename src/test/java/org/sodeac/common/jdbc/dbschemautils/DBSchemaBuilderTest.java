@@ -76,7 +76,7 @@ public class DBSchemaBuilderTest
 		TableBow<?> table = schema1.getUnmodifiableListOfTables().get(0)
 			.createUUIDColumn("ID", false).createPrimaryKey().build().build()
 			.createVarcharColumn("EMPLOYEE_NAME", false, 128).build()
-			.createBigIntAutoIncrementColumn("REC_NO", "SEQ_EMPLOYEE_NUMBER").build()
+			.createBigIntAutoIncrementColumn("REC_NO", "SEQ_EMPLOYEE_NUMBER", null).build()
 			.createBooleanColumnWithDefault("REC_ENABLED", true).build()
 			.createTimestampColumnDefaultCurrent("REC_CREATED").build()
 			.createIndex(true, "UNQ1_EMPLOYEE", "EMPLOYEE_NAME").build();

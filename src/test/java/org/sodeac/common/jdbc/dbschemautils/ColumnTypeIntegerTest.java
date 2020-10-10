@@ -1149,7 +1149,7 @@ public class ColumnTypeIntegerTest
 		table1Dictionary.put(ObjectType.TABLE, table1);
 		TableNodeType.addConsumer(table1, new DatabaseSchemaUpdateListener(updateListenerMock));
 		
-		BranchNode<TableNodeType, ColumnNodeType> column1 = TableNodeType.createBigIntAutoIncrementColumn(table1, columnId, "seq_" + table2Name + "_xxxxxxxxxxxxxxx_" + columnId);
+		BranchNode<TableNodeType, ColumnNodeType> column1 = TableNodeType.createBigIntAutoIncrementColumn(table1, columnId, "seq_" + table2Name + "_xxxxxxxxxxxxxxx_" + columnId, null);
 		column1.create(ColumnNodeType.primaryKey);
 		
 		// prepare column for simulation
@@ -1289,7 +1289,7 @@ public class ColumnTypeIntegerTest
 		table1Dictionary.put(ObjectType.TABLE, table1);
 		TableNodeType.addConsumer(table1, new DatabaseSchemaUpdateListener(updateListenerMock));
 		
-		BranchNode<TableNodeType, ColumnNodeType> column1 = TableNodeType.createBigIntAutoIncrementColumn(table1, columnId, "seq_" + table2Name + "_xxxxxxxxxxxxxxx_" + columnId);
+		BranchNode<TableNodeType, ColumnNodeType> column1 = TableNodeType.createBigIntAutoIncrementColumn(table1, columnId, "seq_" + table2Name + "_xxxxxxxxxxxxxxx_" + columnId, null);
 		column1.create(ColumnNodeType.primaryKey);
 		
 		// prepare column for simulation
