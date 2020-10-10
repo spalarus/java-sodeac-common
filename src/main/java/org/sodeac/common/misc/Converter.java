@@ -369,7 +369,7 @@ public class Converter
 		return bigDecimal.doubleValue();
 	};
 	
-	static final BiFunction<InputStream,String,InputStream> CryptedInputStreamToInputStream = (s,k) ->
+	public static final BiFunction<InputStream,String,InputStream> CryptedInputStreamToInputStream = (s,k) ->
 	{
 		if((k == null) || k.isEmpty())
 		{
@@ -396,7 +396,8 @@ public class Converter
 			throw new RuntimeWrappedException(e);
 		}
 	};
-	static final BiFunction<OutputStream,String,OutputStream> OutputStreamToCryptedOutputStream = (s,k) ->
+	
+	public static final BiFunction<OutputStream,String,OutputStream> OutputStreamToCryptedOutputStream = (s,k) ->
 	{
 		if((k == null) || k.isEmpty())
 		{
