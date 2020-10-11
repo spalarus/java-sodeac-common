@@ -24,43 +24,22 @@ import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
 import org.sodeac.common.jdbc.TypedTreeJDBCCruder;
 import org.sodeac.common.jdbc.TypedTreeJDBCCruder.ConvertEvent;
 import org.sodeac.common.jdbc.TypedTreeJDBCHelper.TableNode.ColumnNode;
-import org.sodeac.common.jdbc.schemax.IDefaultBySequence;
 import org.sodeac.common.jdbc.schemax.IDefaultCurrentTimestamp;
 import org.sodeac.common.jdbc.schemax.IDefaultStaticValue;
-import org.sodeac.common.typedtree.BranchNodeMetaModel;
 import org.sodeac.common.typedtree.LeafNode;
 import org.sodeac.common.typedtree.LeafNodeType;
 import org.sodeac.common.typedtree.ModelRegistry;
-import org.sodeac.common.typedtree.annotation.IgnoreIfFalse;
 import org.sodeac.common.typedtree.annotation.IgnoreIfNull;
 import org.sodeac.common.typedtree.annotation.IgnoreIfTrue;
 import org.sodeac.common.typedtree.annotation.SQLColumn;
 import org.sodeac.common.typedtree.annotation.SQLColumn.SQLColumnType;
-import org.sodeac.common.typedtree.annotation.SQLPrimaryKey;
-import org.sodeac.common.typedtree.annotation.SQLSequence;
 import org.sodeac.common.typedtree.annotation.TypedTreeModel;
 
 @TypedTreeModel(modelClass=CoreTreeModel.class)
 @GenerateBow
-public class CommonBaseBranchNodeType extends BranchNodeMetaModel
+public class CommonBaseBranchNodeType extends ReplicableBranchNodeType
 {
-	static{ModelRegistry.getBranchNodeMetaModel(CoreTreeModel.class);}
-	
-	@SQLColumn(name="id",type=SQLColumnType.UUID,nullable=false,updatable=false,onInsert=GenerateUUIDIfNull.class)
-	@SQLPrimaryKey
-	@XmlAttribute(name="id")
-	public static volatile LeafNodeType<CommonBaseBranchNodeType,UUID> id;
-	
-	@SQLColumn(name="record_version_no",type=SQLColumnType.BIGINT,nullable=false,defaultValueExpressionDriver=IDefaultBySequence.class,onUpsert=ValueBySequence.class)
-	@XmlElement(name="RecordVersionNumber")
-	@SQLSequence
-	@IgnoreIfNull
-	public static volatile LeafNodeType<CommonBaseBranchNodeType,Long> persistVersionNumber;
-	
-	@SQLColumn(name="record_version_id",type=SQLColumnType.UUID,nullable=false,onUpsert=GenerateUUID.class)
-	@XmlElement(name="RecordVersionId")
-	@IgnoreIfNull
-	public static volatile LeafNodeType<CommonBaseBranchNodeType,UUID> persistVersionId;
+	static{ModelRegistry.getBranchNodeMetaModel(CommonBaseBranchNodeType.class);}
 	
 	@SQLColumn(name="create_timestamp",type=SQLColumnType.TIMESTAMP,nullable=false,updatable=false,onInsert=CurrentTimestamp.class,defaultValueExpressionDriver=IDefaultCurrentTimestamp.class)
 	@XmlElement(name="CreateTimestamp")
@@ -97,18 +76,13 @@ public class CommonBaseBranchNodeType extends BranchNodeMetaModel
 	@IgnoreIfTrue
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,Boolean> enabled;
 	
-	@SQLColumn(name="record_deleted",type=SQLColumnType.BOOLEAN,nullable=false,onInsert=FalseIfNull.class,defaultValueExpressionDriver=IDefaultStaticValue.class,staticDefaultValue="false")
-	@XmlAttribute(name="deleted")
-	@IgnoreIfFalse
-	public static volatile LeafNodeType<CommonBaseBranchNodeType,Boolean> deleted;
-	
 	@SQLColumn(name="record_valid_from",type=SQLColumnType.DATE)
-	@XmlAttribute(name="validfrom")
+	@XmlAttribute(name="valid-from")
 	@IgnoreIfNull
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,Date> validFrom;
 	
 	@SQLColumn(name="record_valid_through",type=SQLColumnType.DATE)
-	@XmlAttribute(name="validthrough")
+	@XmlAttribute(name="valid-through")
 	@IgnoreIfNull
 	public static volatile LeafNodeType<CommonBaseBranchNodeType,Date> validThrough;
 	
