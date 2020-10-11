@@ -17,7 +17,6 @@ import javax.xml.bind.annotation.XmlElement;
 
 import org.sodeac.common.annotation.GenerateBow;
 import org.sodeac.common.jdbc.schemax.IDefaultBySequence;
-import org.sodeac.common.jdbc.schemax.IDefaultCurrentTimestamp;
 import org.sodeac.common.jdbc.schemax.IDefaultStaticValue;
 import org.sodeac.common.jdbc.schemax.IDefaultUUID;
 import org.sodeac.common.model.CommonBaseBranchNodeType.FalseIfNull;
