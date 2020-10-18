@@ -32,6 +32,7 @@ import java.util.zip.GZIPOutputStream;
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.json.Json;
 import javax.json.JsonObject;
@@ -379,11 +380,15 @@ public class Converter
 		try
 		{
 			MessageDigest digest = MessageDigest.getInstance("SHA-256");
-			byte[] encodedKey = digest.digest(DEFAULT_KEY.getBytes(StandardCharsets.UTF_8));
+			byte[] encodedKey = digest.digest(k.getBytes(StandardCharsets.UTF_8));
 			
-			Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-			SecretKeySpec keySpec = new SecretKeySpec(encodedKey, "AES");
-			cipher.init(Cipher.DECRYPT_MODE, keySpec);
+			MessageDigest vectorDigest = MessageDigest.getInstance("MD5");
+			byte[] vectorBytes = vectorDigest.digest(k.getBytes(StandardCharsets.UTF_8));
+			
+			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+			IvParameterSpec iv = new IvParameterSpec(vectorBytes);
+	        SecretKeySpec keySpec = new SecretKeySpec(encodedKey, "AES");
+			cipher.init(Cipher.DECRYPT_MODE, keySpec,iv);
 			
 			return new GZIPInputStream(new CipherInputStream(s, cipher));
 		}
@@ -407,11 +412,16 @@ public class Converter
 		try
 		{
 			MessageDigest digest = MessageDigest.getInstance("SHA-256");
-			byte[] encodedKey = digest.digest(DEFAULT_KEY.getBytes(StandardCharsets.UTF_8));
+			byte[] encodedKey = digest.digest(k.getBytes(StandardCharsets.UTF_8));
 			
-			Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-			SecretKeySpec keySpec = new SecretKeySpec(encodedKey, "AES");
-			cipher.init(Cipher.ENCRYPT_MODE, keySpec);
+			MessageDigest vectorDigest = MessageDigest.getInstance("MD5");
+			byte[] vectorBytes = vectorDigest.digest(k.getBytes(StandardCharsets.UTF_8));
+			
+			
+			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+			IvParameterSpec iv = new IvParameterSpec(vectorBytes);
+	        SecretKeySpec keySpec = new SecretKeySpec(encodedKey, "AES");
+			cipher.init(Cipher.ENCRYPT_MODE, keySpec,iv);
 			
 			return new GZIPOutputStream(new CipherOutputStream(s, cipher));
 		}
