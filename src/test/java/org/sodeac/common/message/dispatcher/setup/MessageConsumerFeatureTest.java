@@ -43,7 +43,7 @@ import org.sodeac.common.message.dispatcher.setup.MessageDispatcherChannelSetup.
 import org.sodeac.common.misc.TaskDoneNotifier;
 import org.sodeac.common.snapdeque.SnapshotableDeque;
 
-@Ignore
+//@Ignore
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class MessageConsumerFeatureTest
 {
