@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
@@ -306,6 +305,7 @@ public class DispatcherGuardian extends Thread
 			else if(taskControl.getHeartbeatTimeout() > 0)
 			{
 				taskObservable.task = taskContainer;
+				taskObservable.taskTimeOut =  null;
 			}
 			else
 			{

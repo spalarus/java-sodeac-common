@@ -543,10 +543,15 @@ public class ChannelWorker extends Thread
 									{
 										this.currentTimeOutTimeStamp = System.currentTimeMillis() + dueTask.getTaskControl().getTimeout();
 									}
+									this.context.setDueTask(dueTask);	
+									dueTask.heartbeat();
 									this.channel.getMessageDispatcher().registerTimeOut(this.channel,dueTask);
 								}
-								this.context.setDueTask(dueTask);	
-								dueTask.heartbeat();
+								else
+								{
+									this.context.setDueTask(dueTask);	
+									dueTask.heartbeat();
+								}
 								
 								//
 								//	run task or service

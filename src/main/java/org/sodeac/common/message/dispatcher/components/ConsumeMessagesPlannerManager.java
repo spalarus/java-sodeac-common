@@ -203,17 +203,21 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 					if(messageMonitoringPool.consumable.booleanValue())
 					{
 						signal = true;
-						taskContext.getChannel().getParentChannel(Object.class).signal(ConsumeMessagesConsumerManager.SIGNAL_CONSUME);
 						continue;
 					}
 					if(minTimestamp == 0L)
 					{
 						minTimestamp = next;
 					}
-					if(minTimestamp.longValue() > next)
+					else if(minTimestamp.longValue() > next)
 					{
 						minTimestamp = next;
 					}
+				}
+				
+				if(signal)
+				{
+					taskContext.getChannel().getParentChannel(Object.class).signal(ConsumeMessagesConsumerManager.SIGNAL_CONSUME);
 				}
 				
 				if(minTimestamp < 1L)
@@ -221,12 +225,13 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 					this.currentReschedule = taskContext.getTaskControl().getExecutionTimestamp();
 					return;
 				}
-				if(minTimestamp <= System.currentTimeMillis())
+				else if(minTimestamp <= System.currentTimeMillis())
 				{
 					// TODO
 					System.out.println("STATE1");
 					this.currentReschedule = taskContext.getTaskControl().getExecutionTimestamp();
-					if(signal)
+					System.out.println("keep next service schedule 2 " + (this.currentReschedule - System.currentTimeMillis()) + " ms " + this.toString().split("@")[1] );
+					if(! signal)
 					{
 						taskContext.getChannel().getParentChannel(Object.class).signal(ConsumeMessagesConsumerManager.SIGNAL_CONSUME);
 					}
@@ -529,7 +534,7 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 					currentConsumableCountByAge = 0;
 					consumable = false;
 				}
-				
+				// TODO Warum nicht immer ????
 				if((fatefulTime != null) && (fatefulTime.longValue() > now))
 				{
 					// cached fatefulTime
@@ -650,6 +655,8 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 				{
 					if(consumable)
 					{
+						// TODO static cached unmodifiable list, if list is empty 
+						
 						consumableState.consumableList = new LinkedList<>();
 						
 						ListIterator<IMessage<Object>> itr = this.messageMonitoringList.listIterator(this.messageMonitoringList.size());

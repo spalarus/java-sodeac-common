@@ -83,28 +83,22 @@ public class MessageConsumerFeatureTest
 		(
 			MessageConsumerFeature.newBuilder().consumeMessage(ExceptionCatchedBiConsumer.wrap( (m,h) -> 
 			{
-				System.out.println("" + (System.currentTimeMillis() - offset) + " ms: Message " + m.getPayload());
 				if("TEST1".equals(m.getPayload()))
 				{
 					
 					Thread.sleep(3000);
-					System.out.println("" + (System.currentTimeMillis() - offset) + " ms: 3 Sekunden gewartet");
 					if(h.isInTimeout())
 					{
-						System.out.println("" + (System.currentTimeMillis() - offset) + " ms: Set In Timeout true");
 						inTimeout.setValue(true);
 					}
 					else
 					{
-						System.out.println("" + (System.currentTimeMillis() - offset) + " ms: Set Not In Timeout true");
 						notInTimeout.setValue(true);
 					}
-					System.out.println("" + (System.currentTimeMillis() - offset) + " ms: Set taskDoneNotifier1 done");
 					taskDoneNotifier1.setTaskDone();
 				}
 				else if ("TEST2".equals(m.getPayload()))
 				{
-					
 					if(h.isInTimeout())
 					{
 						inTimeout.setValue(true);
@@ -126,14 +120,13 @@ public class MessageConsumerFeatureTest
 		)
 		.preparedBuilder().inManagedDispatcher(DispatcherTest.TEST_DISPATCHER_ID).buildChannelWithId(channelID);
 		
-		System.out.println("" + (System.currentTimeMillis() - offset) + " ms: Send Test 1");
 		channelReference.getChannel(String.class).sendMessage("TEST1");
 		
-		System.out.println("" + (System.currentTimeMillis() - offset) + " ms: Wait");
 		assertTrue("task should be done",taskDoneNotifier1.await(6, TimeUnit.SECONDS));
-		System.out.println("" + (System.currentTimeMillis() - offset) + " ms: Wait done");
 		
-		assertTrue("value should be correct", inTimeout.get());
+		Boolean to = inTimeout.get();
+		
+		assertTrue("value should be correct: " + to, to);
 		assertTrue("value should be correct", handleTimeout.get());
 		assertFalse("value should be correct", notInTimeout.get());
 		

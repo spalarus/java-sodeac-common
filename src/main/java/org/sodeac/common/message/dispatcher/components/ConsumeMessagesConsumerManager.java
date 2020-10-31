@@ -88,6 +88,8 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 			return;
 		}
 		
+		// TODO Recycle-Concept for consumableState
+		
 		taskContext.setTaskState(consumableState);
 		
 		long now = System.currentTimeMillis();
@@ -95,7 +97,7 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 		try
 		{
 			
-			MessageConsumeHelperImpl messageConsumeHelper = new MessageConsumeHelperImpl();
+			MessageConsumeHelperImpl messageConsumeHelper = new MessageConsumeHelperImpl(); // TODO Reuse ?
 			messageConsumeHelper.firstMessage = false;
 			messageConsumeHelper.lastMessage = false;
 			messageConsumeHelper.messageList = consumableState.getConsumableList();
@@ -112,23 +114,13 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 					taskContext.heartbeat();
 					consumableState.getConsumerRule().getMessageConsumer().accept(null, messageConsumeHelper);
 				}
-				catch (Exception e) 
+				catch (Exception | Error e) 
 				{
 					try
 					{
 						handleError(e, consumableState.getConsumerRule(), messageConsumeHelper);
 					}
-					catch (Exception e2) {}
-					catch (Error e2) {}
-				}
-				catch (Error e) 
-				{
-					try
-					{
-						handleError(e, consumableState.getConsumerRule(), messageConsumeHelper);
-					}
-					catch (Exception e2) {}
-					catch (Error e2) {}
+					catch (Exception | Error e2) {}
 				}
 				
 				if(taskContext.getTaskControl().isInTimeout())
@@ -164,23 +156,13 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 							}
 						}
 					}
-					catch (Exception e) 
+					catch (Exception | Error e) 
 					{
 						try
 						{
 							handleError(e, consumableState.getConsumerRule(), messageConsumeHelper);
 						}
-						catch (Exception e2) {}
-						catch (Error e2) {}
-					}
-					catch (Error e) 
-					{
-						try
-						{
-							handleError(e, consumableState.getConsumerRule(), messageConsumeHelper);
-						}
-						catch (Exception e2) {}
-						catch (Error e2) {}
+						catch (Exception | Error e2) {}
 					}
 					
 					index++;
@@ -191,6 +173,8 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 					}
 				}
 			}
+			
+			// TODO clear list && cache messageConsumeHandler
 		}
 		finally 
 		{
@@ -311,7 +295,6 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 			}
 			else
 			{
-				
 				long heartbeatTimeout = consumableState.getConsumerRule().getTimeOutUnit().toMillis(consumableState.getConsumerRule().getTimeOut());
 				channel.rescheduleTask(SERVICE_ID, System.currentTimeMillis(), -1L, heartbeatTimeout);
 			}
@@ -364,7 +347,7 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 			return null;
 		}
 		
-		protected void reschedulePlanner()
+		/*protected void reschedulePlanner()
 		{
 			Lock lock = this.readLock;
 			lock.lock();
@@ -379,7 +362,7 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 			{
 				lock.unlock();
 			}
-		}
+		}*/
 		
 		protected void setConsumeTimestamp(long timestamp, Set<String> members)
 		{
