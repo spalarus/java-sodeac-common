@@ -404,7 +404,7 @@ public class MessageConsumerFeature
 					super();
 				}
 				
-				public BuilderPhaseC2 waitForAtLeast(int waitTime)
+				public BuilderPhaseC2 messagesWaitForAtLeast(int waitTime)
 				{
 					FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerMode = TriggerByMessageAgeMode.LEAST_X;
 					FeatureBuilder.this.feature.currentConsumerRule.messageAgeTriggerAge = waitTime;
@@ -645,6 +645,14 @@ public class MessageConsumerFeature
 					public IChannelFeature buildFeature()
 					{
 						return FeatureBuilder.this.feature.copy(true);
+					}
+					
+					public FeatureBuilder or()
+					{
+						FeatureBuilder.this.feature.currentConsumerRule = new ConsumerRule();
+						FeatureBuilder.this.feature.consumerRuleList.add(FeatureBuilder.this.feature.currentConsumerRule);
+						
+						return FeatureBuilder.this;
 					}
 				}
 			}

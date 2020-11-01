@@ -344,7 +344,7 @@ public class MessageConsumerFeatureTest
 		(
 			MessageConsumerFeature.newBuilder()
 				.consumeMessage(ExceptionCatchedBiConsumer.wrap( (m,h) -> counter.incrementAndGet()))
-				.notBefore(3).waitForAtLeast(3).seconds()
+				.notBefore(3).messagesWaitForAtLeast(3).seconds()
 			.buildFeature()
 		)
 		.preparedBuilder().inManagedDispatcher(DispatcherTest.TEST_DISPATCHER_ID).buildChannelWithId(channelID);
@@ -376,7 +376,7 @@ public class MessageConsumerFeatureTest
 		(
 			MessageConsumerFeature.newBuilder()
 				.consumeMessage(ExceptionCatchedBiConsumer.wrap( (m,h) -> counter.incrementAndGet()))
-				.notBefore(3).waitForAtLeast(3).seconds()
+				.notBefore(3).messagesWaitForAtLeast(3).seconds()
 			.buildFeature()
 		)
 		.preparedBuilder().inManagedDispatcher(DispatcherTest.TEST_DISPATCHER_ID).buildChannelWithId(channelID);
