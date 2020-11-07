@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -13,6 +13,7 @@ package org.sodeac.common.jdbc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -22,10 +23,16 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -42,6 +49,7 @@ import org.sodeac.common.jdbc.classicmodelcars.OrderDetailNodeType;
 import org.sodeac.common.jdbc.classicmodelcars.OrderNodeType;
 import org.sodeac.common.misc.CloseableCollector;
 import org.sodeac.common.misc.ResourceLoader;
+import org.sodeac.common.model.dbschema.DBSchemaBowFactory;
 import org.sodeac.common.typedtree.BranchNode;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
@@ -108,14 +116,14 @@ public class ResultSetParseHelperTest
 					
 				c -> c.getParentObject().create(OfficeResultSetNodeType.officeList)
 					.setValue(OfficeNodeType.OFFICECODE,c.getId())
-					.setValue(OfficeNodeType.OFFICECITY,c.getResultSet().getString(OfficeNodeType.OFFICECITY.getNodeName()))
-					.setValue(OfficeNodeType.OFFICECOUNTRY,c.getResultSet().getString(OfficeNodeType.OFFICECOUNTRY.getNodeName()))
-					.setValue(OfficeNodeType.OFFICEADDRESSLINE1,c.getResultSet().getString(OfficeNodeType.OFFICEADDRESSLINE1.getNodeName()))
-					.setValue(OfficeNodeType.OFFICEADDRESSLINE2,c.getResultSet().getString(OfficeNodeType.OFFICEADDRESSLINE2.getNodeName()))
-					.setValue(OfficeNodeType.OFFICEPOSTALCODE,c.getResultSet().getString(OfficeNodeType.OFFICEPOSTALCODE.getNodeName()))
-					.setValue(OfficeNodeType.OFFICESTATE,c.getResultSet().getString(OfficeNodeType.OFFICESTATE.getNodeName()))
-					.setValue(OfficeNodeType.OFFICETERRITORY,c.getResultSet().getString(OfficeNodeType.OFFICETERRITORY.getNodeName()))
-					.setValue(OfficeNodeType.OFFICEPHONE,c.getResultSet().getString(OfficeNodeType.OFFICEPHONE.getNodeName())),
+					.setValue(OfficeNodeType.OFFICECITY,c.getString(OfficeNodeType.OFFICECITY.getNodeName()))
+					.setValue(OfficeNodeType.OFFICECOUNTRY,c.getString(OfficeNodeType.OFFICECOUNTRY.getNodeName()))
+					.setValue(OfficeNodeType.OFFICEADDRESSLINE1,c.getString(OfficeNodeType.OFFICEADDRESSLINE1.getNodeName()))
+					.setValue(OfficeNodeType.OFFICEADDRESSLINE2,c.getString(OfficeNodeType.OFFICEADDRESSLINE2.getNodeName()))
+					.setValue(OfficeNodeType.OFFICEPOSTALCODE,c.getString(OfficeNodeType.OFFICEPOSTALCODE.getNodeName()))
+					.setValue(OfficeNodeType.OFFICESTATE,c.getString(OfficeNodeType.OFFICESTATE.getNodeName()))
+					.setValue(OfficeNodeType.OFFICETERRITORY,c.getString(OfficeNodeType.OFFICETERRITORY.getNodeName()))
+					.setValue(OfficeNodeType.OFFICEPHONE,c.getString(OfficeNodeType.OFFICEPHONE.getNodeName())),
 				r -> rootIdList.add(r.getValue(OfficeNodeType.OFFICECODE)),
 				l -> rootIdCount.addAndGet(l.size())
 			)
@@ -123,65 +131,65 @@ public class ResultSetParseHelperTest
 							
 					c -> c.getParentObject().create(OfficeNodeType.EMPLOYEES)
 						.setValue(EmployeeNodeType.EMPLOYEENUMBER,c.getId())
-						.setValue(EmployeeNodeType.EMPLOYEEEXTENSION,c.getResultSet().getString(EmployeeNodeType.EMPLOYEEEXTENSION.getNodeName()))
-						.setValue(EmployeeNodeType.EMPLOYEEJOBTITLE,c.getResultSet().getString(EmployeeNodeType.EMPLOYEEJOBTITLE.getNodeName()))
-						.setValue(EmployeeNodeType.EMPLOYEEFIRSTNAME,c.getResultSet().getString(EmployeeNodeType.EMPLOYEEFIRSTNAME.getNodeName()))
-						.setValue(EmployeeNodeType.EMPLOYEELASTNAME,c.getResultSet().getString(EmployeeNodeType.EMPLOYEELASTNAME.getNodeName()))
-						.setValue(EmployeeNodeType.EMPLOYEEEMAIL,c.getResultSet().getString(EmployeeNodeType.EMPLOYEEEMAIL.getNodeName()))
-						.setValue(EmployeeNodeType.EMPLOYEEREPORTSTO,c.getResultSet().getInt(EmployeeNodeType.EMPLOYEEREPORTSTO.getNodeName()))
+						.setValue(EmployeeNodeType.EMPLOYEEEXTENSION,c.getString(EmployeeNodeType.EMPLOYEEEXTENSION.getNodeName()))
+						.setValue(EmployeeNodeType.EMPLOYEEJOBTITLE,c.getString(EmployeeNodeType.EMPLOYEEJOBTITLE.getNodeName()))
+						.setValue(EmployeeNodeType.EMPLOYEEFIRSTNAME,c.getString(EmployeeNodeType.EMPLOYEEFIRSTNAME.getNodeName()))
+						.setValue(EmployeeNodeType.EMPLOYEELASTNAME,c.getString(EmployeeNodeType.EMPLOYEELASTNAME.getNodeName()))
+						.setValue(EmployeeNodeType.EMPLOYEEEMAIL,c.getString(EmployeeNodeType.EMPLOYEEEMAIL.getNodeName()))
+						.setValue(EmployeeNodeType.EMPLOYEEREPORTSTO,c.getInteger(EmployeeNodeType.EMPLOYEEREPORTSTO.getNodeName()))
 				)
 					.subParser(CustomerNodeType.CUSTOMERNUMBER.getNodeName(), Integer.class, EmployeeNodeType.CUSTOMERS.getBranchNodeClass(),
 							
 						c -> c.getParentObject().create(EmployeeNodeType.CUSTOMERS)
 							.setValue(CustomerNodeType.CUSTOMERNUMBER, c.getId())
-							.setValue(CustomerNodeType.CUSTOMERNAME,c.getResultSet().getString(CustomerNodeType.CUSTOMERNAME.getNodeName()))
-							.setValue(CustomerNodeType.CUSTOMERCONTACTLASTNAME,c.getResultSet().getString(CustomerNodeType.CUSTOMERCONTACTLASTNAME.getNodeName()))
-							.setValue(CustomerNodeType.CUSTOMERCONTACTFIRSTNAME,c.getResultSet().getString(CustomerNodeType.CUSTOMERCONTACTFIRSTNAME.getNodeName()))
-							.setValue(CustomerNodeType.CUSTOMERADDRESSLINE1,c.getResultSet().getString(CustomerNodeType.CUSTOMERADDRESSLINE1.getNodeName()))
-							.setValue(CustomerNodeType.CUSTOMERADDRESSLINE2,c.getResultSet().getString(CustomerNodeType.CUSTOMERADDRESSLINE2.getNodeName()))
-							.setValue(CustomerNodeType.CUSTOMERCITY,c.getResultSet().getString(CustomerNodeType.CUSTOMERCITY.getNodeName()))
-							.setValue(CustomerNodeType.CUSTOMERCOUNTRY,c.getResultSet().getString(CustomerNodeType.CUSTOMERCOUNTRY.getNodeName()))
-							.setValue(CustomerNodeType.CUSTOMERSTATE,c.getResultSet().getString(CustomerNodeType.CUSTOMERSTATE.getNodeName()))
-							.setValue(CustomerNodeType.CUSTOMERPOSTALCODE,c.getResultSet().getString(CustomerNodeType.CUSTOMERPOSTALCODE.getNodeName()))
-							.setValue(CustomerNodeType.CUSTOMERPHONE,c.getResultSet().getString(CustomerNodeType.CUSTOMERPHONE.getNodeName()))
-							.setValue(CustomerNodeType.CUSTOMERCREDITLIMIT,c.getResultSet().getInt(CustomerNodeType.CUSTOMERCREDITLIMIT.getNodeName()))
+							.setValue(CustomerNodeType.CUSTOMERNAME,c.getString(CustomerNodeType.CUSTOMERNAME.getNodeName()))
+							.setValue(CustomerNodeType.CUSTOMERCONTACTLASTNAME,c.getString(CustomerNodeType.CUSTOMERCONTACTLASTNAME.getNodeName()))
+							.setValue(CustomerNodeType.CUSTOMERCONTACTFIRSTNAME,c.getString(CustomerNodeType.CUSTOMERCONTACTFIRSTNAME.getNodeName()))
+							.setValue(CustomerNodeType.CUSTOMERADDRESSLINE1,c.getString(CustomerNodeType.CUSTOMERADDRESSLINE1.getNodeName()))
+							.setValue(CustomerNodeType.CUSTOMERADDRESSLINE2,c.getString(CustomerNodeType.CUSTOMERADDRESSLINE2.getNodeName()))
+							.setValue(CustomerNodeType.CUSTOMERCITY,c.getString(CustomerNodeType.CUSTOMERCITY.getNodeName()))
+							.setValue(CustomerNodeType.CUSTOMERCOUNTRY,c.getString(CustomerNodeType.CUSTOMERCOUNTRY.getNodeName()))
+							.setValue(CustomerNodeType.CUSTOMERSTATE,c.getString(CustomerNodeType.CUSTOMERSTATE.getNodeName()))
+							.setValue(CustomerNodeType.CUSTOMERPOSTALCODE,c.getString(CustomerNodeType.CUSTOMERPOSTALCODE.getNodeName()))
+							.setValue(CustomerNodeType.CUSTOMERPHONE,c.getString(CustomerNodeType.CUSTOMERPHONE.getNodeName()))
+							.setValue(CustomerNodeType.CUSTOMERCREDITLIMIT,c.getInteger(CustomerNodeType.CUSTOMERCREDITLIMIT.getNodeName()))
 					).onNullRecord( c -> {employeeWithoutCustomerCount.incrementAndGet(); return null;} )
 						.subParser(PaymentNodeType.PAYMENTID.getNodeName(), Integer.class, CustomerNodeType.PAYMENTS.getBranchNodeClass(),
 								
 							c -> c.getParentObject().create(CustomerNodeType.PAYMENTS)
 								.setValue(PaymentNodeType.PAYMENTID, c.getId())
-								.setValue(PaymentNodeType.PAYMENTCHECKNUMBER,c.getResultSet().getString(PaymentNodeType.PAYMENTCHECKNUMBER.getNodeName()))
-								.setValue(PaymentNodeType.PAYMENTAMOUNT,c.getResultSet().getDouble(PaymentNodeType.PAYMENTAMOUNT.getNodeName()))
-								.setValue(PaymentNodeType.PAYMENTDATE,c.getResultSet().getDate(PaymentNodeType.PAYMENTDATE.getNodeName()))
+								.setValue(PaymentNodeType.PAYMENTCHECKNUMBER,c.getString(PaymentNodeType.PAYMENTCHECKNUMBER.getNodeName()))
+								.setValue(PaymentNodeType.PAYMENTAMOUNT,c.getDouble(PaymentNodeType.PAYMENTAMOUNT.getNodeName()))
+								.setValue(PaymentNodeType.PAYMENTDATE,c.getDate(PaymentNodeType.PAYMENTDATE.getNodeName()))
 						).build()
 						.subParser(OrderNodeType.ORDERNUMBER.getNodeName(), Integer.class, CustomerNodeType.ORDERS.getBranchNodeClass(),
 								
 							c -> c.getParentObject().create(CustomerNodeType.ORDERS)
 								.setValue(OrderNodeType.ORDERNUMBER, c.getId())
-								.setValue(OrderNodeType.ORDERREQUIREDDATE,c.getResultSet().getDate(OrderNodeType.ORDERREQUIREDDATE.getNodeName()))
-								.setValue(OrderNodeType.ORDERORDERDATE,c.getResultSet().getDate(OrderNodeType.ORDERORDERDATE.getNodeName()))
-								.setValue(OrderNodeType.ORDERSHIPPEDDATE,c.getResultSet().getDate(OrderNodeType.ORDERSHIPPEDDATE.getNodeName()))
-								.setValue(OrderNodeType.ORDERCOMMENTS,c.getResultSet().getString(OrderNodeType.ORDERCOMMENTS.getNodeName()))
-								.setValue(OrderNodeType.ORDERSTATUS,c.getResultSet().getString(OrderNodeType.ORDERSTATUS.getNodeName()))
+								.setValue(OrderNodeType.ORDERREQUIREDDATE,c.getDate(OrderNodeType.ORDERREQUIREDDATE.getNodeName()))
+								.setValue(OrderNodeType.ORDERORDERDATE,c.getDate(OrderNodeType.ORDERORDERDATE.getNodeName()))
+								.setValue(OrderNodeType.ORDERSHIPPEDDATE,c.getDate(OrderNodeType.ORDERSHIPPEDDATE.getNodeName()))
+								.setValue(OrderNodeType.ORDERCOMMENTS,c.getString(OrderNodeType.ORDERCOMMENTS.getNodeName()))
+								.setValue(OrderNodeType.ORDERSTATUS,c.getString(OrderNodeType.ORDERSTATUS.getNodeName()))
 						)
 							.subParser(OrderDetailNodeType.ORDERDETAILID.getNodeName(), Integer.class, OrderNodeType.ORDERDETAILS.getBranchNodeClass(), 
 								c -> c.getParentObject().create(OrderNodeType.ORDERDETAILS)
 									.setValue(OrderDetailNodeType.ORDERDETAILID, c.getId())
-									.setValue(OrderDetailNodeType.ORDERDETAILORDERLINENUMBER,c.getResultSet().getInt(OrderDetailNodeType.ORDERDETAILORDERLINENUMBER.getNodeName()))
-									.setValue(OrderDetailNodeType.ORDERDETAILPRICEEACH,c.getResultSet().getDouble(OrderDetailNodeType.ORDERDETAILPRICEEACH.getNodeName()))
-									.setValue(OrderDetailNodeType.ORDERDETAILQUANTITYORDERED,c.getResultSet().getInt(OrderDetailNodeType.ORDERDETAILQUANTITYORDERED.getNodeName()))
+									.setValue(OrderDetailNodeType.ORDERDETAILORDERLINENUMBER,c.getInteger(OrderDetailNodeType.ORDERDETAILORDERLINENUMBER.getNodeName()))
+									.setValue(OrderDetailNodeType.ORDERDETAILPRICEEACH,c.getDouble(OrderDetailNodeType.ORDERDETAILPRICEEACH.getNodeName()))
+									.setValue(OrderDetailNodeType.ORDERDETAILQUANTITYORDERED,c.getInteger(OrderDetailNodeType.ORDERDETAILQUANTITYORDERED.getNodeName()))
 							)
 								.subParser(ProductNodeType.PRODUCTCODE.getNodeName(), String.class, OrderDetailNodeType.PRODUCT.getBranchNodeClass(), 
 									c -> c.getParentObject().create(OrderDetailNodeType.PRODUCT)
 										.setValue(ProductNodeType.PRODUCTCODE, c.getId())
-										.setValue(ProductNodeType.PRODUCTNAME,c.getResultSet().getString(ProductNodeType.PRODUCTNAME.getNodeName()))
-										.setValue(ProductNodeType.PRODUCTLINE,c.getResultSet().getString(ProductNodeType.PRODUCTLINE.getNodeName()))
-										.setValue(ProductNodeType.PRODUCTSCALE,c.getResultSet().getString(ProductNodeType.PRODUCTSCALE.getNodeName()))
-										.setValue(ProductNodeType.PRODUCTVENDOR,c.getResultSet().getString(ProductNodeType.PRODUCTVENDOR.getNodeName()))
-										.setValue(ProductNodeType.PRODUCTDESCRIPTION,c.getResultSet().getString(ProductNodeType.PRODUCTDESCRIPTION.getNodeName()))
-										.setValue(ProductNodeType.PRODUCTQUANTITYINSTOCK,c.getResultSet().getInt(ProductNodeType.PRODUCTQUANTITYINSTOCK.getNodeName()))
-										.setValue(ProductNodeType.PRODUCTBUYPRICE,c.getResultSet().getDouble(ProductNodeType.PRODUCTBUYPRICE.getNodeName()))
-										.setValue(ProductNodeType.PRODUCTMSRP,c.getResultSet().getDouble(ProductNodeType.PRODUCTMSRP.getNodeName()))
+										.setValue(ProductNodeType.PRODUCTNAME,c.getString(ProductNodeType.PRODUCTNAME.getNodeName()))
+										.setValue(ProductNodeType.PRODUCTLINE,c.getString(ProductNodeType.PRODUCTLINE.getNodeName()))
+										.setValue(ProductNodeType.PRODUCTSCALE,c.getString(ProductNodeType.PRODUCTSCALE.getNodeName()))
+										.setValue(ProductNodeType.PRODUCTVENDOR,c.getString(ProductNodeType.PRODUCTVENDOR.getNodeName()))
+										.setValue(ProductNodeType.PRODUCTDESCRIPTION,c.getString(ProductNodeType.PRODUCTDESCRIPTION.getNodeName()))
+										.setValue(ProductNodeType.PRODUCTQUANTITYINSTOCK,c.getInteger(ProductNodeType.PRODUCTQUANTITYINSTOCK.getNodeName()))
+										.setValue(ProductNodeType.PRODUCTBUYPRICE,c.getDouble(ProductNodeType.PRODUCTBUYPRICE.getNodeName()))
+										.setValue(ProductNodeType.PRODUCTMSRP,c.getDouble(ProductNodeType.PRODUCTMSRP.getNodeName()))
 								)
 			.newParsePhase
 			(
@@ -254,7 +262,7 @@ public class ResultSetParseHelperTest
 							assertEquals("values should be equal", resultSetEmployee.getString("EXTENSION"), employee.getValue(EmployeeNodeType.EMPLOYEEEXTENSION));
 							assertEquals("values should be equal", resultSetEmployee.getString("EMAIL"), employee.getValue(EmployeeNodeType.EMPLOYEEEMAIL));
 							assertEquals("values should be equal", resultSetEmployee.getString("JOBTITLE"), employee.getValue(EmployeeNodeType.EMPLOYEEJOBTITLE));
-							assertEquals("values should be equal", (Integer)resultSetEmployee.getInt("REPORTSTO"), employee.getValue(EmployeeNodeType.EMPLOYEEREPORTSTO));
+							assertEquals("values should be equal", (Integer)resultSetEmployee.getInt("REPORTSTO"), employee.getValue(EmployeeNodeType.EMPLOYEEREPORTSTO) == null ? new Integer(0) : employee.getValue(EmployeeNodeType.EMPLOYEEREPORTSTO));
 							
 							preparedStatementCustomers.setInt(1,employee.getValue(EmployeeNodeType.EMPLOYEENUMBER));
 							
@@ -429,6 +437,148 @@ public class ResultSetParseHelperTest
 			
 			closeableCollector.close(conn);
 			new File(tempDir + "/" + database + ".mv.db").delete();
+		}
+	}
+	
+	@Test
+	public void getterTest() throws Exception
+	{
+		try(CloseableCollector closeableCollector = CloseableCollector.newInstance())
+		{
+			DriverManager.registerDriver(org.h2.Driver.class.newInstance());
+			
+			Connection connection = closeableCollector.register(DriverManager.getConnection("jdbc:h2:mem:"));
+			
+			connection.setAutoCommit(false);
+			
+			DBSchemaUtils.get(connection).adaptSchema
+			(
+				DBSchemaBowFactory.createSchema("GETTER-TEST").createOneOfTables().setName("GETTER_TEST")
+					.createBigIntColumn("ID", false).createPrimaryKey().build().build()
+					.createVarcharColumn("COL_STRING", true, 108).build()
+					.createSmallIntColumn("COL_SMALLINT", true).build()
+					.createIntegerColumn("COL_INT", true).build()
+					.createBigIntColumn("COL_BIGINT", true).build()
+					.createRealColumn("COL_REAL", true).build()
+					.createDoubleColumn("COL_DOUBLE", true).build()
+					.createTimestampColumn("COL_TS", true).build()
+					.createDateColumn("COL_DATE", true).build()
+					.createTimeColumn("COL_TIME", true).build()
+					.createUUIDColumn("COL_UUID", true).build()
+					.createBinaryColumn("COL_BINARY", true).build()
+				.build().setLogUpdates(false)
+			);
+			
+			connection.commit();
+			
+			PreparedStatement preparedStatementInsert = closeableCollector.register(connection.prepareStatement
+			(
+				"INSERT INTO GETTER_TEST (ID,COL_STRING,COL_SMALLINT,COL_INT,COL_BIGINT,COL_REAL,COL_DOUBLE,COL_TS,COL_DATE,COL_TIME,COL_UUID,COL_BINARY) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
+			));
+			
+			Calendar calTS = Calendar.getInstance(); calTS.set(Calendar.MILLISECOND, 0);
+			Date now = calTS.getTime(); 
+			UUID uuid = UUID.randomUUID();
+			
+			preparedStatementInsert.setLong(1, 1L);
+			preparedStatementInsert.setString(2, "TWO");
+			preparedStatementInsert.setShort(3, (short)3);
+			preparedStatementInsert.setInt(4, 4);
+			preparedStatementInsert.setLong(5, 5L);
+			preparedStatementInsert.setFloat(6, 6.6f);
+			preparedStatementInsert.setDouble(7, 7.7d);
+			preparedStatementInsert.setTimestamp(8, new Timestamp(now.getTime()));
+			preparedStatementInsert.setDate(9, new java.sql.Date(now.getTime()));
+			preparedStatementInsert.setTime(10, new java.sql.Time(now.getTime()));
+			preparedStatementInsert.setObject(11, uuid);
+			preparedStatementInsert.setBytes(12, "TWELVE".getBytes());
+			
+			preparedStatementInsert.executeUpdate();
+			
+			preparedStatementInsert.setLong(1, 2L);
+			preparedStatementInsert.setNull(2, Types.VARCHAR);
+			preparedStatementInsert.setNull(3, Types.SMALLINT);
+			preparedStatementInsert.setNull(4, Types.INTEGER);
+			preparedStatementInsert.setNull(5, Types.BIGINT);
+			preparedStatementInsert.setNull(6, Types.FLOAT);
+			preparedStatementInsert.setNull(7, Types.DOUBLE);
+			preparedStatementInsert.setNull(8, Types.TIMESTAMP);
+			preparedStatementInsert.setNull(9, Types.DATE);
+			preparedStatementInsert.setNull(10, Types.TIME);
+			preparedStatementInsert.setObject(11, null);
+			preparedStatementInsert.setNull(12, Types.BINARY);
+			
+			preparedStatementInsert.executeUpdate();
+			
+			connection.commit();
+			
+			Calendar calDate = Calendar.getInstance(); calDate.setTime(now);
+			calDate.set(Calendar.SECOND, 0);
+			calDate.set(Calendar.MINUTE, 0);
+			calDate.set(Calendar.HOUR_OF_DAY, 0);
+			
+			Calendar calTime = Calendar.getInstance(); calTime.setTime(now);
+			calTime.set(Calendar.YEAR, 1970);
+			calTime.set(Calendar.MONTH, 0);
+			calTime.set(Calendar.DAY_OF_MONTH, 1);
+			
+			AtomicLong expectedId = new AtomicLong(1L);
+			
+			ResultSetParseHelper parseHelper = closeableCollector.register(ResultSetParseHelperBuilder.newBuilder
+			(
+				"ID", Long.class, Object.class,Object.class,
+				c -> 
+				{
+					assertEquals("id should be correct", expectedId.getAndIncrement(), c.getId().longValue());
+					
+					if(c.getId().longValue() == 1)
+					{
+						assertEquals("value should be correct", "TWO", c.getString("COL_STRING"));
+						assertEquals("value should be correct", 3, (int) c.getShort("COL_SMALLINT").shortValue());
+						assertEquals("value should be correct", 4, c.getInteger("COL_INT").intValue());
+						assertEquals("value should be correct", 5, c.getLong("COL_BIGINT").longValue());
+						assertEquals("value should be correct", 6.6, c.getFloat("COL_REAL").floatValue(),0.01);
+						assertEquals("value should be correct", 7.7, c.getDouble("COL_DOUBLE").doubleValue(),0.01);
+						assertEquals("value should be correct", now.getTime(), c.getTimestamp("COL_TS").getTime());
+						assertEquals("value should be correct", calDate.getTimeInMillis(), c.getDate("COL_DATE").getTime());
+						assertEquals("value should be correct", calTime.getTimeInMillis(), c.getTime("COL_TIME").getTime());
+						assertEquals("value should be correct", uuid, c.getUUID("COL_UUID"));
+						assertEquals("value should be correct", uuid, c.getUUIDFromString("COL_UUID"));
+						assertEquals("value should be correct", "TWELVE", new String(c.getBytes("COL_BINARY")));
+					}
+					
+					if(c.getId().longValue() == 2)
+					{
+						assertNull("value should be correct", c.getString("COL_STRING"));
+						assertNull("value should be correct", c.getShort("COL_SMALLINT"));
+						assertNull("value should be correct", c.getInteger("COL_INT"));
+						assertNull("value should be correct", c.getLong("COL_BIGINT"));
+						assertNull("value should be correct", c.getFloat("COL_REAL"));
+						assertNull("value should be correct", c.getFloat("COL_DOUBLE"));
+						assertNull("value should be correct", c.getTimestamp("COL_TS"));
+						assertNull("value should be correct", c.getDate("COL_DATE"));
+						assertNull("value should be correct", c.getTime("COL_TIME"));
+						assertNull("value should be correct", c.getUUID("COL_UUID"));
+						assertNull("value should be correct", c.getUUIDFromString("COL_UUID"));
+						assertNull("value should be correct", c.getBytes("COL_BINARY"));
+					}
+						
+					return new Object();
+				}
+			).buildParser());
+			
+			parseHelper.parse
+			(
+				closeableCollector.register(connection.prepareStatement
+				(
+					"SELECT * FROM GETTER_TEST ORDER BY ID", ResultSet.TYPE_SCROLL_INSENSITIVE,ResultSet.CONCUR_READ_ONLY)
+				),
+				new Object(),
+				3
+			);
+			
+			assertEquals("id should be correct", 3L, expectedId.getAndIncrement());
+			
 		}
 	}
 	

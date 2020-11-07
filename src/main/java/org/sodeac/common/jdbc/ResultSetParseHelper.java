@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 Sebastian Palarus
+ * Copyright (c) 2019, 2020 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -13,7 +13,10 @@ package org.sodeac.common.jdbc;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -916,6 +919,85 @@ public class ResultSetParseHelper implements AutoCloseable
 		public void setParentObject(P parentObject) 
 		{
 			this.parentObject = parentObject;
+		}
+		
+		public String getString(String columnName) throws SQLException
+		{
+			return this.resultSet.getString(columnName);
+		}
+		
+		public Short getShort(String columnName) throws SQLException
+		{
+			Short value = this.resultSet.getShort(columnName);
+			return resultSet.wasNull() ? null : value;
+		}
+		
+		public Integer getInteger(String columnName) throws SQLException
+		{
+			Integer value = this.resultSet.getInt(columnName);
+			return resultSet.wasNull() ? null : value;
+		}
+		
+		public Long getLong(String columnName) throws SQLException
+		{
+			Long value = this.resultSet.getLong(columnName);
+			return resultSet.wasNull() ? null : value;
+		}
+		
+		public Float getFloat(String columnName) throws SQLException
+		{
+			Float value = this.resultSet.getFloat(columnName);
+			return resultSet.wasNull() ? null : value;
+		}
+		
+		public Double getDouble(String columnName) throws SQLException
+		{
+			Double value = this.resultSet.getDouble(columnName);
+			return resultSet.wasNull() ? null : value;
+		}
+		
+		public Boolean getBoolean(String columnName) throws SQLException
+		{
+			Boolean value = this.resultSet.getBoolean(columnName);
+			return resultSet.wasNull() ? null : value;
+		}
+		
+		public Date getTimestamp(String columnName) throws SQLException
+		{
+			Timestamp value = this.resultSet.getTimestamp(columnName);
+			return value == null ? null : new Date(value.getTime());
+		}
+		
+		public Date getDate(String columnName) throws SQLException
+		{
+			Date value = this.resultSet.getDate(columnName);
+			return value == null ? null : new Date(value.getTime());
+		}
+		
+		public Date getTime(String columnName) throws SQLException
+		{
+			Time value = this.resultSet.getTime(columnName);
+			return value == null ? null : new Date(value.getTime());
+		}
+		
+		public UUID getUUID(String columnName) throws SQLException
+		{
+			return (UUID)this.resultSet.getObject(columnName);
+		}
+		
+		public UUID getUUIDFromString(String columnName) throws SQLException
+		{
+			String value = this.resultSet.getString(columnName);
+			if( value == null )
+			{
+				return null;
+			}
+			return UUID.fromString(value);
+		}
+		
+		public byte[] getBytes(String columnName) throws SQLException
+		{
+			return this.resultSet.getBytes(columnName);
 		}
 		
 		protected void clear()

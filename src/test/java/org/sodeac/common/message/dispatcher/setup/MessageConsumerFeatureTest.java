@@ -626,4 +626,60 @@ public class MessageConsumerFeatureTest
 		StackTraceElement[] stack =Thread.currentThread().getStackTrace();
 		return stack[2].getMethodName();
 	}
+	
+	public static void main(String[] args) throws InterruptedException, IOException
+	{
+		for(int i = 0; i < 100; i++)
+		{
+			String channelID = "ABCD"+ i;
+			
+			System.out.println("Run " + i);
+			
+			AtomicLong counter = new AtomicLong(0);
+			IDispatcherChannelReference channelReference = MessageDispatcherChannelSetup.create().addFeature
+			(
+				MessageConsumerFeature.newBuilder()
+					.consumeMessage(ExceptionCatchedBiConsumer.wrap( (m,h) -> counter.incrementAndGet()))
+					.notBeforeTheMessageWaitsForAtLeast(3).seconds()
+				.buildFeature()
+			)
+			.preparedBuilder().inManagedDispatcher(DispatcherTest.TEST_DISPATCHER_ID).buildChannelWithId(channelID);
+			
+			try
+			{
+				
+				channelReference.getChannel(String.class).sendMessages(Arrays.asList(new String[] {"A","B"}));
+				
+				Thread.sleep(1000);
+				
+				assertEquals("value should be correct", 0L, counter.get());
+				
+				channelReference.getChannel(String.class).sendMessages(Arrays.asList(new String[] {"C","D"}));
+				
+				Thread.sleep(1000);
+				
+				assertEquals("value should be correct", 0L, counter.get());
+				
+				channelReference.getChannel(String.class).sendMessages(Arrays.asList(new String[] {"E","F"}));
+				
+				Thread.sleep(1500);
+				
+				assertEquals("value should be correct", 2L, counter.get());
+				
+				Thread.sleep(1000);
+				
+				assertEquals("value should be correct", 4L, counter.get());
+				
+				Thread.sleep(1000);
+				
+				assertEquals("value should be correct", 6L, counter.get());
+				
+				
+			}
+			finally 
+			{
+				channelReference.close();
+			}
+		}
+	}
 }

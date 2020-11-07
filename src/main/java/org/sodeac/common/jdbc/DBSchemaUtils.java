@@ -30,6 +30,7 @@ import org.sodeac.common.function.ExceptionCatchedConsumer;
 import org.sodeac.common.impl.LogServiceImpl;
 import org.sodeac.common.misc.Driver;
 import org.sodeac.common.model.dbschema.ColumnNodeType;
+import org.sodeac.common.model.dbschema.DBSchemaBow;
 import org.sodeac.common.model.dbschema.DBSchemaNodeType;
 import org.sodeac.common.model.dbschema.EventConsumerNodeType;
 import org.sodeac.common.model.dbschema.IndexNodeType;
@@ -65,6 +66,13 @@ public class DBSchemaUtils
 	public IDBSchemaUtilsDriver getDriver()
 	{
 		return driver;
+	}
+	
+	@SuppressWarnings("unchecked")
+	public boolean adaptSchema(DBSchemaBow<?> schema) throws SQLException
+	{
+		Objects.requireNonNull(schema, "schema == null");
+		return adaptSchema(schema.getWrappedBranchNode());
 	}
 	
 	public boolean adaptSchema(BranchNode<?, DBSchemaNodeType> schema) throws SQLException
