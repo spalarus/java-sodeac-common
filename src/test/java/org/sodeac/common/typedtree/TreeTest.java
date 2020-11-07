@@ -260,8 +260,8 @@ public class TreeTest
 		ILogService.newLogService(TreeTest.class).addLoggerBackend(logItem).setAutoDispose(false).error("testlog", new RuntimeException());
 		assertEquals("value should be correct", LogLevel.ERROR.name(), logItem.get().getValue(LogEventNodeType.logLevelName));
 		assertEquals("value should be correct", "testlog", logItem.get().getValue(LogEventNodeType.message));
-		assertEquals("list size should be correct", 1, logItem.get().getUnmodifiableNodeList(LogEventNodeType.propertyList).size());
-		BranchNode<LogEventNodeType,LogPropertyNodeType> property = logItem.get().getUnmodifiableNodeList(LogEventNodeType.propertyList).get(0);
+		assertEquals("list size should be correct", 1, logItem.get().getUnmodifiableNodeList(LogEventNodeType.properties).size());
+		BranchNode<LogEventNodeType,LogPropertyNodeType> property = logItem.get().getUnmodifiableNodeList(LogEventNodeType.properties).get(0);
 		assertEquals("value should be correct", "THROWABLE",property.getValue(LogPropertyNodeType.type));
 		assertTrue("value should be correct",property.getValue(LogPropertyNodeType.value).startsWith("<?xml "));
 		assertTrue("value should be correct",property.getValue(LogPropertyNodeType.value).substring(0, 54).contains("version=\"1.0\""));

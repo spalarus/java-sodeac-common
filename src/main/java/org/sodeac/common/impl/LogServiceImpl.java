@@ -28,7 +28,7 @@ import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sodeac.common.ILogService;
-import org.sodeac.common.function.ExceptionConsumer;
+import org.sodeac.common.function.ExceptionCatchedConsumer;
 import org.sodeac.common.jdbc.DBSchemaUtils;
 import org.sodeac.common.jdbc.ParseDBSchemaHandler;
 import org.sodeac.common.jdbc.TypedTreeJDBCCruder;
@@ -455,7 +455,7 @@ public class LogServiceImpl implements ILogService
 			{
 				for(LogPropertyBuilder propertyBuilder : properties)
 				{
-					BranchNode<LogEventNodeType, LogPropertyNodeType> property = logEvent.create(LogEventNodeType.propertyList)
+					BranchNode<LogEventNodeType, LogPropertyNodeType> property = logEvent.create(LogEventNodeType.properties)
 						.setValue(LogPropertyNodeType.type, propertyBuilder.type.name())
 						.setValue(LogPropertyNodeType.domain, propertyBuilder.domain)
 						.setValue(LogPropertyNodeType.module, propertyBuilder.module)
@@ -578,7 +578,7 @@ public class LogServiceImpl implements ILogService
 			
 			Throwable throwable = null;
 			
-			for(BranchNode<LogEventNodeType, LogPropertyNodeType> property : logEvent.getUnmodifiableNodeList(LogEventNodeType.propertyList))
+			for(BranchNode<LogEventNodeType, LogPropertyNodeType> property : logEvent.getUnmodifiableNodeList(LogEventNodeType.properties))
 			{
 				if(! LogPropertyType.THROWABLE.name().equals(property.getValue(LogPropertyNodeType.type)))
 				{
@@ -691,7 +691,7 @@ public class LogServiceImpl implements ILogService
 				try
 				{
 					session.persist(logEvent);
-					logEvent.getUnmodifiableNodeList(LogEventNodeType.propertyList).forEach(ExceptionConsumer.wrap(p -> {session.persist(p); session.persist(p.get(LogPropertyNodeType.correlatedLogEvent));}));
+					logEvent.getUnmodifiableNodeList(LogEventNodeType.properties).forEach(ExceptionCatchedConsumer.wrap(p -> {session.persist(p); session.persist(p.get(LogPropertyNodeType.correlatedLogEvent));}));
 					
 					session.flush();
 					session.commit();

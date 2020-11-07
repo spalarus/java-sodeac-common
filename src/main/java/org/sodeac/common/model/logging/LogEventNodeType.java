@@ -99,5 +99,5 @@ public class LogEventNodeType extends CommonBaseBranchNodeType
 	@SQLReferencedByColumn(name="sdc_log_event_id", nullable=false)
 	@Association(type=AssociationType.COMPOSITION)
 	@XMLNodeList(childElementName="Property", listElement=false)
-	public static volatile BranchNodeListType<LogEventNodeType,LogPropertyNodeType> propertyList;
+	public static volatile BranchNodeListType<LogEventNodeType,LogPropertyNodeType> properties;
 }
