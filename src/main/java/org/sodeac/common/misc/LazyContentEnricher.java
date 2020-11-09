@@ -20,7 +20,6 @@ import java.util.function.Consumer;
 
 public class LazyContentEnricher<T,R,E> implements AutoCloseable 
 {
-	private Map<R,E> enrichmentByReference; 
 	private Map<T,Set<R>> referencesByObjectsToBeEnriched;
 	private Map<R,Set<T>> objectsToBeEnrichByReference;
 	private Consumer<LazyContentEnricher<T,R,E>> contentEnricher;
@@ -29,7 +28,6 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 	public static LazyContentEnricher newInstance()
 	{
 		LazyContentEnricher lce = new LazyContentEnricher<>();
-		lce.enrichmentByReference = new LinkedHashMap<>();
 		lce.referencesByObjectsToBeEnriched = new HashMap<>();
 		lce.objectsToBeEnrichByReference = new LinkedHashMap<>();
 		
@@ -38,17 +36,13 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 	
 	public LazyContentEnricher<T,R,E> defineContentEnricher(Consumer<LazyContentEnricher<T,R,E>> contentEnricher)
 	{
+		this.contentEnricher = contentEnricher;
 		return this;
 	}
 	
 	public Set<R> getReferences()
 	{
 		return this.objectsToBeEnrichByReference.keySet();
-	}
-	
-	public Map<R, E> getEnrichmentByReference()
-	{
-		return enrichmentByReference;
 	}
 
 	public Map<T, Set<R>> getReferencesByObjectsToBeEnriched()
@@ -65,7 +59,10 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 	{
 		try
 		{
-			this.contentEnricher.accept(this);
+			if(this.contentEnricher != null)
+			{
+				this.contentEnricher.accept(this);
+			}
 		}
 		finally 
 		{
@@ -116,17 +113,20 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 		
 		try
 		{
-			this.enrichmentByReference.clear();
+			if(this.contentEnricher instanceof IClearable)
+			{
+				((IClearable) this.contentEnricher).clear();
+			}
 		}
 		catch (Exception | Error e) {}
 	}
 	
-	public LazyContentEnricher<T,R,E> register(T objectToBeEnriched, R reference)
+	public T register(T objectToBeEnriched, R reference)
 	{
 		Objects.requireNonNull(objectToBeEnriched, "object to be enriched not defined");
 		Objects.requireNonNull(reference, "reference not defined");
 		Set<R> registeredReferences = this.referencesByObjectsToBeEnriched.get(objectToBeEnriched);
-		if(registeredReferences != null)
+		if(registeredReferences == null)
 		{
 			registeredReferences = new LinkedHashSet<>();
 			this.referencesByObjectsToBeEnriched.put(objectToBeEnriched,registeredReferences);
@@ -140,7 +140,7 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 		}
 		registeredObjectsToBeEnriched.add(objectToBeEnriched);
 		
-		return this;
+		return objectToBeEnriched;
 	}
 	
 
@@ -155,6 +155,46 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 				((AutoCloseable)this.contentEnricher).close();
 			}
 			catch (Exception e) {}
+		}
+		
+	}
+	
+	public interface IClearable
+	{
+		public void clear();
+	}
+	
+	public static class CachedContentEnricher<T,R,E> implements AutoCloseable,IClearable,Consumer<LazyContentEnricher<T,R,E>>
+	{
+		public static enum CardinalityMode {ONE_REFERENCE_TO_ONE_ENRICHMENT,ONE_REFERENCE_TO_MANY_ENRICHMENTS}
+		
+		private CardinalityMode cardinalityMode = CardinalityMode.ONE_REFERENCE_TO_ONE_ENRICHMENT;
+		private LazyContentEnricher<T,R,E> lazyContentEnricher = null;
+
+		@Override
+		public void accept(LazyContentEnricher<T, R, E> lazyContentEnricher)
+		{
+			this.lazyContentEnricher = lazyContentEnricher;
+			
+		}
+
+		@Override
+		public void clear()
+		{
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void close() throws Exception
+		{
+			// TODO Auto-generated method stub
+			
+		}
+
+		public LazyContentEnricher<T, R, E> getLazyContentEnricher()
+		{
+			return lazyContentEnricher;
 		}
 		
 	}
