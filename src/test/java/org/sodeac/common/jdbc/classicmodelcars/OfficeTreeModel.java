@@ -30,4 +30,11 @@ public class OfficeTreeModel extends TypedTreeMetaModel<OfficeTreeModel>
 		
 		public static volatile BranchNodeListType<OfficeResultSetNodeType,OfficeNodeType> officeList;
 	}
+	
+	public static class OrderDetailResultSetNodeType extends BranchNodeMetaModel
+	{
+		static{ModelRegistry.getBranchNodeMetaModel(OrderDetailResultSetNodeType.class);}
+		
+		public static volatile BranchNodeListType<OrderDetailResultSetNodeType,OrderDetailNodeType> orderDetailList;
+	}
 }
