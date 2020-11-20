@@ -4,7 +4,7 @@
 
   <groupId>org.sodeac</groupId>
   <artifactId>org.sodeac.common</artifactId>
-  <version>0.6.6</version>
+  <version>0.6.7</version>
   
   <name>Sodeac Common</name>
   <description>Core framework for sodeac project</description>
@@ -13,7 +13,7 @@
  <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <jdk.version>1.8</jdk.version>
-    <bundle.version>0.6.6</bundle.version>
+    <bundle.version>0.6.7</bundle.version>
   </properties>
   
   <dependencies>
