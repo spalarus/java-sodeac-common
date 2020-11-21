@@ -12,20 +12,20 @@ package org.sodeac.common.message.dispatcher.impl;
 
 public class SpooledChannelWorker
 {
-	protected SpooledChannelWorker(ChannelImpl queue,long wakeupTime)
+	protected SpooledChannelWorker(ChannelImpl channel,long wakeupTime)
 	{
 		super();
-		this.queue = queue;
+		this.channel = channel;
 		this.wakeupTime = wakeupTime;
 	}
 	
-	private ChannelImpl queue;
+	private ChannelImpl channel;
 	private long wakeupTime;
 	private volatile boolean valid = true;
 	
-	public ChannelImpl getQueue()
+	public ChannelImpl getChannel()
 	{
-		return queue;
+		return channel;
 	}
 	public long getWakeupTime()
 	{

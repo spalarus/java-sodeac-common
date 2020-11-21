@@ -32,7 +32,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.sodeac.common.message.dispatcher.api.ChannelComponentUnconfiguredException;
 import org.sodeac.common.message.dispatcher.api.ChannelNotFoundException;
 import org.sodeac.common.message.dispatcher.api.ComponentBindingSetup;
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannel;
@@ -1079,8 +1078,7 @@ public class MessageDispatcherImpl implements IMessageDispatcher
 				}
 			}).get(7, TimeUnit.SECONDS);
 		}
-		catch (Exception e) {}
-		catch (Error e) {}
+		catch (Exception | Error e) {}
 	}
 	
 	public void executeOnTaskStopExecuter(ChannelWorker worker, IDispatcherChannelTask task)

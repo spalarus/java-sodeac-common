@@ -162,7 +162,6 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 	protected ReadLock channelServiceListReadLock;
 	protected WriteLock channelServiceListWriteLock;
 	
-	
 	protected SnapshotableDeque<MessageImpl> messageQueue = null;
 	protected SnapshotableDeque<MessageImpl> newPublishedMessageQueue = null;
 	protected SnapshotableDeque<MessageImpl> removedMessageQueue = null;
@@ -179,8 +178,8 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 	protected volatile boolean onQueueAttachListUpdate = false;
 	protected SnapshotableDeque<IOnChannelAttach> onChannelAttachList = null;
 	
-	protected volatile ChannelWorker queueWorker = null;
-	protected volatile SpooledChannelWorker currentSpooledQueueWorker = null;
+	protected volatile ChannelWorker channelWorker = null;
+	protected volatile SpooledChannelWorker currentSpooledChannelWorker = null;
 	protected volatile long lastWorkerAction;
 	protected PropertyBlockImpl configurationPropertyBlock = null;
 	protected PropertyBlockImpl statePropertyBlock = null;
@@ -574,7 +573,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		}
 	}
 	
-	public int getManagerSize()
+	protected int getManagerSize()
 	{
 		channelManagerListReadLock.lock();
 		try
@@ -587,7 +586,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		}
 	}
 	
-	public boolean isMastered()
+	protected boolean isMastered()
 	{
 		channelManagerListReadLock.lock();
 		try
@@ -609,7 +608,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 	
 	// Services
 	
-	public void checkForService(ServiceContainer serviceContainer, ChannelBindingModifyFlags bindingModifyFlags)
+	protected void checkForService(ServiceContainer serviceContainer, ChannelBindingModifyFlags bindingModifyFlags)
 	{
 		boolean serviceMatch = false;
 		
@@ -704,7 +703,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		}
 	}
 
-	public boolean setService(ServiceContainer serviceContainer, boolean createOnly)
+	protected boolean setService(ServiceContainer serviceContainer, boolean createOnly)
 	{
 		if(createOnly)
 		{
@@ -790,7 +789,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		return unsetService(serviceContainer, false);
 	}
 	
-	public boolean unsetService(ServiceContainer serviceContainer, boolean unregisterInScope )
+	protected boolean unsetService(ServiceContainer serviceContainer, boolean unregisterInScope )
 	{
 		if(unregisterInScope)
 		{
@@ -865,7 +864,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		}
 	}
 	
-	public int getServiceSize()
+	protected int getServiceSize()
 	{
 		channelServiceListReadLock.lock();
 		try
@@ -1327,7 +1326,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 			return null;
 		}
 		
-		if(Thread.currentThread() == this.queueWorker)
+		if(Thread.currentThread() == this.channelWorker)
 		{
 			DequeSnapshot snaphot = (DequeSnapshot)this.messageQueue.createSnapshot();
 			snapshotsByWorkerThread.add(snaphot);
@@ -1345,7 +1344,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 			return null;
 		}
 		
-		if(Thread.currentThread() == this.queueWorker)
+		if(Thread.currentThread() == this.channelWorker)
 		{
 			DequeSnapshot snaphot = (DequeSnapshot)this.messageQueue.createSnapshotPoll();
 			snapshotsByWorkerThread.add(snaphot);
@@ -1454,7 +1453,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 			}
 			catch (Exception e) 
 			{
-				messageDispatcher.logError("close multichain snapshot",e);
+				messageDispatcher.logError("close deque snapshot",e);
 			}
 		}
 		
@@ -1532,7 +1531,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 			}
 			catch (Exception e) 
 			{
-				messageDispatcher.logError("close multichain snapshot",e);
+				messageDispatcher.logError("close deque snapshot",e);
 			}
 		}
 		
@@ -1548,7 +1547,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		return true;
 	}
 
-	public List<ChannelManagerContainer> getManagerContainerList()
+	protected List<ChannelManagerContainer> getManagerContainerList()
 	{
 		List<ChannelManagerContainer> list = controllerListCopy;
 		if(list != null)
@@ -1606,7 +1605,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		this.workerSpoolLock.lock();
 		try
 		{
-			worker = this.queueWorker;
+			worker = this.channelWorker;
 		}
 		finally 
 		{
@@ -1625,9 +1624,9 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 					this.workerSpoolLock.lock();
 					try
 					{
-						if(worker == this.queueWorker)
+						if(worker == this.channelWorker)
 						{
-							this.queueWorker = null;
+							this.channelWorker = null;
 						}
 					}
 					finally 
@@ -1636,11 +1635,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 					}
 				}
 			}
-			catch (Exception e) 
-			{
-				messageDispatcher.logError("check worker timeout",e);
-			}
-			catch (Error e) 
+			catch (Exception | Error e) 
 			{
 				messageDispatcher.logError("check worker timeout",e);
 			}
@@ -1828,16 +1823,16 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		}
 	}
 	
-	public void stopQueueWorker()
+	protected void stopQueueWorker()
 	{
 		ChannelWorker worker = null;
 		this.workerSpoolLock.lock();
 		try
 		{
-			if(this.queueWorker != null)
+			if(this.channelWorker != null)
 			{
-				worker = this.queueWorker;
-				this.queueWorker = null;
+				worker = this.channelWorker;
+				this.channelWorker = null;
 				worker.softStopWorker();
 			}
 		}
@@ -1904,17 +1899,17 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		
 		try
 		{
-			if(this.queueWorker == null)
+			if(this.channelWorker == null)
 			{
 				if(this.disposed)
 				{
 					return;
 				}
 				
-				if(this.currentSpooledQueueWorker != null)
+				if(this.currentSpooledChannelWorker != null)
 				{
-					this.currentSpooledQueueWorker.setValid(false);
-					this.currentSpooledQueueWorker = null;
+					this.currentSpooledChannelWorker.setValid(false);
+					this.currentSpooledChannelWorker = null;
 				}
 				
 				ChannelWorker queueWorker = this.messageDispatcher.getFromWorkerPool();
@@ -1927,7 +1922,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 				)
 				{
 					notify = true;
-					this.queueWorker = queueWorker;
+					this.channelWorker = queueWorker;
 				}
 				else
 				{
@@ -1935,23 +1930,22 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 					{
 						try
 						{
-							queueWorker.stopWorker();
+							queueWorker.stopWorker();		// LOCK WORER.waitMonitor
 						}
-						catch (Exception e) {this.messageDispatcher.logError("stop worker", e);}
-						catch (Error e) {this.messageDispatcher.logError( "stop worker", e);}
+						catch (Exception | Error e) {this.messageDispatcher.logError("stop worker", e);}
 					}
 					
 					queueWorker = new ChannelWorker(this);
 					queueWorker.start();
 					
-					this.queueWorker = queueWorker;
+					this.channelWorker = queueWorker;
 				}
 			}
 			else
 			{
 				notify = true;
 			}
-			worker = this.queueWorker;
+			worker = this.channelWorker;
 			
 			worker.notifySoftUpdate();
 		}
@@ -1964,11 +1958,11 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		{
 			if(nextRuntimeStamp < 1)
 			{
-				worker.notifyUpdate();
+				worker.notifyUpdate(); // LOCK WORKER.waitMonitor
 			}
 			else
 			{
-				worker.notifyUpdate(nextRuntimeStamp);
+				worker.notifyUpdate(nextRuntimeStamp); // LOCK WORKER.waitMonitor
 			}
 		}
 	}
@@ -1993,7 +1987,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		this.workerSpoolLock.lock();
 		try
 		{
-			if(worker != this.queueWorker)
+			if(worker != this.channelWorker)
 			{
 				worker.stopWorker();
 				return false;
@@ -2026,12 +2020,12 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 				return false;
 			}
 			
-			if(this.currentSpooledQueueWorker != null)
+			if(this.currentSpooledChannelWorker != null)
 			{
-				this.currentSpooledQueueWorker.setValid(false);
+				this.currentSpooledChannelWorker.setValid(false);
 			}
-			this.currentSpooledQueueWorker = this.messageDispatcher.scheduleChannelWorker(this, nextRun - ChannelWorker.RESCHEDULE_BUFFER_TIME);
-			this.queueWorker = null;
+			this.currentSpooledChannelWorker = this.messageDispatcher.scheduleChannelWorker(this, nextRun - ChannelWorker.RESCHEDULE_BUFFER_TIME);
+			this.channelWorker = null;
 			this.messageDispatcher.addToWorkerPool(worker);
 			return true;
 		}
@@ -2056,7 +2050,7 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		this.workerSpoolLock.lock();
 		try
 		{
-			if(worker != this.queueWorker)
+			if(worker != this.channelWorker)
 			{
 				worker.stopWorker();
 				return false;
@@ -2096,16 +2090,16 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 				taskListReadLock.unlock();
 			}
 			
-			if(this.currentSpooledQueueWorker != null)
+			if(this.currentSpooledChannelWorker != null)
 			{
-				this.currentSpooledQueueWorker.setValid(false);
+				this.currentSpooledChannelWorker.setValid(false);
 			}
 			if(!worker.setMessageChannel(null))
 			{
 				return false;
 			}
 			this.messageDispatcher.addToWorkerPool(worker);
-			this.queueWorker = null;
+			this.channelWorker = null;
 			
 			return true;
 		}
@@ -2117,13 +2111,13 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 	
 	public TaskContainer getCurrentRunningTask()
 	{
-		ChannelWorker worker = this.queueWorker;
+		ChannelWorker worker = this.channelWorker;
 		if(worker == null)
 		{
 			this.workerSpoolLock.lock();
 			try
 			{
-				worker = this.queueWorker;
+				worker = this.channelWorker;
 			}
 			finally 
 			{
@@ -2155,16 +2149,6 @@ public class ChannelImpl<T> implements IDispatcherChannel<T>
 		
 		this.channelSignalList.addLast(signal);
 		this.signalListUpdate = true;
-		
-		/*
-		try
-		{
-			getMetrics().meter(IMetrics.METRICS_SIGNAL).mark();
-		}
-		catch(Exception e)
-		{
-			eventDispatcher.logError( "mark metric signal", e);
-		}*/
 		
 		if(this.registrationTypes.onSignal)
 		{

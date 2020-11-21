@@ -12,12 +12,11 @@ package org.sodeac.common.message.dispatcher.impl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,9 +31,7 @@ public class DispatcherGuardian extends Thread
 		this.eventDispatcher = eventDispatcher;
 		this.taskTimeOutIndex = new HashMap<ChannelImpl<?>,TaskObservable>();
 		
-		this.taskTimeOutIndexLock = new ReentrantReadWriteLock(true);
-		this.taskTimeOutIndexReadLock = this.taskTimeOutIndexLock.readLock();
-		this.taskTimeOutIndexWriteLock = this.taskTimeOutIndexLock.writeLock();
+		this.taskTimeOutIndexLock = new ReentrantLock();
 		super.setDaemon(true);
 		super.setName(DispatcherGuardian.class.getSimpleName() + " " + dispatcher.getId());
 	}
@@ -44,9 +41,7 @@ public class DispatcherGuardian extends Thread
 	private volatile boolean isUpdateNotified = false;
 	private volatile Object waitMonitor = new Object();
 	private volatile Map<ChannelImpl<?>,TaskObservable> taskTimeOutIndex = null;
-	private volatile ReentrantReadWriteLock taskTimeOutIndexLock;
-	private volatile ReadLock taskTimeOutIndexReadLock;
-	private volatile WriteLock taskTimeOutIndexWriteLock;
+	private volatile Lock taskTimeOutIndexLock;
 	
 	private volatile long currentWait = -1;
 	
@@ -60,6 +55,9 @@ public class DispatcherGuardian extends Thread
 		List<TaskObservable> removeTaskObservableList = null;
 		boolean inTimeOut = false;
 		
+		long timeOutListLastAccess = System.currentTimeMillis();
+		long removeTaskObservableAccess = System.currentTimeMillis();
+		
 		while(go)
 		{
 			nextTimeOutTimeStamp = -1;
@@ -72,8 +70,7 @@ public class DispatcherGuardian extends Thread
 				removeTaskObservableList.clear();
 			}
 			
-			taskTimeOutIndexReadLock.lock();
-			
+			taskTimeOutIndexLock.lock();
 			try
 			{
 				long currentTimeStamp = System.currentTimeMillis();
@@ -82,47 +79,60 @@ public class DispatcherGuardian extends Thread
 				long heartBeatTimeOutStamp = -1;
 				TaskContainer task = null;
 				
+				Long observableTaskTimeOut = null;
+				TaskContainer observableTask = null;
+				ChannelImpl<?> observableChannel = null;
 				
 				// Task TimeOut
 				
-				for(Entry<ChannelImpl<?>,TaskObservable> entry : this.taskTimeOutIndex.entrySet())
+				for(TaskObservable taskObservable : this.taskTimeOutIndex.values())
 				{
 					inTimeOut = false;
-					task = entry.getKey().getCurrentRunningTask();
+					observableTaskTimeOut = taskObservable.taskTimeOut;
+					observableTask = taskObservable.task;
+					observableChannel = taskObservable.channel;
 					
-					if((task == null) || (task != entry.getValue().task))
+					if((observableTask == null) || (observableChannel == null))
+					{
+						continue;
+					}
+					
+					task = observableChannel.getCurrentRunningTask(); // LOCKS CHANNEL.workerSpoolLock
+					
+					if((task == null) || (task != observableTask))
 					{
 						if(removeTaskObservableList == null)
 						{
-							removeTaskObservableList = new ArrayList<TaskObservable>();
+							removeTaskObservableList = new LinkedList<TaskObservable>();
 						}
-						removeTaskObservableList.add(entry.getValue());
+						removeTaskObservableList.add(taskObservable);
+						removeTaskObservableAccess = System.currentTimeMillis();
+						continue;
 					}
 					
 					// Task Timeout
 					
-					Long taskTimeOut = entry.getValue().taskTimeOut;
-					
-					if((taskTimeOut != null) && (taskTimeOut.longValue() > 0))
+					if((observableTaskTimeOut != null) && (observableTaskTimeOut.longValue() > 0))
 					{
-						if(taskTimeOut.longValue() <= currentTimeStamp)
+						if(observableTaskTimeOut.longValue() <= currentTimeStamp)
 						{
 							if(timeOutList == null)
 							{
-								timeOutList = new ArrayList<ChannelImpl<?>>();
+								timeOutList = new LinkedList<ChannelImpl<?>>();
 							}
-							timeOutList.add(entry.getKey());
+							timeOutList.add(observableChannel);
+							timeOutListLastAccess = System.currentTimeMillis();
 							inTimeOut = true;
 						}
 						else
 						{
 							if(nextTimeOutTimeStamp < 0)
 							{
-								nextTimeOutTimeStamp = taskTimeOut.longValue();
+								nextTimeOutTimeStamp = observableTaskTimeOut;
 							}
-							else if(nextTimeOutTimeStamp > taskTimeOut.longValue())
+							else if(nextTimeOutTimeStamp > observableTaskTimeOut)
 							{
-								nextTimeOutTimeStamp = taskTimeOut.longValue();
+								nextTimeOutTimeStamp = observableTaskTimeOut;
 							}
 						}
 					}
@@ -136,10 +146,10 @@ public class DispatcherGuardian extends Thread
 					
 					heartBeatTimeOutStamp = -1;
 					
-					if((task !=  null) && (task.getTaskControl() != null))
+					TaskControlImpl taskControl = null;
+					if((task !=  null) && ((taskControl = task.getTaskControl()) != null))
 					{
-						heartBeatTimeOut = task.getTaskControl().getHeartbeatTimeout();
-						
+						heartBeatTimeOut = taskControl.getHeartbeatTimeout();
 						
 						if(heartBeatTimeOut > 0)
 						{
@@ -155,7 +165,8 @@ public class DispatcherGuardian extends Thread
 										{
 											timeOutList = new ArrayList<ChannelImpl<?>>();
 										}
-										timeOutList.add(entry.getKey());
+										timeOutList.add(observableChannel);
+										timeOutListLastAccess = System.currentTimeMillis();
 										inTimeOut = true;
 									}
 									else
@@ -175,36 +186,37 @@ public class DispatcherGuardian extends Thread
 					}
 				}
 				
+				observableTaskTimeOut = null;
+				observableTask = null;
+				observableChannel = null;
+				
 			}
-			catch (Exception e) 
+			catch (Exception |Error e) 
 			{
-				logger.error("Exception while run DispatcherGuardian",e);
+				logger.error("Error running DispatcherGuardian",e);
 			}
-			catch (Error e) 
+			finally
 			{
-				logger.error("Error while run DispatcherGuardian",e);
+				taskTimeOutIndexLock.unlock();
 			}
-			
-			taskTimeOutIndexReadLock.unlock();
 			
 			
 			if(timeOutList != null)
 			{
-				for(ChannelImpl<?> queue : timeOutList)
+				for(ChannelImpl<?> channel : timeOutList)
 				{
-					queue.checkTimeOut();
+					channel.checkTimeOut();
 				}
 			}
 			
 			if((removeTaskObservableList != null) && (! removeTaskObservableList.isEmpty()))
 			{
-				taskTimeOutIndexWriteLock.lock();
-				
+				taskTimeOutIndexLock.lock();
 				try
 				{
 					for(TaskObservable taskObservable : removeTaskObservableList)
 					{
-						TaskObservable toRemoveObservable = this.taskTimeOutIndex.get(taskObservable.queue);
+						TaskObservable toRemoveObservable = this.taskTimeOutIndex.get(taskObservable.channel);
 						if(toRemoveObservable == null)
 						{
 							continue;
@@ -214,23 +226,33 @@ public class DispatcherGuardian extends Thread
 							continue;
 						}
 						
-						TaskContainer task = taskObservable.queue.getCurrentRunningTask();
+						TaskContainer task = taskObservable.channel.getCurrentRunningTask();
 						if((task == null) || (task != taskObservable.task))
 						{
-							this.taskTimeOutIndex.remove(taskObservable.queue);
+							this.taskTimeOutIndex.remove(taskObservable.channel);
 						}
 					}
 				}
-				catch (Exception e) 
+				catch (Exception | Error e) 
 				{
-					logger.error("Exception while run DispatcherGuardian",e);
+					logger.error("Error running DispatcherGuardian",e);
 				}
-				catch (Error e) 
+				finally
 				{
-					logger.error("Error while run DispatcherGuardian",e);
+					taskTimeOutIndexLock.unlock();
 				}
+			}
 			
-				taskTimeOutIndexWriteLock.unlock();
+			if((removeTaskObservableList != null) && (removeTaskObservableAccess <= (System.currentTimeMillis() - (DEFAULT_WAIT_TIME * 3 ))))
+			{
+				removeTaskObservableList.clear();
+				removeTaskObservableList = null;
+			}
+			
+			if((timeOutList != null) && (timeOutListLastAccess <= (System.currentTimeMillis() - (DEFAULT_WAIT_TIME * 3 ))))
+			{
+				timeOutList.clear();
+				timeOutList = null;
 			}
 			
 			try
@@ -246,11 +268,7 @@ public class DispatcherGuardian extends Thread
 						else
 						{
 							long waitTime = nextTimeOutTimeStamp - System.currentTimeMillis();
-							if(waitTime > DEFAULT_WAIT_TIME)
-							{
-								waitTime = DEFAULT_WAIT_TIME;
-							}
-							if(nextTimeOutTimeStamp < 0)
+							if((waitTime > DEFAULT_WAIT_TIME) || (nextTimeOutTimeStamp < 0))
 							{
 								waitTime = DEFAULT_WAIT_TIME;
 							}
@@ -265,13 +283,9 @@ public class DispatcherGuardian extends Thread
 				}
 			}
 			catch (InterruptedException e) {}
-			catch (Exception e) 
+			catch (Error | Exception e) 
 			{
-				logger.error("Exception while run Dispatcher DispatcherGuardian",e);
-			}
-			catch (Error e) 
-			{
-				logger.error("Error while run Dispatcher DispatcherGuardian",e);
+				logger.error("Error running Dispatcher DispatcherGuardian",e);
 			}
 		}
 	}
@@ -287,34 +301,54 @@ public class DispatcherGuardian extends Thread
 		
 		long timeOutTimeStamp = taskControl.getTimeout() < 0L ? -1 : taskControl.getTimeout() + System.currentTimeMillis();
 		
-		taskTimeOutIndexWriteLock.lock();
+		taskTimeOutIndexLock.lock();
 		try
 		{
 			TaskObservable taskObservable = this.taskTimeOutIndex.get(channel);
 			if(taskObservable ==  null)
 			{
 				taskObservable =  new TaskObservable();
-				taskObservable.queue = channel;
+				taskObservable.channel = channel;
+				
+				if(taskControl.getTimeout() > 0)
+				{
+					taskObservable.task = taskContainer;
+					taskObservable.taskTimeOut = timeOutTimeStamp;
+				}
+				else if(taskControl.getHeartbeatTimeout() > 0)
+				{
+					taskObservable.task = taskContainer;
+					taskObservable.taskTimeOut =  null;
+				}
+				else
+				{
+					return;
+				}
+				
 				this.taskTimeOutIndex.put(channel,taskObservable);
-			}
-			if(taskControl.getTimeout() > 0)
-			{
-				taskObservable.task = taskContainer;
-				taskObservable.taskTimeOut = timeOutTimeStamp;
-			}
-			else if(taskControl.getHeartbeatTimeout() > 0)
-			{
-				taskObservable.task = taskContainer;
-				taskObservable.taskTimeOut =  null;
 			}
 			else
 			{
-				return;
+				if(taskControl.getTimeout() > 0)
+				{
+					taskObservable.task = taskContainer;
+					taskObservable.taskTimeOut = timeOutTimeStamp;
+				}
+				else if(taskControl.getHeartbeatTimeout() > 0)
+				{
+					taskObservable.task = taskContainer;
+					taskObservable.taskTimeOut =  null;
+				}
+				else
+				{
+					this.taskTimeOutIndex.remove(channel);
+					return;
+				}
 			}
 		}
 		finally 
 		{
-			taskTimeOutIndexWriteLock.unlock();
+			taskTimeOutIndexLock.unlock();
 		}
 		
 		boolean notify = false;
@@ -329,7 +363,7 @@ public class DispatcherGuardian extends Thread
 				}
 				else
 				{
-					long heartBeatTimeOut = taskContainer.getTaskControl().getHeartbeatTimeout();
+					long heartBeatTimeOut = taskControl.getHeartbeatTimeout();
 					if(heartBeatTimeOut > 0)
 					{
 						try
@@ -359,30 +393,32 @@ public class DispatcherGuardian extends Thread
 				{
 					waitMonitor.notify();
 				}
-				catch (Exception e) {}
-				catch (Error e) {}
+				catch (Exception | Error e) {}
 			}
 		}
 		
 	}
 	
-	public void unregisterTimeOut(ChannelImpl<?> queue, TaskContainer task)
+	public void unregisterTimeOut(ChannelImpl<?> channel, TaskContainer task)
 	{
-		taskTimeOutIndexWriteLock.lock();
+		taskTimeOutIndexLock.lock();
 		try
 		{
-			TaskObservable taskObservable = this.taskTimeOutIndex.get(queue);
+			TaskObservable taskObservable = this.taskTimeOutIndex.get(channel);
 			if(taskObservable !=  null)
 			{
 				if((taskObservable.task != null) && (taskObservable.task == task))
 				{
-					this.taskTimeOutIndex.remove(queue);
+					this.taskTimeOutIndex.remove(channel);
+					taskObservable.channel = null;
+					taskObservable.task = null;
+					taskObservable.taskTimeOut = null;
 				}
 			}
 		}
 		finally 
 		{
-			taskTimeOutIndexWriteLock.unlock();
+			taskTimeOutIndexLock.unlock();
 		}
 	}
 	
@@ -397,16 +433,16 @@ public class DispatcherGuardian extends Thread
 			}
 			catch (Exception e) 
 			{
-				logger.error("Exception while stop DispatcherGuardian",e);
+				logger.error("Error stopping DispatcherGuardian",e);
 			}
 		}
 	}
 	
 	private class TaskObservable
 	{
-		public Long taskTimeOut = null;
-		public TaskContainer task = null;
-		public ChannelImpl<?> queue = null;
+		public volatile Long taskTimeOut = null;
+		public volatile TaskContainer task = null;
+		public volatile ChannelImpl<?> channel = null;
 	}
 	
 }

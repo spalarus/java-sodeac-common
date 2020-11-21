@@ -788,6 +788,38 @@ public class ChannelWorker extends Thread
 				catch(Exception ex) {}
 				catch(Error ex) {}
 				
+				if(go && isUpdateNotified)
+				{
+					wakeUpTimeStamp = -1;
+					this.isUpdateNotified = false;
+					continue;
+				}
+				
+				long nextRunTimeStamp = System.currentTimeMillis() + DEFAULT_WAIT_TIME;
+				try
+				{
+					nextRunTimeStamp = channel.getNextRun();
+				}
+				catch (Exception | Error e) 
+				{
+					logger.error("Error recalc next runtime ",e);
+				}
+				
+				/*boolean freeWorker = false;
+				long waitTime = nextRunTimeStamp - System.currentTimeMillis();
+				if(waitTime > DEFAULT_WAIT_TIME)
+				{
+					waitTime = DEFAULT_WAIT_TIME;
+				}
+				if(waitTime > 0)
+				{
+					this.inFreeingArea = true;
+					if(waitTime >= FREE_TIME)
+					{
+						freeWorker = this.channel.checkFreeWorker(this, nextRunTimeStamp);
+					}
+				}*/
+				
 				synchronized (this.waitMonitor)
 				{
 					if(go)
@@ -798,17 +830,8 @@ public class ChannelWorker extends Thread
 						{
 							this.isUpdateNotified = false;
 							continue;
-						}
-							
-						long nextRunTimeStamp = System.currentTimeMillis() + DEFAULT_WAIT_TIME;
-						try
-						{
-							nextRunTimeStamp = channel.getNextRun();
-						}
-						catch (Exception e) 
-						{
-							logger.error("Error while recalc next runtime again",e);
-						}
+						}	
+						
 						long waitTime = nextRunTimeStamp - System.currentTimeMillis();
 						if(waitTime > DEFAULT_WAIT_TIME)
 						{
@@ -822,7 +845,7 @@ public class ChannelWorker extends Thread
 								this.inFreeingArea = true;
 								if(waitTime >= FREE_TIME)
 								{
-									freeWorker = this.channel.checkFreeWorker(this, nextRunTimeStamp);
+									freeWorker = this.channel.checkFreeWorker(this, nextRunTimeStamp);						// TODO Problem ???
 								}
 							}
 							if(freeWorker)
@@ -841,7 +864,6 @@ public class ChannelWorker extends Thread
 								}
 								
 								this.inFreeingArea = false;
-								
 							}
 							else
 							{
@@ -879,17 +901,24 @@ public class ChannelWorker extends Thread
 			return false;
 		}
 		
-		// HeartBeat TimeOut
+		TaskControlImpl taskControl = null;
+		if((taskControl = timeOutTaskContainer.getTaskControl()) == null)
+		{
+			return false;
+		}
+		
+		// First check HeartBeat TimeOut
 		
 		boolean heartBeatTimeout = false;
-		if(timeOutTaskContainer.getTaskControl().getHeartbeatTimeout() > 0)
+		
+		if(taskControl.getHeartbeatTimeout() > 0)
 		{
 			try
 			{
 				long lastHeartBeat = timeOutTaskContainer.getLastHeartbeat();
 				if(lastHeartBeat > 0)
 				{
-					if((lastHeartBeat + timeOutTaskContainer.getTaskControl().getHeartbeatTimeout() ) <= System.currentTimeMillis())
+					if((lastHeartBeat + taskControl.getHeartbeatTimeout() ) <= System.currentTimeMillis())
 					{
 						heartBeatTimeout = true;
 					}
@@ -897,7 +926,7 @@ public class ChannelWorker extends Thread
 			}
 			catch (Exception e) 
 			{
-				logger.error("Error while check heartbeat timeout",e);
+				logger.error("Error checking heartbeat timeout",e);
 			}
 		}
 		
@@ -929,12 +958,11 @@ public class ChannelWorker extends Thread
 			}
 		}
 		
-		ChannelImpl channel = this.channel;
-		boolean stopFlag = timeOutTaskContainer.getTaskControl().getStopOnTimeoutFlag();
+		ChannelImpl<?> channel = this.channel;
+		boolean stopFlag = taskControl.getStopOnTimeoutFlag();
 		IDispatcherChannelTask<Object> task = timeOutTaskContainer.getTask();
-		TaskControlImpl taskControl = timeOutTaskContainer.getTaskControl();
 		Object taskState = taskControl.getTaskState();
-		timeOutTaskContainer.setTaskControl(timeOutTaskContainer.getTaskControl().copyForTimeout());
+		timeOutTaskContainer.setTaskControl(taskControl.copyForTimeout());
 		
 		this.go = false;
 		
@@ -961,12 +989,10 @@ public class ChannelWorker extends Thread
 					{
 						((MessageDispatcherImpl)channel.getDispatcher()).executeOnTaskTimeOut((IOnTaskTimeout)conf.getChannelManager(), channel, task, taskState, this);
 					}
-					catch (Exception e) {}
-					catch (Error e) {}
+					catch (Exception | Error e) {}
 				}
 			}
-			catch (Exception e) {}
-			catch (Error e) {}
+			catch (Exception | Error e) {}
 		}
 		
 		try
@@ -1023,8 +1049,7 @@ public class ChannelWorker extends Thread
 				}
 			}	
 		}
-		catch (Exception e) {}
-		catch (Error e) {}
+		catch (Exception | Error e) {}
 	}
 	
 	public void notifyUpdate()
@@ -1039,8 +1064,7 @@ public class ChannelWorker extends Thread
 				waitMonitor.notify();
 			}	
 		}
-		catch (Exception e) {}
-		catch (Error e) {}
+		catch (Exception | Error e) {}
 	}
 	
 	public void softStopWorker()
@@ -1057,11 +1081,7 @@ public class ChannelWorker extends Thread
 			{
 				this.waitMonitor.notify();
 			}
-			catch (Exception e) 
-			{
-				logger.error("Exception while stop QueueWorker",e);
-			}
-			catch (Error e) 
+			catch (Exception | Error e) 
 			{
 				logger.error("Error while stop QueueWorker",e);
 			}
@@ -1073,14 +1093,14 @@ public class ChannelWorker extends Thread
 		return channel;
 	}
 
-	protected boolean setMessageChannel(ChannelImpl eventQueue)
+	protected boolean setMessageChannel(ChannelImpl channel)
 	{
 		if(! this.go)
 		{
 			return false;
 		}
 		
-		if((eventQueue != null) && (this.channel != null))
+		if((channel != null) && (this.channel != null))
 		{
 			return false;
 		}
@@ -1090,7 +1110,7 @@ public class ChannelWorker extends Thread
 			return false;
 		}
 		
-		this.channel = eventQueue;
+		this.channel = channel;
 		this.context.setChannel(this.channel);
 		if(this.channel == null)
 		{

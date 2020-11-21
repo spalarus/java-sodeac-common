@@ -33,31 +33,31 @@ public class SpooledChannelWorkerScheduler extends Thread
 	private MessageDispatcherImpl eventDispatcher = null;
 	private volatile boolean go = true;
 	private volatile boolean isUpdateNotified = false;
-	private volatile long currentWait = -1;
+	private volatile long currentWaitTimeStamp = -1;
 	
 	private Object waitMonitor = new Object();
 	private SnapshotableDeque<SpooledChannelWorker> scheduledChain = null;
 	
 	private Logger logger = LoggerFactory.getLogger(SpooledChannelWorkerScheduler.class);
 	
-	protected SpooledChannelWorker scheduleChannelWorker(ChannelImpl<?> queue, long wakeUpTime)
+	protected SpooledChannelWorker scheduleChannelWorker(ChannelImpl<?> channel, long wakeUpTime)
 	{
-		SpooledChannelWorker spooledQueueWorker = new SpooledChannelWorker(queue, wakeUpTime);
-		scheduledChain.addLast(spooledQueueWorker);
+		SpooledChannelWorker spooledChannelWorker = new SpooledChannelWorker(channel, wakeUpTime);
+		scheduledChain.addLast(spooledChannelWorker);
 		
 		synchronized (this.waitMonitor)
 		{
 			this.isUpdateNotified = true;
-			if(this.currentWait > 0)
+			if(this.currentWaitTimeStamp > 0)
 			{
-				if(wakeUpTime < this.currentWait)
+				if(wakeUpTime < this.currentWaitTimeStamp)
 				{
 					waitMonitor.notify();
 				}
 			}
 		}
 	
-		return spooledQueueWorker;
+		return spooledChannelWorker;
 	}
 	
 	@Override
@@ -71,7 +71,7 @@ public class SpooledChannelWorkerScheduler extends Thread
 			
 			long now = System.currentTimeMillis();
 			
-			if(spoolCleanRun < now - DEFAULT_WAIT_TIME)
+			if(spoolCleanRun < (now - DEFAULT_WAIT_TIME))
 			{
 				try
 				{
@@ -109,7 +109,7 @@ public class SpooledChannelWorkerScheduler extends Thread
 						}
 						if(now >= worker.getWakeupTime())
 						{
-							worker.getQueue().notifyOrCreateWorker(worker.getWakeupTime());
+							worker.getChannel().notifyOrCreateWorker(worker.getWakeupTime()); // LOCK CHANNEL.workerSpoolLock WORKER.waitMonitor
 							workerNode.unlink();
 							continue;
 						}
@@ -130,13 +130,9 @@ public class SpooledChannelWorkerScheduler extends Thread
 				}
 				
 			}
-			catch (Exception e) 
+			catch (Exception | Error e) 
 			{
-				logger.error("Exception while run SpooledQueueWorkerScheduler",e);
-			}
-			catch (Error e) 
-			{
-				logger.error("Error while run SpooledQueueWorkerScheduler",e);
+				logger.error("Exception running SpooledChannelWorkerScheduler",e);
 			}
 			
 			try
@@ -162,22 +158,18 @@ public class SpooledChannelWorkerScheduler extends Thread
 							}
 							if(wait > 0)
 							{
-								this.currentWait = wait + System.currentTimeMillis();
+								this.currentWaitTimeStamp = wait + System.currentTimeMillis();
 								waitMonitor.wait(wait);
-								this.currentWait = -1;
+								this.currentWaitTimeStamp = -1;
 							}
 						}
 					}
 				}
 			}
 			catch (InterruptedException e) {}
-			catch (Exception e) 
+			catch (Exception | Error e) 
 			{
-				logger.error("Exception while run SpooledQueueWorkerScheduler",e);
-			}
-			catch (Error e) 
-			{
-				logger.error("Error while run SpooledQueueWorkerScheduler",e);
+				logger.error("Error running SpooledChannelWorkerScheduler",e);
 			}
 		}
 		DequeSnapshot<SpooledChannelWorker> snapshot = this.scheduledChain.createSnapshot();
@@ -210,9 +202,9 @@ public class SpooledChannelWorkerScheduler extends Thread
 			{
 				this.waitMonitor.notify();
 			}
-			catch (Exception e) 
+			catch (Exception | Error e) 
 			{
-				logger.error("Exception while stop Spooled Queue Worker Scheduler",e);
+				logger.error("Exception stopping Spooled Channel Worker Scheduler",e);
 			}
 		}
 	}
