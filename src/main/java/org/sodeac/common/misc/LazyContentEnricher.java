@@ -334,7 +334,7 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 									if(objects != null)
 									{
 										for(T object : objects)
-										{
+										{	
 											this.objectToBeEnriched = object;
 											
 											List<E> enrichmentList = this.enrichmentManyCache.get(reference);
@@ -504,6 +504,7 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 					{
 						this.enrichmentOneCache.put(reference, enrichment);
 					}
+					else
 					{
 						List<E> enrichmentList = this.enrichmentManyCache.get(reference);
 						if(enrichmentList == null)
@@ -662,7 +663,7 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 			
 			private CommonContentEnricher cce = null;
 			
-			public CardinalityModeOption withWorkingMode(WorkingMode workingMode)
+			public CardinalityModeOption workingMode(WorkingMode workingMode)
 			{
 				if(workingMode != null)
 				{
@@ -682,7 +683,7 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 			
 			private CommonContentEnricher cce = null;
 			
-			public TypeOfObjetToBeEnrichedOption andCardinalityMode(CardinalityMode cardinalityMode)
+			public TypeOfObjetToBeEnrichedOption cardinalityMode(CardinalityMode cardinalityMode)
 			{
 				if(cardinalityMode != null)
 				{
@@ -702,7 +703,7 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 			
 			private CommonContentEnricher cce = null;
 			
-			public <T> TypeOfReferenceOption<T> forObjectsToBeEnrichedSetType(Class<T> tp)
+			public <T> TypeOfReferenceOption<T> typeOfObjectsToBeEnriched(Class<T> tp)
 			{
 				return new TypeOfReferenceOption<>(this.cce);
 			}
@@ -718,7 +719,7 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 			
 			private CommonContentEnricher cce = null;
 			
-			public <R> TypeOfEnrichmentOption<T,R> forReferencesSetType(Class<R> tp)
+			public <R> TypeOfEnrichmentOption<T,R> typeOfReferences(Class<R> tp)
 			{
 				return new TypeOfEnrichmentOption<>(this.cce);
 			}
@@ -734,7 +735,7 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 			
 			private CommonContentEnricher cce = null;
 			
-			public <E> NewBlankHandlerOption<T,R,E> forEnrichmentsSetType(Class<E> tp)
+			public <E> NewBlankHandlerOption<T,R,E> typeOfEnrichments(Class<E> tp)
 			{
 				return new NewBlankHandlerOption<>(this.cce);
 			}
@@ -750,7 +751,7 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 			
 			private CommonContentEnricher cce = null;
 			
-			public CloneHandlerOption<T,R,E> handleRequestsForNewBlankEnrichmentWith(Function<CommonContentEnricher<T,R,E>,E> newBlankEnrichmentHandler)
+			public CloneHandlerOption<T,R,E> newBlankEnrichmentHandler(Function<CommonContentEnricher<T,R,E>,E> newBlankEnrichmentHandler)
 			{
 				Objects.requireNonNull(newBlankEnrichmentHandler, "handler to create new blank enrichments not defined");
 				this.cce.newBlankEnrichmentHandler = newBlankEnrichmentHandler;
@@ -769,7 +770,7 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 			
 			private CommonContentEnricher cce = null;
 			
-			public EnrichHandlerWithOptionallyLinkOption<T,R,E>  handleRequestsToCloneEnrichmentWith(Function<CommonContentEnricher<T,R,E>, E> cloneEnrichmentHandler)
+			public EnrichHandlerWithOptionallyLinkOption<T,R,E>  cloneEnrichmentHandler(Function<CommonContentEnricher<T,R,E>, E> cloneEnrichmentHandler)
 			{
 				this.cce.cloneEnrichmentHandler = cloneEnrichmentHandler;
 				return new EnrichHandlerWithOptionallyLinkOption(this.cce);
@@ -786,7 +787,7 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 			
 			protected CommonContentEnricher cce = null;
 			
-			public HandleRemoveFromCacheOption<T,R,E> handleEnrichCycle (BiConsumer<Collection<R>, CommonContentEnricher<T,R,E>> enricheCycleHandler)
+			public HandleRemoveFromCacheOption<T,R,E> enrichCycleHandler (BiConsumer<Collection<R>, CommonContentEnricher<T,R,E>> enricheCycleHandler)
 			{
 				this.cce.enricheCycleHandler = enricheCycleHandler;
 				return new HandleRemoveFromCacheOption<>(this.cce);
@@ -800,7 +801,7 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 				super(cce);
 			}
 			
-			public EnrichHandlerOption<T,R,E> handleLink(Consumer<CommonContentEnricher<T,R,E>> linkEnrichmentHandler)
+			public EnrichHandlerOption<T,R,E> linkEnrichmentHandler(Consumer<CommonContentEnricher<T,R,E>> linkEnrichmentHandler)
 			{
 				super.cce.linkEnrichmentHandler = linkEnrichmentHandler;
 				return this;
@@ -839,7 +840,7 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 				super(cce);
 			}
 			
-			public PrebuildOption<T, R, E> setDefaultCacheSize(int cacheSize)
+			public PrebuildOption<T, R, E> defaultCacheSize(int cacheSize)
 			{
 				if(cacheSize < 0)
 				{
@@ -857,7 +858,7 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 				super(cce);
 			}
 			
-			public SetDefaultCacheOption<T,R,E> handleRemoveFromCache(BiConsumer<R,E> removeFromCacheHandler)
+			public SetDefaultCacheOption<T,R,E> removeFromCacheHandler(BiConsumer<R,E> removeFromCacheHandler)
 			{
 				super.cce.removeFromCacheHandler = removeFromCacheHandler;
 				return this;
@@ -875,7 +876,7 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 			protected int cacheSize = -1;
 			protected Map<String,Object> properties = new HashMap();
 			
-			public Builder<T,R,E> setCacheSize(int cacheSize)
+			public Builder<T,R,E> cacheSize(int cacheSize)
 			{
 				if(cacheSize < 0)
 				{
@@ -889,7 +890,7 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 			
 			public Builder<T,R,E> putProperty(String key, Object value)
 			{
-				return new Builder(this.cce).putProperty(key, value);
+				return new Builder(this.cce).property(key, value);
 			}
 			
 			public CommonContentEnricher<T,R,E> buildCommonContentEnricher()
@@ -928,7 +929,7 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 			
 			protected CommonContentEnricher cce = null;
 			
-			public Builder<T,R,E> putProperty(String key, Object value)
+			public Builder<T,R,E> property(String key, Object value)
 			{
 				Objects.requireNonNull(key, "key no defined");
 				
@@ -999,14 +1000,14 @@ public class LazyContentEnricher<T,R,E> implements AutoCloseable
 	public void t()
 	{
 		CommonContentEnricher.newBuilder()
-			.withWorkingMode(WorkingMode.DEDICATED)
-			.andCardinalityMode(CardinalityMode.ONE_REFERENCE_TO_ONE_ENRICHMENT)
-			.forObjectsToBeEnrichedSetType(String.class)
-			.forReferencesSetType(Integer.class)
-			.forEnrichmentsSetType(Long.class)
-			.handleRequestsForNewBlankEnrichmentWith(cce -> null)
-			.handleRequestsToCloneEnrichmentWith(cce -> null)
-			.handleLink(null).handleEnrichCycle(null).handleRemoveFromCache(null).setDefaultCacheSize(1).prebuild().setCacheSize(5).putProperty("dsa", null).putProperty("", null).buildCommonContentEnricher()
+			.workingMode(WorkingMode.DEDICATED)
+			.cardinalityMode(CardinalityMode.ONE_REFERENCE_TO_ONE_ENRICHMENT)
+			.typeOfObjectsToBeEnriched(String.class)
+			.typeOfReferences(Integer.class)
+			.typeOfEnrichments(Long.class)
+			.newBlankEnrichmentHandler(cce -> null)
+			.cloneEnrichmentHandler(cce -> null)
+			.linkEnrichmentHandler(null).enrichCycleHandler(null).removeFromCacheHandler(null).defaultCacheSize(1).prebuild().cacheSize(5).property("dsa", null).property("", null).buildCommonContentEnricher()
 			//optional link
 			//optional unlink
 			// handleEnrichCycle

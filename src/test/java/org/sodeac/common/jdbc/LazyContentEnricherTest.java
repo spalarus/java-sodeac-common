@@ -29,10 +29,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 import org.sodeac.common.function.ConplierBean;
 import org.sodeac.common.function.ExceptionCatchedConsumer;
 import org.sodeac.common.jdbc.ResultSetParseHelper.ResultSetParseHelperBuilder;
@@ -54,6 +57,7 @@ import org.sodeac.common.typedtree.BranchNode;
 import org.sodeac.common.typedtree.ModelRegistry;
 import org.sodeac.common.typedtree.TypedTreeMetaModel.RootBranchNode;
 
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class LazyContentEnricherTest
 {
 	@Test
@@ -702,7 +706,7 @@ public class LazyContentEnricherTest
 	}
 	
 	@Test
-	public void test0010CommonContentProviderDedicatedOneToOne() throws Exception
+	public void test0010CommonContentProviderDedicatedOneToOneComposition() throws Exception
 	{
 		try(CloseableCollector closeableCollector = CloseableCollector.newInstance())
 		{
@@ -714,26 +718,43 @@ public class LazyContentEnricherTest
 				enrichmentIndex.put(i, new Enrichment(i, "Enrichment_" + i));
 			}
 			
-			ConplierBean<Integer> sizeIdCollection = new ConplierBean<>(0);
+			AtomicInteger sizeIdCollection = new AtomicInteger(0);
+			AtomicInteger countNew = new AtomicInteger(0);
+			AtomicInteger countClone = new AtomicInteger(0);
+			AtomicInteger countLink = new AtomicInteger(0);
+			AtomicInteger countEnrichCycle = new AtomicInteger(0);
 			
 			LazyContentEnricher<ObjectToBeEnrichedOneToOne, Integer, Enrichment> contentEnricher = CommonContentEnricher.newBuilder()
 				
-				.withWorkingMode(WorkingMode.DEDICATED)
-				.andCardinalityMode(CardinalityMode.ONE_REFERENCE_TO_ONE_ENRICHMENT)
+				.workingMode(WorkingMode.DEDICATED)
+				.cardinalityMode(CardinalityMode.ONE_REFERENCE_TO_ONE_ENRICHMENT)
 				
-				.forObjectsToBeEnrichedSetType(ObjectToBeEnrichedOneToOne.class)
-				.forReferencesSetType(Integer.class)
-				.forEnrichmentsSetType(Enrichment.class)
+				.typeOfObjectsToBeEnriched(ObjectToBeEnrichedOneToOne.class)
+				.typeOfReferences(Integer.class)
+				.typeOfEnrichments(Enrichment.class)
 				
-				.handleRequestsForNewBlankEnrichmentWith(cce -> enrichmentIndex.get(cce.getReference()))
-				.handleRequestsToCloneEnrichmentWith(cce -> cce.getEnrichment())
-				.handleLink(cce -> cce.getObjectToBeEnriched().setEnrichment(cce.getEnrichment()))
-				.handleEnrichCycle((ids,cce) ->
+				.newBlankEnrichmentHandler(cce -> 
 				{
-					sizeIdCollection.setValue(ids.size());
+					countNew.incrementAndGet();
+					return enrichmentIndex.get(cce.getReference());
+				})
+				.cloneEnrichmentHandler(cce -> 
+				{
+					countClone.incrementAndGet();
+					return cce.getEnrichment();
+				})
+				.linkEnrichmentHandler(cce -> 
+				{
+					countLink.incrementAndGet();
+					cce.getObjectToBeEnriched().setEnrichment(cce.getEnrichment());
+				})
+				.enrichCycleHandler((ids,cce) ->
+				{
+					sizeIdCollection.addAndGet(ids.size());
+					countEnrichCycle.incrementAndGet();
 					ids.forEach(id -> cce.supplyEnrichment(id, cce.createBlankEnrichment(id)));
 				})
-				.setDefaultCacheSize(5)
+				.defaultCacheSize(5)
 				.buildLazyContentEnricher();
 			
 			for(int i = 1 ; i < 8; i++)
@@ -743,8 +764,13 @@ public class LazyContentEnricherTest
 			
 			contentEnricher.invokeContentEnricher();
 			
-			assertEquals("value should be correct", 7, sizeIdCollection.get().intValue());
+			assertEquals("value should be correct", 7, sizeIdCollection.get());
 			assertEquals("value should be correct", 7, objectList.size());
+			
+			assertEquals("value should be correct", 7,countNew.get());
+			assertEquals("value should be correct", 7,countClone.get());
+			assertEquals("value should be correct", 7,countLink.get());
+			assertEquals("value should be correct", 1,countEnrichCycle.get());
 			
 			for(ObjectToBeEnrichedOneToOne object : objectList)
 			{
@@ -760,10 +786,21 @@ public class LazyContentEnricherTest
 				objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToOne(i,"Object_" + i), i));
 			}
 			
+			sizeIdCollection.set(0);
+			countNew.set(0);
+			countClone.set(0);
+			countLink.set(0);
+			countEnrichCycle.set(0);
+			
 			contentEnricher.invokeContentEnricher();
 			
-			assertEquals("value should be correct", 2, sizeIdCollection.get().intValue());
+			assertEquals("value should be correct", 2, sizeIdCollection.get());
 			assertEquals("value should be correct", 7, objectList.size());
+			
+			assertEquals("value should be correct", 2,countNew.get());
+			assertEquals("value should be correct", 7,countClone.get());
+			assertEquals("value should be correct", 7,countLink.get());
+			assertEquals("value should be correct", 1,countEnrichCycle.get());
 			
 			for(ObjectToBeEnrichedOneToOne object : objectList)
 			{
@@ -776,29 +813,455 @@ public class LazyContentEnricherTest
 	}
 	
 	@Test
-	public void test0011CommonContentProviderDedicatedOneToMany() throws Exception
+	public void test0011CommonContentProviderDedicatedOneToOneAggregation() throws Exception
+	{
+		try(CloseableCollector closeableCollector = CloseableCollector.newInstance())
+		{
+			List<ObjectToBeEnrichedOneToOne> objectList = new ArrayList<>();
+			Map<Integer,Enrichment> enrichmentIndex = new HashMap<Integer, LazyContentEnricherTest.Enrichment>();
+			
+			for(int i = 1; i < 4; i++)
+			{
+				enrichmentIndex.put(i, new Enrichment(i, "Enrichment_" + i));
+			}
+			
+			AtomicInteger sizeIdCollection = new AtomicInteger(0);
+			AtomicInteger countNew = new AtomicInteger(0);
+			AtomicInteger countClone = new AtomicInteger(0);
+			AtomicInteger countLink = new AtomicInteger(0);
+			AtomicInteger countEnrichCycle = new AtomicInteger(0);
+			
+			LazyContentEnricher<ObjectToBeEnrichedOneToOne, Integer, Enrichment> contentEnricher = CommonContentEnricher.newBuilder()
+				
+				.workingMode(WorkingMode.DEDICATED)
+				.cardinalityMode(CardinalityMode.ONE_REFERENCE_TO_ONE_ENRICHMENT)
+				
+				.typeOfObjectsToBeEnriched(ObjectToBeEnrichedOneToOne.class)
+				.typeOfReferences(Integer.class)
+				.typeOfEnrichments(Enrichment.class)
+				
+				.newBlankEnrichmentHandler(cce -> 
+				{
+					countNew.incrementAndGet();
+					return enrichmentIndex.get(cce.getReference());
+				})
+				.cloneEnrichmentHandler(cce -> 
+				{
+					countClone.incrementAndGet();
+					return cce.getEnrichment();
+				})
+				.linkEnrichmentHandler(cce -> 
+				{
+					countLink.incrementAndGet();
+					cce.getObjectToBeEnriched().setEnrichment(cce.getEnrichment());
+				})
+				.enrichCycleHandler((ids,cce) ->
+				{
+					sizeIdCollection.addAndGet(ids.size());
+					countEnrichCycle.incrementAndGet();
+					ids.forEach(id -> cce.supplyEnrichment(id, cce.createBlankEnrichment(id)));
+				})
+				.defaultCacheSize(2)
+				.buildLazyContentEnricher();
+			
+			for(int i = 1 ; i < 8; i++)
+			{
+				if(i < 4)
+				{
+					objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToOne(i,"Object_" + i), 1));
+				}
+				else if(i < 7)
+				{
+					objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToOne(i,"Object_" + i), 2));
+				}
+				else
+				{
+					objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToOne(i,"Object_" + i), 3));
+				}
+			}
+			
+			contentEnricher.invokeContentEnricher();
+			
+			assertEquals("value should be correct", 3, sizeIdCollection.get());
+			assertEquals("value should be correct", 7, objectList.size());
+			
+			assertEquals("value should be correct", 3,countNew.get());
+			assertEquals("value should be correct", 7,countClone.get());
+			assertEquals("value should be correct", 7,countLink.get());
+			assertEquals("value should be correct", 1,countEnrichCycle.get());
+			
+			for(ObjectToBeEnrichedOneToOne object : objectList)
+			{
+				assertNotNull(object);
+				assertNotNull(object.getEnrichment());
+				if(object.getId() < 4)
+				{
+					assertEquals("value should be correct", 1, object.getEnrichment().getId());
+				}
+				else if(object.getId() < 7)
+				{
+					assertEquals("value should be correct", 2, object.getEnrichment().getId());
+				}
+				else
+				{
+					assertEquals("value should be correct", 3, object.getEnrichment().getId());
+				}
+			}
+			
+			objectList.clear();
+			
+			for(int i = 1 ; i < 8; i++)
+			{
+				if(i < 4)
+				{
+					objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToOne(i,"Object_" + i), 1));
+				}
+				else if(i < 7)
+				{
+					objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToOne(i,"Object_" + i), 2));
+				}
+				else
+				{
+					objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToOne(i,"Object_" + i), 3));
+				}
+			}
+			
+			sizeIdCollection.set(0);
+			countNew.set(0);
+			countClone.set(0);
+			countLink.set(0);
+			countEnrichCycle.set(0);
+			
+			contentEnricher.invokeContentEnricher();
+			
+			assertEquals("value should be correct", 1, sizeIdCollection.get());
+			assertEquals("value should be correct", 7, objectList.size());
+			
+			assertEquals("value should be correct", 1,countNew.get());
+			assertEquals("value should be correct", 7,countClone.get());
+			assertEquals("value should be correct", 7,countLink.get());
+			assertEquals("value should be correct", 1,countEnrichCycle.get());
+			
+			for(ObjectToBeEnrichedOneToOne object : objectList)
+			{
+				assertNotNull(object);
+				assertNotNull(object.getEnrichment());
+				if(object.getId() < 4)
+				{
+					assertEquals("value should be correct", 1, object.getEnrichment().getId());
+				}
+				else if(object.getId() < 7)
+				{
+					assertEquals("value should be correct", 2, object.getEnrichment().getId());
+				}
+				else
+				{
+					assertEquals("value should be correct", 3, object.getEnrichment().getId());
+				}
+			}
+				
+		}
+	}
+	
+	@Test
+	public void test0012CommonContentProviderOnTheFlyOneToOneComposition() throws Exception
+	{
+		try(CloseableCollector closeableCollector = CloseableCollector.newInstance())
+		{
+			List<ObjectToBeEnrichedOneToOne> objectList = new ArrayList<>();
+			Map<Integer,Enrichment> enrichmentIndex = new HashMap<Integer, LazyContentEnricherTest.Enrichment>();
+			
+			for(int i = 1; i < 11; i++)
+			{
+				enrichmentIndex.put(i, new Enrichment(i, "Enrichment_" + i));
+			}
+			
+			AtomicInteger sizeIdCollection = new AtomicInteger(0);
+			AtomicInteger countNew = new AtomicInteger(0);
+			AtomicInteger countClone = new AtomicInteger(0);
+			AtomicInteger countLink = new AtomicInteger(0);
+			AtomicInteger countEnrichCycle = new AtomicInteger(0);
+			
+			LazyContentEnricher<ObjectToBeEnrichedOneToOne, Integer, Enrichment> contentEnricher = CommonContentEnricher.newBuilder()
+				
+				.workingMode(WorkingMode.ON_THE_FLY)
+				.cardinalityMode(CardinalityMode.ONE_REFERENCE_TO_ONE_ENRICHMENT)
+				
+				.typeOfObjectsToBeEnriched(ObjectToBeEnrichedOneToOne.class)
+				.typeOfReferences(Integer.class)
+				.typeOfEnrichments(Enrichment.class)
+				
+				.newBlankEnrichmentHandler(cce -> 
+				{
+					countNew.incrementAndGet();
+					return enrichmentIndex.get(cce.getReference());
+				})
+				.cloneEnrichmentHandler(cce -> 
+				{
+					countClone.incrementAndGet();
+					return cce.getEnrichment();
+				})
+				.linkEnrichmentHandler(cce -> 
+				{
+					countLink.incrementAndGet();
+					cce.getObjectToBeEnriched().setEnrichment(cce.getEnrichment());
+				})
+				.enrichCycleHandler((ids,cce) ->
+				{
+					sizeIdCollection.addAndGet(ids.size());
+					countEnrichCycle.incrementAndGet();
+					ids.forEach(id -> cce.supplyEnrichment(id, cce.createBlankEnrichment(id)));
+				})
+				.defaultCacheSize(5)
+				.buildLazyContentEnricher();
+			
+			for(int i = 1 ; i < 8; i++)
+			{
+				objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToOne(i,"Object_" + i), i));
+			}
+			
+			contentEnricher.invokeContentEnricher();
+			
+			assertEquals("value should be correct", 7, sizeIdCollection.get());
+			assertEquals("value should be correct", 7, objectList.size());
+			
+			assertEquals("value should be correct", 7,countNew.get());
+			assertEquals("value should be correct", 0,countClone.get());
+			assertEquals("value should be correct", 7,countLink.get());
+			assertEquals("value should be correct", 1,countEnrichCycle.get());
+			
+			for(ObjectToBeEnrichedOneToOne object : objectList)
+			{
+				assertNotNull(object);
+				assertNotNull(object.getEnrichment());
+				assertEquals("value should be correct", object.getId(), object.getEnrichment().getId());
+			}
+			
+			objectList.clear();
+			
+			for(int i = 1 ; i < 8; i++)
+			{
+				objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToOne(i,"Object_" + i), i));
+			}
+			
+			sizeIdCollection.set(0);
+			countNew.set(0);
+			countClone.set(0);
+			countLink.set(0);
+			countEnrichCycle.set(0);
+			
+			contentEnricher.invokeContentEnricher();
+			
+			assertEquals("value should be correct", 2, sizeIdCollection.get());
+			assertEquals("value should be correct", 7, objectList.size());
+			
+			assertEquals("value should be correct", 2,countNew.get());
+			assertEquals("value should be correct", 5,countClone.get());
+			assertEquals("value should be correct", 7,countLink.get());
+			assertEquals("value should be correct", 1,countEnrichCycle.get());
+			
+			for(ObjectToBeEnrichedOneToOne object : objectList)
+			{
+				assertNotNull(object);
+				assertNotNull(object.getEnrichment());
+				assertEquals("value should be correct", object.getId(), object.getEnrichment().getId());
+			}
+				
+		}
+	}
+	
+	@Test
+	public void test0013CommonContentProviderOnTheFlyOneToOneAggregation() throws Exception
+	{
+		try(CloseableCollector closeableCollector = CloseableCollector.newInstance())
+		{
+			List<ObjectToBeEnrichedOneToOne> objectList = new ArrayList<>();
+			Map<Integer,Enrichment> enrichmentIndex = new HashMap<Integer, LazyContentEnricherTest.Enrichment>();
+			
+			for(int i = 1; i < 4; i++)
+			{
+				enrichmentIndex.put(i, new Enrichment(i, "Enrichment_" + i));
+			}
+			
+			AtomicInteger sizeIdCollection = new AtomicInteger(0);
+			AtomicInteger countNew = new AtomicInteger(0);
+			AtomicInteger countClone = new AtomicInteger(0);
+			AtomicInteger countLink = new AtomicInteger(0);
+			AtomicInteger countEnrichCycle = new AtomicInteger(0);
+			
+			LazyContentEnricher<ObjectToBeEnrichedOneToOne, Integer, Enrichment> contentEnricher = CommonContentEnricher.newBuilder()
+				
+				.workingMode(WorkingMode.ON_THE_FLY)
+				.cardinalityMode(CardinalityMode.ONE_REFERENCE_TO_ONE_ENRICHMENT)
+				
+				.typeOfObjectsToBeEnriched(ObjectToBeEnrichedOneToOne.class)
+				.typeOfReferences(Integer.class)
+				.typeOfEnrichments(Enrichment.class)
+				
+				.newBlankEnrichmentHandler(cce -> 
+				{
+					countNew.incrementAndGet();
+					return enrichmentIndex.get(cce.getReference());
+				})
+				.cloneEnrichmentHandler(cce -> 
+				{
+					countClone.incrementAndGet();
+					return cce.getEnrichment();
+				})
+				.linkEnrichmentHandler(cce -> 
+				{
+					countLink.incrementAndGet();
+					cce.getObjectToBeEnriched().setEnrichment(cce.getEnrichment());
+				})
+				.enrichCycleHandler((ids,cce) ->
+				{
+					sizeIdCollection.addAndGet(ids.size());
+					countEnrichCycle.incrementAndGet();
+					ids.forEach(id -> cce.supplyEnrichment(id, cce.createBlankEnrichment(id)));
+				})
+				.defaultCacheSize(2)
+				.buildLazyContentEnricher();
+			
+			for(int i = 1 ; i < 8; i++)
+			{
+				if(i < 4)
+				{
+					objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToOne(i,"Object_" + i), 1));
+				}
+				else if(i < 7)
+				{
+					objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToOne(i,"Object_" + i), 2));
+				}
+				else
+				{
+					objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToOne(i,"Object_" + i), 3));
+				}
+			}
+			
+			contentEnricher.invokeContentEnricher();
+			
+			assertEquals("value should be correct", 3, sizeIdCollection.get());
+			assertEquals("value should be correct", 7, objectList.size());
+			
+			assertEquals("value should be correct", 3,countNew.get());
+			assertEquals("value should be correct", 7 - countNew.get(),countClone.get());
+			assertEquals("value should be correct", 7,countLink.get());
+			assertEquals("value should be correct", 1,countEnrichCycle.get());
+			
+			for(ObjectToBeEnrichedOneToOne object : objectList)
+			{
+				assertNotNull(object);
+				assertNotNull(object.getEnrichment());
+				if(object.getId() < 4)
+				{
+					assertEquals("value should be correct", 1, object.getEnrichment().getId());
+				}
+				else if(object.getId() < 7)
+				{
+					assertEquals("value should be correct", 2, object.getEnrichment().getId());
+				}
+				else
+				{
+					assertEquals("value should be correct", 3, object.getEnrichment().getId());
+				}
+			}
+			
+			objectList.clear();
+			
+			for(int i = 1 ; i < 8; i++)
+			{
+				if(i < 4)
+				{
+					objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToOne(i,"Object_" + i), 1));
+				}
+				else if(i < 7)
+				{
+					objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToOne(i,"Object_" + i), 2));
+				}
+				else
+				{
+					objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToOne(i,"Object_" + i), 3));
+				}
+			}
+			
+			sizeIdCollection.set(0);
+			countNew.set(0);
+			countClone.set(0);
+			countLink.set(0);
+			countEnrichCycle.set(0);
+			
+			contentEnricher.invokeContentEnricher();
+			
+			assertEquals("value should be correct", 1, sizeIdCollection.get());
+			assertEquals("value should be correct", 7, objectList.size());
+			
+			assertEquals("value should be correct", 1,countNew.get());
+			assertEquals("value should be correct", 7 - countNew.get(),countClone.get());
+			assertEquals("value should be correct", 7,countLink.get());
+			assertEquals("value should be correct", 1,countEnrichCycle.get());
+			
+			for(ObjectToBeEnrichedOneToOne object : objectList)
+			{
+				assertNotNull(object);
+				assertNotNull(object.getEnrichment());
+				if(object.getId() < 4)
+				{
+					assertEquals("value should be correct", 1, object.getEnrichment().getId());
+				}
+				else if(object.getId() < 7)
+				{
+					assertEquals("value should be correct", 2, object.getEnrichment().getId());
+				}
+				else
+				{
+					assertEquals("value should be correct", 3, object.getEnrichment().getId());
+				}
+			}
+				
+		}
+	}
+	
+	@Test
+	public void test0020CommonContentProviderDedicatedOneToManyComposition() throws Exception
 	{
 		try(CloseableCollector closeableCollector = CloseableCollector.newInstance())
 		{
 			List<ObjectToBeEnrichedOneToMany> objectList = new ArrayList<>();
 			
-			ConplierBean<Integer> sizeIdCollection = new ConplierBean<>(0);
+			AtomicInteger sizeIdCollection = new AtomicInteger(0);
+			AtomicInteger countNew = new AtomicInteger(0);
+			AtomicInteger countClone = new AtomicInteger(0);
+			AtomicInteger countLink = new AtomicInteger(0);
+			AtomicInteger countEnrichCycle = new AtomicInteger(0);
 			
 			LazyContentEnricher<ObjectToBeEnrichedOneToMany, Integer, Enrichment> contentEnricher = CommonContentEnricher.newBuilder()
 				
-				.withWorkingMode(WorkingMode.DEDICATED)
-				.andCardinalityMode(CardinalityMode.ONE_REFERENCE_TO_MANY_ENRICHMENTS)
+				.workingMode(WorkingMode.DEDICATED)
+				.cardinalityMode(CardinalityMode.ONE_REFERENCE_TO_MANY_ENRICHMENTS)
 				
-				.forObjectsToBeEnrichedSetType(ObjectToBeEnrichedOneToMany.class)
-				.forReferencesSetType(Integer.class)
-				.forEnrichmentsSetType(Enrichment.class)
+				.typeOfObjectsToBeEnriched(ObjectToBeEnrichedOneToMany.class)
+				.typeOfReferences(Integer.class)
+				.typeOfEnrichments(Enrichment.class)
 				
-				.handleRequestsForNewBlankEnrichmentWith(cce -> new Enrichment())
-				.handleRequestsToCloneEnrichmentWith(cce -> cce.getEnrichment())
-				.handleLink(cce -> cce.getObjectToBeEnriched().getEnrichmentList().add(cce.getEnrichment()))
-				.handleEnrichCycle((ids,cce) ->
+				.newBlankEnrichmentHandler(cce -> 
 				{
-					sizeIdCollection.setValue(ids.size());
+					countNew.incrementAndGet();
+					return new Enrichment();
+				})
+				.cloneEnrichmentHandler(cce -> 
+				{
+					countClone.incrementAndGet();
+					return cce.getEnrichment();
+				})
+				.linkEnrichmentHandler(cce -> 
+				{
+					countLink.incrementAndGet();
+					cce.getObjectToBeEnriched().getEnrichmentList().add(cce.getEnrichment());
+				})
+				.enrichCycleHandler((ids,cce) ->
+				{
+					countEnrichCycle.incrementAndGet();
+					sizeIdCollection.addAndGet(ids.size());
 					ids.forEach(id -> 
 					{
 						for(int j = 1; j< 4; j++)
@@ -812,7 +1275,7 @@ public class LazyContentEnricherTest
 						}
 					});
 				})
-				.setDefaultCacheSize(5)
+				.defaultCacheSize(5)
 				.buildLazyContentEnricher();
 			
 			for(int i = 1 ; i < 8; i++)
@@ -822,8 +1285,13 @@ public class LazyContentEnricherTest
 			
 			contentEnricher.invokeContentEnricher();
 			
-			assertEquals("value should be correct", 7, sizeIdCollection.get().intValue());
+			assertEquals("value should be correct", 7, sizeIdCollection.get());
 			assertEquals("value should be correct", 7, objectList.size());
+			
+			assertEquals("value should be correct", 7 * 3,countNew.get());
+			assertEquals("value should be correct", 7 * 3,countClone.get());
+			assertEquals("value should be correct", 7 * 3,countLink.get());
+			assertEquals("value should be correct", 1,countEnrichCycle.get());
 			
 			for(ObjectToBeEnrichedOneToMany object : objectList)
 			{
@@ -845,10 +1313,21 @@ public class LazyContentEnricherTest
 				objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToMany(i,"Object_" + i), i));
 			}
 			
+			sizeIdCollection.set(0);
+			countNew.set(0);
+			countClone.set(0);
+			countLink.set(0);
+			countEnrichCycle.set(0);
+			
 			contentEnricher.invokeContentEnricher();
 			
-			assertEquals("value should be correct", 2, sizeIdCollection.get().intValue());
+			assertEquals("value should be correct", 2, sizeIdCollection.get());
 			assertEquals("value should be correct", 7, objectList.size());
+			
+			assertEquals("value should be correct", 2 * 3,countNew.get());
+			assertEquals("value should be correct", 7 * 3,countClone.get());
+			assertEquals("value should be correct", 7 * 3,countLink.get());
+			assertEquals("value should be correct", 1,countEnrichCycle.get());
 			
 			for(ObjectToBeEnrichedOneToMany object : objectList)
 			{
@@ -863,6 +1342,395 @@ public class LazyContentEnricherTest
 				}
 			}
 				
+		}
+	}
+	
+	@Test
+	public void test0021CommonContentProviderDedicatedOneToManyAggregation() throws Exception
+	{
+		try(CloseableCollector closeableCollector = CloseableCollector.newInstance())
+		{
+			List<ObjectToBeEnrichedOneToMany> objectList = new ArrayList<>();
+			Map<Integer,Enrichment> enrichmentIndex = new HashMap<Integer, LazyContentEnricherTest.Enrichment>();
+			
+			for(int i = 1; i < 4; i++)
+			{
+				enrichmentIndex.put(i, new Enrichment(i, "Enrichment_" + i));
+			}
+			
+			AtomicInteger sizeIdCollection = new AtomicInteger(0);
+			AtomicInteger countNew = new AtomicInteger(0);
+			AtomicInteger countClone = new AtomicInteger(0);
+			AtomicInteger countLink = new AtomicInteger(0);
+			AtomicInteger countEnrichCycle = new AtomicInteger(0);
+			
+			LazyContentEnricher<ObjectToBeEnrichedOneToMany, Integer, Enrichment> contentEnricher = CommonContentEnricher.newBuilder()
+				
+				.workingMode(WorkingMode.DEDICATED)
+				.cardinalityMode(CardinalityMode.ONE_REFERENCE_TO_MANY_ENRICHMENTS)
+				
+				.typeOfObjectsToBeEnriched(ObjectToBeEnrichedOneToMany.class)
+				.typeOfReferences(Integer.class)
+				.typeOfEnrichments(Enrichment.class)
+				
+				.newBlankEnrichmentHandler(cce -> 
+				{
+					countNew.incrementAndGet();
+					return new Enrichment();
+				})
+				.cloneEnrichmentHandler(cce -> 
+				{
+					countClone.incrementAndGet();
+					return cce.getEnrichment();
+				})
+				.linkEnrichmentHandler(cce -> 
+				{
+					countLink.incrementAndGet();
+					cce.getObjectToBeEnriched().getEnrichmentList().add(cce.getEnrichment());
+				})
+				.enrichCycleHandler((ids,cce) ->
+				{
+					countEnrichCycle.incrementAndGet();
+					sizeIdCollection.addAndGet(ids.size());
+					ids.forEach(id -> 
+					{
+						Enrichment e = cce.createBlankEnrichment(id);
+						e.setId(id);
+						e.setName("Enrichment_" + id);
+						cce.supplyEnrichment(id,e);
+					});
+				})
+				.defaultCacheSize(2)
+				.buildLazyContentEnricher();
+			
+			for(int i = 1 ; i < 8; i++)
+			{
+				ObjectToBeEnrichedOneToMany objectToBeEnriched = new ObjectToBeEnrichedOneToMany(i,"Object_" + i);
+				objectList.add(objectToBeEnriched);
+				for(int j = 1; j < 4; j++)
+				{
+					contentEnricher.register(objectToBeEnriched, j);
+				}
+			}
+			
+			contentEnricher.invokeContentEnricher();
+			
+			assertEquals("value should be correct", 3, sizeIdCollection.get());
+			assertEquals("value should be correct", 7, objectList.size());
+			
+			assertEquals("value should be correct", 3,countNew.get());
+			assertEquals("value should be correct", 7 * 3,countClone.get());
+			assertEquals("value should be correct", 7 * 3,countLink.get());
+			assertEquals("value should be correct", 1,countEnrichCycle.get());
+			
+			for(ObjectToBeEnrichedOneToMany object : objectList)
+			{
+				assertNotNull(object);
+				assertNotNull(object.getEnrichmentList());
+				assertEquals("value should be correct",3, object.getEnrichmentList().size());
+				for(int j = 1; j< 4; j++)
+				{
+					Enrichment e = object.getEnrichmentList().get(j-1);
+					assertEquals("value should be correct", j, e.getId());
+				}
+			}
+			
+			objectList.clear();
+			
+			for(int i = 1 ; i < 8; i++)
+			{
+				ObjectToBeEnrichedOneToMany objectToBeEnriched = new ObjectToBeEnrichedOneToMany(i,"Object_" + i);
+				objectList.add(objectToBeEnriched);
+				for(int j = 1; j < 4; j++)
+				{
+					contentEnricher.register(objectToBeEnriched, j);
+				}
+			}
+			
+			sizeIdCollection.set(0);
+			countNew.set(0);
+			countClone.set(0);
+			countLink.set(0);
+			countEnrichCycle.set(0);
+			
+			contentEnricher.invokeContentEnricher();
+			
+			assertEquals("value should be correct", 1, sizeIdCollection.get());
+			assertEquals("value should be correct", 7, objectList.size());
+			
+			assertEquals("value should be correct", 1,countNew.get());
+			assertEquals("value should be correct", 7 * 3,countClone.get());
+			assertEquals("value should be correct", 7 * 3,countLink.get());
+			assertEquals("value should be correct", 1,countEnrichCycle.get());
+			
+			for(ObjectToBeEnrichedOneToMany object : objectList)
+			{
+				assertNotNull(object);
+				assertNotNull(object.getEnrichmentList());
+				assertEquals("value should be correct",3, object.getEnrichmentList().size());
+				for(int j = 1; j< 4; j++)
+				{
+					Enrichment e = object.getEnrichmentList().get(j-1);
+					assertEquals("value should be correct", j, e.getId());
+				}
+			}
+				
+		}
+	}
+	
+	@Test
+	public void test0022CommonContentProviderOntTheFlyOneToManyComposition() throws Exception
+	{
+		try(CloseableCollector closeableCollector = CloseableCollector.newInstance())
+		{
+			List<ObjectToBeEnrichedOneToMany> objectList = new ArrayList<>();
+			
+			AtomicInteger sizeIdCollection = new AtomicInteger(0);
+			AtomicInteger countNew = new AtomicInteger(0);
+			AtomicInteger countClone = new AtomicInteger(0);
+			AtomicInteger countLink = new AtomicInteger(0);
+			AtomicInteger countEnrichCycle = new AtomicInteger(0);
+			
+			LazyContentEnricher<ObjectToBeEnrichedOneToMany, Integer, Enrichment> contentEnricher = CommonContentEnricher.newBuilder()
+				
+				.workingMode(WorkingMode.ON_THE_FLY)
+				.cardinalityMode(CardinalityMode.ONE_REFERENCE_TO_MANY_ENRICHMENTS)
+				
+				.typeOfObjectsToBeEnriched(ObjectToBeEnrichedOneToMany.class)
+				.typeOfReferences(Integer.class)
+				.typeOfEnrichments(Enrichment.class)
+				
+				.newBlankEnrichmentHandler(cce -> 
+				{
+					countNew.incrementAndGet();
+					return new Enrichment();
+				})
+				.cloneEnrichmentHandler(cce -> 
+				{
+					countClone.incrementAndGet();
+					return cce.getEnrichment();
+				})
+				.linkEnrichmentHandler(cce -> 
+				{
+					countLink.incrementAndGet();
+					cce.getObjectToBeEnriched().getEnrichmentList().add(cce.getEnrichment());
+				})
+				.enrichCycleHandler((ids,cce) ->
+				{
+					countEnrichCycle.incrementAndGet();
+					sizeIdCollection.addAndGet(ids.size());
+					ids.forEach(id -> 
+					{
+						for(int j = 1; j< 4; j++)
+						{
+							int x = (id * 1000000) + j;
+							
+							Enrichment e = cce.createBlankEnrichment(id);
+							e.setId(x);
+							e.setName("Enrichment_" + x);
+							cce.supplyEnrichment(id,e);
+						}
+					});
+				})
+				.defaultCacheSize(5)
+				.buildLazyContentEnricher();
+			
+			for(int i = 1 ; i < 8; i++)
+			{
+				objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToMany(i,"Object_" + i), i));
+			}
+			
+			contentEnricher.invokeContentEnricher();
+			
+			assertEquals("value should be correct", 7, sizeIdCollection.get());
+			assertEquals("value should be correct", 7, objectList.size());
+			
+			assertEquals("value should be correct", 7 * 3,countNew.get());
+			assertEquals("value should be correct", 0,countClone.get());
+			assertEquals("value should be correct", 7 * 3,countLink.get());
+			assertEquals("value should be correct", 1,countEnrichCycle.get());
+			
+			for(ObjectToBeEnrichedOneToMany object : objectList)
+			{
+				assertNotNull(object);
+				assertNotNull(object.getEnrichmentList());
+				assertEquals("value should be correct",3, object.getEnrichmentList().size());
+				for(int j = 1; j< 4; j++)
+				{
+					Enrichment e = object.getEnrichmentList().get(j-1);
+					int x = (object.getId() * 1000000) + j;
+					assertEquals("value should be correct", x, e.getId());
+				}
+			}
+			
+			objectList.clear();
+			
+			for(int i = 1 ; i < 8; i++)
+			{
+				objectList.add(contentEnricher.register(new ObjectToBeEnrichedOneToMany(i,"Object_" + i), i));
+			}
+			
+			sizeIdCollection.set(0);
+			countNew.set(0);
+			countClone.set(0);
+			countLink.set(0);
+			countEnrichCycle.set(0);
+			
+			contentEnricher.invokeContentEnricher();
+			
+			assertEquals("value should be correct", 2, sizeIdCollection.get());
+			assertEquals("value should be correct", 7, objectList.size());
+			
+			assertEquals("value should be correct", 2 * 3,countNew.get());
+			assertEquals("value should be correct", 5 * 3,countClone.get());
+			assertEquals("value should be correct", 7 * 3,countLink.get());
+			assertEquals("value should be correct", 1,countEnrichCycle.get());
+			
+			for(ObjectToBeEnrichedOneToMany object : objectList)
+			{
+				assertNotNull(object);
+				assertNotNull(object.getEnrichmentList());
+				assertEquals("value should be correct",3, object.getEnrichmentList().size());
+				for(int j = 1; j< 4; j++)
+				{
+					Enrichment e = object.getEnrichmentList().get(j-1);
+					int x = (object.getId() * 1000000) + j;
+					assertEquals("value should be correct", x, e.getId());
+				}
+			}
+				
+		}
+	}
+	
+	@Test
+	public void test0023CommonContentProviderOnTheFlyOneToManyAggregation() throws Exception
+	{
+		try(CloseableCollector closeableCollector = CloseableCollector.newInstance())
+		{
+			List<ObjectToBeEnrichedOneToMany> objectList = new ArrayList<>();
+			Map<Integer,Enrichment> enrichmentIndex = new HashMap<Integer, LazyContentEnricherTest.Enrichment>();
+			
+			for(int i = 1; i < 4; i++)
+			{
+				enrichmentIndex.put(i, new Enrichment(i, "Enrichment_" + i));
+			}
+			
+			AtomicInteger sizeIdCollection = new AtomicInteger(0);
+			AtomicInteger countNew = new AtomicInteger(0);
+			AtomicInteger countClone = new AtomicInteger(0);
+			AtomicInteger countLink = new AtomicInteger(0);
+			AtomicInteger countEnrichCycle = new AtomicInteger(0);
+			
+			LazyContentEnricher<ObjectToBeEnrichedOneToMany, Integer, Enrichment> contentEnricher = CommonContentEnricher.newBuilder()
+				
+				.workingMode(WorkingMode.ON_THE_FLY)
+				.cardinalityMode(CardinalityMode.ONE_REFERENCE_TO_MANY_ENRICHMENTS)
+				
+				.typeOfObjectsToBeEnriched(ObjectToBeEnrichedOneToMany.class)
+				.typeOfReferences(Integer.class)
+				.typeOfEnrichments(Enrichment.class)
+				
+				.newBlankEnrichmentHandler(cce -> 
+				{
+					countNew.incrementAndGet();
+					return new Enrichment();
+				})
+				.cloneEnrichmentHandler(cce -> 
+				{
+					countClone.incrementAndGet();
+					return cce.getEnrichment();
+				})
+				.linkEnrichmentHandler(cce -> 
+				{
+					countLink.incrementAndGet();
+					cce.getObjectToBeEnriched().getEnrichmentList().add(cce.getEnrichment());
+				})
+				.enrichCycleHandler((ids,cce) ->
+				{
+					countEnrichCycle.incrementAndGet();
+					sizeIdCollection.addAndGet(ids.size());
+					ids.forEach(id -> 
+					{
+						Enrichment e = cce.createBlankEnrichment(id);
+						e.setId(id);
+						e.setName("Enrichment_" + id);
+						cce.supplyEnrichment(id,e);
+					});
+				})
+				.defaultCacheSize(2)
+				.buildLazyContentEnricher();
+			
+			for(int i = 1 ; i < 8; i++)
+			{
+				ObjectToBeEnrichedOneToMany objectToBeEnriched = new ObjectToBeEnrichedOneToMany(i,"Object_" + i);
+				objectList.add(objectToBeEnriched);
+				for(int j = 1; j < 4; j++)
+				{
+					contentEnricher.register(objectToBeEnriched, j);
+				}
+			}
+			
+			contentEnricher.invokeContentEnricher();
+			
+			assertEquals("value should be correct", 3, sizeIdCollection.get());
+			assertEquals("value should be correct", 7, objectList.size());
+			
+			assertEquals("value should be correct", 3,countNew.get());
+			assertEquals("value should be correct", (7 * 3) - 3,countClone.get());
+			assertEquals("value should be correct", 7 * 3,countLink.get());
+			assertEquals("value should be correct", 1,countEnrichCycle.get());
+			
+			for(ObjectToBeEnrichedOneToMany object : objectList)
+			{
+				assertNotNull(object);
+				assertNotNull(object.getEnrichmentList());
+				assertEquals("value should be correct",3, object.getEnrichmentList().size());
+				for(int j = 1; j< 4; j++)
+				{
+					Enrichment e = object.getEnrichmentList().get(j-1);
+					assertEquals("value should be correct", j, e.getId());
+				}
+			}
+			
+			objectList.clear();
+			
+			for(int i = 1 ; i < 8; i++)
+			{
+				ObjectToBeEnrichedOneToMany objectToBeEnriched = new ObjectToBeEnrichedOneToMany(i,"Object_" + i);
+				objectList.add(objectToBeEnriched);
+				for(int j = 1; j < 4; j++)
+				{
+					contentEnricher.register(objectToBeEnriched, j);
+				}
+			}
+			
+			sizeIdCollection.set(0);
+			countNew.set(0);
+			countClone.set(0);
+			countLink.set(0);
+			countEnrichCycle.set(0);
+			
+			contentEnricher.invokeContentEnricher();
+			
+			assertEquals("value should be correct", 1, sizeIdCollection.get());
+			assertEquals("value should be correct", 7, objectList.size());
+			
+			assertEquals("value should be correct", 1,countNew.get());
+			assertEquals("value should be correct", ( 7 * 3) -1 ,countClone.get());
+			assertEquals("value should be correct", 7 * 3,countLink.get());
+			assertEquals("value should be correct", 1,countEnrichCycle.get());
+			
+			for(ObjectToBeEnrichedOneToMany object : objectList)
+			{
+				assertNotNull(object);
+				assertNotNull(object.getEnrichmentList());
+				assertEquals("value should be correct",3, object.getEnrichmentList().size());
+				// Cache First !!!
+				assertEquals("value should be correct", 2, object.getEnrichmentList().get(0).getId());
+				assertEquals("value should be correct", 3, object.getEnrichmentList().get(1).getId());
+				assertEquals("value should be correct", 1, object.getEnrichmentList().get(2).getId());
+			}	
+			
 		}
 	}
 	
