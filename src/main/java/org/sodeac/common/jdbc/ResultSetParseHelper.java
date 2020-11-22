@@ -571,10 +571,11 @@ public class ResultSetParseHelper implements AutoCloseable
 		 * 
 		 * @param parentKeyType type of id of parent configuration
 		 * @param parentParentType type of object of parent configuration
+		 * @param parentIdType type of id of parent configuration
 		 * 
 		 * @return
 		 */
-		public <A,Z>ResultSetParseHelperBuilder<P,A,M,Z> build(Class<A> parentKeyType, Class<Z> parentParentType)
+		public <A,Z,Y> ResultSetParseHelperBuilder<A,Y,M,Z> build(Class<A> parentDataType, Class<Z> parentParentType, Class<Y> parentIdType)
 		{
 			if(currentParsePhase.currentNodeConfiguration.parent != null)
 			{
