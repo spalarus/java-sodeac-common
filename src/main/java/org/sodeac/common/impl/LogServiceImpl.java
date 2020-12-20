@@ -651,7 +651,7 @@ public class LogServiceImpl implements ILogService
 					}
 					else
 					{
-						schemaSpec.setValue(DBSchemaNodeType.dbmsSchemaName,connection.getSchema());
+						schemaSpec.setValue(DBSchemaNodeType.dbmsSchemaName,DBSchemaUtils.getSchema(connection));
 					}
 					
 					connection.setAutoCommit(false);
