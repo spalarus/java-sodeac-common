@@ -373,7 +373,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			{
 				throw new IllegalStateException("can not load data without primary key value");
 			}
-			loadItem((BranchNodeType)branchNode.getNodeType(), (INodeType)searchField, new Object[] {id}, ids -> Collections.singleton(branchNode));
+			loadItem((BranchNodeType)branchNode.getNodeType(), (INodeType)searchField, new Object[] {id}, ids -> (Collection)Collections.singleton(branchNode));
 		}
 		
 		public <T extends BranchNodeMetaModel> BranchNode<?,T> loadItem(BranchNodeType<? extends BranchNodeMetaModel,T> type, INodeType<T,?> searchField, Object[] searchValues, Function<Object[], Collection<BranchNode<? extends BranchNodeMetaModel,T>>> nodeFactory) throws SQLException
