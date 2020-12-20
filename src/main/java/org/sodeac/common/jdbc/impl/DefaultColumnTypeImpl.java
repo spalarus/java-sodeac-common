@@ -30,6 +30,7 @@ import org.sodeac.common.model.dbschema.ColumnNodeType;
 import org.sodeac.common.model.dbschema.DBSchemaNodeType;
 import org.sodeac.common.model.dbschema.TableNodeType;
 import org.sodeac.common.typedtree.BranchNode;
+import org.sodeac.common.jdbc.DBSchemaUtils;
 import org.sodeac.common.jdbc.IColumnType;
 import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
 import org.sodeac.common.jdbc.IDefaultValueExpressionDriver;
@@ -205,7 +206,7 @@ public class DefaultColumnTypeImpl implements IColumnType
 		IDBSchemaUtilsDriver schemaDriver
 	) throws SQLException
 	{
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
 			schemaName = schema.getValue(DBSchemaNodeType.dbmsSchemaName);

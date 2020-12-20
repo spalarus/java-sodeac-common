@@ -140,7 +140,7 @@ public class DBSchemaUtils
 					{
 						try
 						{
-							String schemaName = connection.getSchema();
+							String schemaName = DBSchemaUtils.getSchema(connection);
 							if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 							{
 								schemaName = schema.getValue(DBSchemaNodeType.dbmsSchemaName);
@@ -2808,4 +2808,40 @@ public class DBSchemaUtils
 			event.setSchemaSpecificationName(null);
 		}
 	}
+	
+	public static String getSchema(Connection connection) throws SQLException
+	{
+		try
+		{
+			return connection.getSchema();
+		}
+		catch (NoSuchMethodError e) // Android
+		{
+			try
+			{
+				return (String)connection.getClass().getMethod("getSchema").invoke(connection);
+			}
+			catch (Exception e2) {}
+			throw e;
+		}
+	}
+	
+	public static void setSchema(Connection connection, String schema) throws SQLException
+	{
+		try
+		{
+			connection.setSchema(schema);
+		}
+		catch (NoSuchMethodError e) // Android
+		{
+			try
+			{
+				connection.getClass().getMethod("setSchema",String.class).invoke(connection,schema);
+			}
+			catch (Exception e2) {}
+			throw e;
+		}
+	}
+	
+	
 }

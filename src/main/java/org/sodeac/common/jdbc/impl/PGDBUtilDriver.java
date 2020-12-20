@@ -21,6 +21,7 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.sodeac.common.jdbc.DBSchemaUtils;
 import org.sodeac.common.jdbc.IColumnType;
 import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
 import org.sodeac.common.misc.Driver;
@@ -118,7 +119,7 @@ public class PGDBUtilDriver implements IDBSchemaUtilsDriver
 		Map<String, Object> columnProperties
 	) throws SQLException
 	{
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
 			schemaName = schema.getValue(DBSchemaNodeType.dbmsSchemaName);

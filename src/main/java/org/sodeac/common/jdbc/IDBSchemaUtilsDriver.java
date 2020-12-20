@@ -160,7 +160,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 	{
 		String catalog = connection.getCatalog();
 
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
 			schemaName = schema.getValue(DBSchemaNodeType.dbmsSchemaName);
@@ -333,7 +333,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 		Map<String,Object> tableProperties
 	) throws SQLException
 	{
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
 			schemaName = schema.getValue(DBSchemaNodeType.dbmsSchemaName);
@@ -415,7 +415,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 	) throws SQLException
 	{
 		String catalog = connection.getCatalog();
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
 			schemaName = schema.getValue(DBSchemaNodeType.dbmsSchemaName);
@@ -569,7 +569,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 		IDBSchemaUtilsDriver dbSchemaUtilsDriver
 	) throws SQLException
 	{
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
 			schemaName = schema.getValue(DBSchemaNodeType.dbmsSchemaName);
@@ -700,7 +700,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 	) throws SQLException
 	{
 
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
 			schemaName = schema.getValue(DBSchemaNodeType.dbmsSchemaName);
@@ -828,7 +828,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 	) throws SQLException
 	{
 		String catalog = connection.getCatalog();
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
 			schemaName = schema.getValue(DBSchemaNodeType.dbmsSchemaName);
@@ -1129,7 +1129,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 		Map<String,Object> columnProperties
 	) throws SQLException
 	{
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
 			schemaName = schema.getValue(DBSchemaNodeType.dbmsSchemaName);
@@ -1219,7 +1219,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 		boolean quoted
 	)throws SQLException
 	{
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
 			schemaName = schema.getValue(DBSchemaNodeType.dbmsSchemaName);
@@ -1285,7 +1285,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 		Map<String,Object> columnProperties
 	) throws SQLException
 	{
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
 			schemaName = schema.getValue(DBSchemaNodeType.dbmsSchemaName);
@@ -1414,7 +1414,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 		Map<String,Object> columnProperties
 	) throws SQLException
 	{
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
 			schemaName = schema.getValue(DBSchemaNodeType.dbmsSchemaName);
@@ -1565,7 +1565,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 	) throws SQLException
 	{	
 		String catalog = connection.getCatalog();
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
 			schemaName = schema.getValue(DBSchemaNodeType.dbmsSchemaName);
@@ -1794,7 +1794,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 		Map<String,Object> columnProperties
 	) throws SQLException
 	{
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		BranchNode<ColumnNodeType,ForeignKeyNodeType> foreignKey = column.get(ColumnNodeType.foreignKey);
 		
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
@@ -1914,7 +1914,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 	throws SQLException
 	{	
 		String catalog = connection.getCatalog();
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
@@ -2091,7 +2091,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 		boolean quoted
 	) throws SQLException
 	{
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
@@ -2157,7 +2157,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 	) throws SQLException
 	{
 		String catalog = connection.getCatalog();
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
@@ -2394,7 +2394,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 		Map<String,Object> indexProperties
 	) throws SQLException
 	{
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
@@ -2512,7 +2512,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 		boolean quoted
 	) throws SQLException
 	{
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
@@ -2569,7 +2569,7 @@ public interface IDBSchemaUtilsDriver extends IDriver
 			tableIndex.put(table.getValue(TableNodeType.name).toUpperCase(), table);
 		}
 		
-		String schemaName = connection.getSchema();
+		String schemaName = DBSchemaUtils.getSchema(connection);
 		
 		if((schema.getValue(DBSchemaNodeType.dbmsSchemaName) != null) && (! schema.getValue(DBSchemaNodeType.dbmsSchemaName).isEmpty()))
 		{
