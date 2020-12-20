@@ -20,6 +20,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 
 import org.sodeac.common.annotation.GenerateBow;
+import org.sodeac.common.jdbc.DBSchemaUtils;
 import org.sodeac.common.jdbc.IDBSchemaUtilsDriver;
 import org.sodeac.common.jdbc.TypedTreeJDBCCruder;
 import org.sodeac.common.jdbc.TypedTreeJDBCCruder.ConvertEvent;
@@ -189,7 +190,7 @@ public class CommonBaseBranchNodeType extends ReplicableBranchNodeType
 			
 			try
 			{
-				long next = driver.nextFromSequence(connection.getSchema(), sequenceName, connection);
+				long next = driver.nextFromSequence(DBSchemaUtils.getSchema(connection), sequenceName, connection);
 				((LeafNode<?,Long>)t.getNode()).setValue(next);
 			}
 			catch (SQLException e) 
