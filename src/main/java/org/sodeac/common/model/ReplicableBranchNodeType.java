@@ -66,6 +66,17 @@ public class ReplicableBranchNodeType extends BranchNodeMetaModel
 	@IgnoreIfFalse
 	public static volatile LeafNodeType<ReplicableBranchNodeType,Boolean> dirtyCache;
 	
+	@SQLColumn(name="record_basedon_version_no",type=SQLColumnType.BIGINT,nullable=true)
+	@XmlElement(name="BasedOnRecordVersionNumber")
+	@SQLSequence
+	@IgnoreIfNull
+	public static volatile LeafNodeType<ReplicableBranchNodeType,Long> basedOnVersionNumber;
+	
+	@SQLColumn(name="record_basedon_version_id",type=SQLColumnType.UUID,nullable=true)
+	@XmlElement(name="BasedOnRecordVersionId")
+	@IgnoreIfNull
+	public static volatile LeafNodeType<ReplicableBranchNodeType,UUID> basedOnVersionId;
+	
 	@SQLColumn(name="record_deleted",type=SQLColumnType.BOOLEAN,nullable=false,onInsert=FalseIfNull.class,defaultValueExpressionDriver=IDefaultStaticValue.class,staticDefaultValue="false")
 	@XmlAttribute(name="deleted")
 	@IgnoreIfFalse
