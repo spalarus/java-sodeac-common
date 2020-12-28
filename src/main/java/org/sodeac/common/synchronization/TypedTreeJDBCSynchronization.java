@@ -40,9 +40,9 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 	
 	public static class FindLocalNodesContext<T extends BranchNodeMetaModel>
 	{
-		private Collection<BranchNode<?,T>> chunk = null;
+		private Collection<BranchNode<? extends BranchNodeMetaModel,T>> chunk = null;
 		private Session session = null;
-		private Map<BranchNode<?,T>,BranchNode<?,T>> pairs = null;
+		private Map<BranchNode<? extends BranchNodeMetaModel,T>,BranchNode<? extends BranchNodeMetaModel,T>> pairs = null;
 		
 		private void close()
 		{
@@ -56,7 +56,7 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 			pairs = null;
 		}
 
-		public Collection<BranchNode<?,T>> getChunk() 
+		public Collection<BranchNode<? extends BranchNodeMetaModel,T>> getChunk() 
 		{
 			return chunk;
 		}
@@ -66,7 +66,7 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 			return session;
 		}
 		
-		public void definePair(BranchNode<?,T> remote, BranchNode<?,T> local)
+		public void definePair(BranchNode<? extends BranchNodeMetaModel,T> remote, BranchNode<? extends BranchNodeMetaModel,T> local)
 		{
 			if(pairs == null)
 			{
@@ -79,8 +79,8 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 	
 	public static class CheckUpToDateContext<T extends BranchNodeMetaModel>
 	{
-		private BranchNode<?,T> remote = null;
-		private BranchNode<?,T> local = null;
+		private BranchNode<? extends BranchNodeMetaModel,T> remote = null;
+		private BranchNode<? extends BranchNodeMetaModel,T> local = null;
 		
 		private void close()
 		{
@@ -88,12 +88,12 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 			this.local = null;
 		}
 
-		public BranchNode<?,T> getRemote() 
+		public BranchNode<? extends BranchNodeMetaModel,T> getRemote() 
 		{
 			return remote;
 		}
 
-		public BranchNode<?,T> getLocal() 
+		public BranchNode<? extends BranchNodeMetaModel,T> getLocal() 
 		{
 			return local;
 		}
@@ -102,14 +102,14 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 	
 	public static class LocalNodeFactoryContext<T extends BranchNodeMetaModel>
 	{
-		private BranchNode<?,T> remote = null;
+		private BranchNode<? extends BranchNodeMetaModel,T> remote = null;
 		
 		private void close()
 		{
 			this.remote = null;
 		}
 
-		public BranchNode<?,T> getRemote() 
+		public BranchNode<? extends BranchNodeMetaModel,T> getRemote() 
 		{
 			return remote;
 		}
@@ -117,8 +117,8 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 	
 	public static class UpdateLocalNodeContext<T extends BranchNodeMetaModel>
 	{
-		private BranchNode<?,T> remote = null;
-		private BranchNode<?,T> local = null;
+		private BranchNode<? extends BranchNodeMetaModel,T> remote = null;
+		private BranchNode<? extends BranchNodeMetaModel,T> local = null;
 		
 		private void close()
 		{
@@ -126,12 +126,12 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 			this.local = null;
 		}
 
-		public BranchNode<?, T> getRemote() 
+		public BranchNode<? extends BranchNodeMetaModel, T> getRemote() 
 		{
 			return remote;
 		}
 
-		public BranchNode<?, T> getLocal() 
+		public BranchNode<? extends BranchNodeMetaModel, T> getLocal() 
 		{
 			return local;
 		}
@@ -140,7 +140,7 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 	
 	public static class PersistLocalNodesContext<T extends BranchNodeMetaModel>
 	{
-		private List<BranchNode<?,T>> updateList = null;
+		private List<BranchNode<? extends BranchNodeMetaModel,T>> updateList = null;
 		private Session session = null;
 		
 		private void close()
@@ -153,7 +153,7 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 			this.session = null;
 		}
 
-		public List<BranchNode<?, T>> getUpdateList() 
+		public List<BranchNode<? extends BranchNodeMetaModel, T>> getUpdateList() 
 		{
 			return updateList;
 		}
@@ -166,10 +166,10 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 	
 	public static class DisposeChunkPhaseContext<T extends BranchNodeMetaModel>
 	{
-		private Collection<BranchNode<?,T>> chunk = null;
-		private Map<BranchNode<?,T>,BranchNode<?,T>> pairs = null;
-		private List<BranchNode<?,T>> updateList = null;
-		private List<BranchNode<?,T>> createdList = null;
+		private Collection<BranchNode<? extends BranchNodeMetaModel,T>> chunk = null;
+		private Map<BranchNode<? extends BranchNodeMetaModel,T>,BranchNode<? extends BranchNodeMetaModel,T>> pairs = null;
+		private List<BranchNode<? extends BranchNodeMetaModel,T>> updateList = null;
+		private List<BranchNode<? extends BranchNodeMetaModel,T>> createdList = null;
 		
 		private void close()
 		{
@@ -179,22 +179,22 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 			this.createdList = null;
 		}
 
-		public Collection<BranchNode<?, T>> getChunk() 
+		public Collection<BranchNode<? extends BranchNodeMetaModel, T>> getChunk() 
 		{
 			return chunk;
 		}
 
-		public Map<BranchNode<?, T>, BranchNode<?, T>> getPairs() 
+		public Map<BranchNode<? extends BranchNodeMetaModel, T>, BranchNode<? extends BranchNodeMetaModel, T>> getPairs() 
 		{
 			return pairs;
 		}
 
-		public List<BranchNode<?, T>> getUpdateList() 
+		public List<BranchNode<? extends BranchNodeMetaModel, T>> getUpdateList() 
 		{
 			return updateList;
 		}
 
-		public List<BranchNode<?, T>> getCreatedList() 
+		public List<BranchNode<? extends BranchNodeMetaModel, T>> getCreatedList() 
 		{
 			return createdList;
 		}
@@ -213,7 +213,7 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 	private volatile Session session = null;
 	private Consumer<FindLocalNodesContext<T>> finder = null;
 	private Function<CheckUpToDateContext<T>,Boolean> checker = null;
-	private Function<LocalNodeFactoryContext<T>,BranchNode<?, T>> factory = null;
+	private Function<LocalNodeFactoryContext<T>,BranchNode<? extends BranchNodeMetaModel, T>> factory = null;
 	private Consumer<UpdateLocalNodeContext<T>> update = null;
 	private Consumer<PersistLocalNodesContext<T>> persist = null;
 	private Consumer<DisposeChunkPhaseContext<T>> dispose = null;
@@ -233,7 +233,7 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 	}
 	
 	
-	public TypedTreeJDBCSynchronization<T> pushChunk(Collection<BranchNode<?,T>> chunk)
+	public TypedTreeJDBCSynchronization<T> pushChunk(Collection<BranchNode<? extends BranchNodeMetaModel,T>> chunk)
 	{
 		if(chunk == null)
 		{
@@ -246,9 +246,9 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 		
 		this.checkSession();
 		
-		List<BranchNode<?,T>> updateList = new ArrayList<>();
-		List<BranchNode<?,T>> createdList = new ArrayList<>();
-		Map<BranchNode<?,T>,BranchNode<?,T>> pairs = null;
+		List<BranchNode<? extends BranchNodeMetaModel,T>> updateList = new ArrayList<>();
+		List<BranchNode<? extends BranchNodeMetaModel,T>> createdList = new ArrayList<>();
+		Map<BranchNode<? extends BranchNodeMetaModel,T>,BranchNode<? extends BranchNodeMetaModel,T>> pairs = null;
 		
 		this.finderContext.close();
 		this.finderContext.chunk = chunk;
@@ -258,11 +258,11 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 			this.finder.accept(this.finderContext);
 			pairs = this.finderContext.pairs == null ? new HashMap<>() : new HashMap<>(this.finderContext.pairs);
 			
-			for(BranchNode<?,T> remote : chunk)
+			for(BranchNode<? extends BranchNodeMetaModel,T> remote : chunk)
 			{
 				try
 				{
-					BranchNode<?,T> local = pairs.get(remote);
+					BranchNode<? extends BranchNodeMetaModel,T> local = pairs.get(remote);
 					if(local != null)
 					{
 						this.checkUpToDateContext.close();
@@ -270,7 +270,7 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 						{
 							this.checkUpToDateContext.local = local;
 							this.checkUpToDateContext.remote = remote;
-							if(! checker.apply(this.checkUpToDateContext).booleanValue())
+							if(checker.apply(this.checkUpToDateContext).booleanValue())
 							{
 								continue;
 							}
@@ -438,7 +438,7 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 		
 		private Consumer<FindLocalNodesContext<T>> finder = null;
 		private Function<CheckUpToDateContext<T>,Boolean> checker = null;
-		private Function<LocalNodeFactoryContext<T>,BranchNode<?, T>> factory = null;
+		private Function<LocalNodeFactoryContext<T>,BranchNode<? extends BranchNodeMetaModel, T>> factory = null;
 		private Consumer<UpdateLocalNodeContext<T>> update = null;
 		private Consumer<PersistLocalNodesContext<T>> persist = null;
 		private Consumer<DisposeChunkPhaseContext<T>> dispose = null;
@@ -472,7 +472,7 @@ public class TypedTreeJDBCSynchronization<T extends BranchNodeMetaModel> impleme
 				super();
 			}
 			
-			public TTSBuilder4 localNodeFactory(Function<LocalNodeFactoryContext<T>,BranchNode<?, T>> factory)
+			public TTSBuilder4 localNodeFactory(Function<LocalNodeFactoryContext<T>,BranchNode<? extends BranchNodeMetaModel, T>> factory)
 			{
 				Objects.requireNonNull(factory);
 				TTSBuilder.this.factory = factory;

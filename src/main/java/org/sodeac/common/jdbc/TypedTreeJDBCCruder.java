@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -318,6 +319,40 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			this.preparedStatementCache = null;
 		}
 		
+		public <T extends BranchNodeMetaModel> List<BranchNode<?,T>> loadList(BranchNodeType<? extends BranchNodeMetaModel,T> type, BiFunction<IRuntimeParameter, String, String> sqlAppender, BiConsumer<IRuntimeParameter,PreparedStatement> prepareStatement, Function<Object[], Collection<BranchNode<? extends BranchNodeMetaModel,T>>> nodeFactory) throws SQLException
+		{
+			if(error)
+			{
+				throw new RuntimeException("Session is invalid by thrown exception");
+			}
+			
+			List<BranchNode<?,T>> collector = new ArrayList<BranchNode<?,T>>();
+			boolean valid = false;
+			try
+			{
+				checkMainConnection();
+				
+				PreparedLoadDefinitionContainer preparedDefinitionContainer = TypedTreeJDBCCruder.this.getPreparedLoadDefinitionContainer(type);
+				
+				RuntimeParameter runtimeParameter = new RuntimeParameter();
+				runtimeParameter.nodeFactory = (Function)nodeFactory;
+				
+				preparedDefinitionContainer.loadDefinition.selectNode(runtimeParameter,collector,sqlAppender,prepareStatement);
+				
+				runtimeParameter.close();
+				valid = true;
+			}
+			finally 
+			{
+				if(! valid)
+				{
+					this.error = true;
+				}
+			}
+			
+			return collector;
+		}
+		
 		public <T extends BranchNodeMetaModel> List<BranchNode<?,T>> loadList(BranchNodeType<? extends BranchNodeMetaModel,T> type, INodeType<T,?> searchField, Object[] searchValues, Function<Object[], Collection<BranchNode<? extends BranchNodeMetaModel,T>>> nodeFactory) throws SQLException
 		{
 			if(error)
@@ -361,11 +396,11 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			return node;
 		}
 		
-		public void loadItem(BranchNode branchNode) throws SQLException
+		public <T extends BranchNodeMetaModel,P extends BranchNodeMetaModel> BranchNode<P,T> loadItem(BranchNode<P,T> branchNode) throws SQLException
 		{
 			if(branchNode == null)
 			{
-				return;
+				return null;
 			}
 			LeafNodeType searchField = TypedTreeJDBCHelper.parseTableNode(branchNode.getNodeType(), MASK.PK_COLUMN).getPrimaryKeyNode().getLeafNodeType();
 			Object id = branchNode.getValue(searchField);
@@ -373,7 +408,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			{
 				throw new IllegalStateException("can not load data without primary key value");
 			}
-			loadItem((BranchNodeType)branchNode.getNodeType(), (INodeType)searchField, new Object[] {id}, ids -> (Collection)Collections.singleton(branchNode));
+			return loadItem((BranchNodeType)branchNode.getNodeType(), (INodeType)searchField, new Object[] {id}, ids -> (Collection)Collections.singleton(branchNode));
 		}
 		
 		public <T extends BranchNodeMetaModel> BranchNode<?,T> loadItem(BranchNodeType<? extends BranchNodeMetaModel,T> type, INodeType<T,?> searchField, Object[] searchValues, Function<Object[], Collection<BranchNode<? extends BranchNodeMetaModel,T>>> nodeFactory) throws SQLException
@@ -1104,6 +1139,83 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 				resultSet.close();
 			}
 			
+		}
+		
+		@SuppressWarnings({ "unchecked", "rawtypes" })
+		protected void selectNode(RuntimeParameter runtimeParameter, List collector, BiFunction<IRuntimeParameter, String, String> sqlAppender, BiConsumer<IRuntimeParameter,PreparedStatement> prepareStatement) throws SQLException
+		{
+			Objects.requireNonNull(sqlAppender,"sqlAppender not defined");
+			String completeSQL = sqlAppender.apply(runtimeParameter, sql);
+			
+			runtimeParameter.preparedStatement = runtimeParameter.getPreparedStatement(completeSQL);
+			
+			runtimeParameter.values = new Object[this.columns.size()];
+			runtimeParameter.convertEvent.setPreparedStatement(runtimeParameter.preparedStatement);
+			if(prepareStatement != null)
+			{
+				prepareStatement.accept(runtimeParameter, runtimeParameter.preparedStatement);
+			}
+			
+			ResultSet resultSet = runtimeParameter.preparedStatement.executeQuery();
+			try
+			{
+				runtimeParameter.resultSet = resultSet;
+				while(resultSet.next())
+				{
+					for(JDBCGetterDefinition column : this.columns)
+					{
+						try
+						{
+							column.getter.acceptWithException(runtimeParameter);
+						}
+						catch (SQLException e) 
+						{
+							throw e;
+						}
+						catch (Exception e) 
+						{
+							throw new RuntimeException(e);
+						}
+					}
+					
+					Collection<BranchNode<?, ?>> nodes = runtimeParameter.nodeFactory.apply(runtimeParameter.values);
+					
+					if(nodes == null)
+					{
+						continue;
+					}
+					for(BranchNode<?, ?> node : nodes)
+					{
+						if(node == null)
+						{
+							continue;
+						}
+						collector.add(node);
+						runtimeParameter.branchNode = node;
+						int i = 0;
+						for(JDBCGetterDefinition column : this.columns)
+						{
+							runtimeParameter.childType = column.childType;
+							runtimeParameter.type = column.type;
+							
+							runtimeParameter.staticValue = runtimeParameter.values[i++];
+							if(column.nodeSetter != null)
+							{
+								column.nodeSetter.accept(runtimeParameter, this);
+							}
+						}
+					}
+					
+					runtimeParameter.childType = null;
+					runtimeParameter.type = null;
+					runtimeParameter.branchNode = null;
+					runtimeParameter.workingBranchNode = null;
+				}
+			}
+			finally 
+			{
+				resultSet.close();
+			}
 		}
 	}
 	
@@ -2305,6 +2417,7 @@ public class TypedTreeJDBCCruder implements AutoCloseable
 			return getPreparedStatement(sql, false);
 		}
 		public PreparedStatement getPreparedStatement(String sql, boolean returnGeneratedKey)throws SQLException;
+		public Session getSession();
 	}
 	
 	private <P extends TypedTreeMetaModel,T extends BranchNodeMetaModel> Function<Object[],Collection<RootBranchNode<P,T>>> getRootNodeFactory(BranchNodeType<P,T> nodeType)

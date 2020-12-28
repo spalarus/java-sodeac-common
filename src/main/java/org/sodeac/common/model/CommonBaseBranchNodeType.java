@@ -12,6 +12,7 @@ package org.sodeac.common.model;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -142,6 +143,20 @@ public class CommonBaseBranchNodeType extends ReplicableBranchNodeType
 		}
 	}
 	
+	public static class CurrentDate implements Consumer<TypedTreeJDBCCruder.ConvertEvent>
+	{
+		@Override
+		public void accept(ConvertEvent t)
+		{
+			Calendar cal = Calendar.getInstance();
+			cal.set(Calendar.HOUR_OF_DAY, 0);
+			cal.set(Calendar.MINUTE, 0);
+			cal.set(Calendar.SECOND, 0);
+			cal.set(Calendar.MILLISECOND, 0);
+			((LeafNode<?,Date>)t.getNode()).setValue(cal.getTime());
+		}
+	}
+	
 	public static class TrueIfNull implements Consumer<TypedTreeJDBCCruder.ConvertEvent>
 	{
 		@Override
@@ -162,6 +177,54 @@ public class CommonBaseBranchNodeType extends ReplicableBranchNodeType
 			if(((LeafNode)t.getNode()).getValue() == null) 
 			{
 				((LeafNode<?,Boolean>)t.getNode()).setValue(false);
+			}
+		}
+	}
+	
+	public static class LongZeroIfNull implements Consumer<TypedTreeJDBCCruder.ConvertEvent>
+	{
+		@Override
+		public void accept(ConvertEvent t)
+		{
+			if(((LeafNode)t.getNode()).getValue() == null) 
+			{
+				((LeafNode<?,Long>)t.getNode()).setValue(0L);
+			}
+		}
+	}
+	
+	public static class DoubleZeroIfNull implements Consumer<TypedTreeJDBCCruder.ConvertEvent>
+	{
+		@Override
+		public void accept(ConvertEvent t)
+		{
+			if(((LeafNode)t.getNode()).getValue() == null) 
+			{
+				((LeafNode<?,Double>)t.getNode()).setValue(0.0d);
+			}
+		}
+	}
+	
+	public static class IntegerZeroIfNull implements Consumer<TypedTreeJDBCCruder.ConvertEvent>
+	{
+		@Override
+		public void accept(ConvertEvent t)
+		{
+			if(((LeafNode)t.getNode()).getValue() == null) 
+			{
+				((LeafNode<?,Integer>)t.getNode()).setValue(0);
+			}
+		}
+	}
+	
+	public static class FloatZeroIfNull implements Consumer<TypedTreeJDBCCruder.ConvertEvent>
+	{
+		@Override
+		public void accept(ConvertEvent t)
+		{
+			if(((LeafNode)t.getNode()).getValue() == null) 
+			{
+				((LeafNode<?,Float>)t.getNode()).setValue(0.0f);
 			}
 		}
 	}

@@ -10,15 +10,7 @@
  *******************************************************************************/
 package org.sodeac.common.typedtree;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
-
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.stream.XMLStreamWriter;
-
-import org.sodeac.common.typedtree.BranchNode.NodeContainer;
-
 /**
  * A node type defines the type of node.
  * 

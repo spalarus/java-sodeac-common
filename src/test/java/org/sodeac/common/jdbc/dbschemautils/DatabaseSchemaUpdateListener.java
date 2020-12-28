@@ -10,8 +10,6 @@
  *******************************************************************************/
 package org.sodeac.common.jdbc.dbschemautils;
 
-import java.sql.SQLException;
-
 import org.sodeac.common.function.ExceptionCatchedConsumer;
 import org.sodeac.common.jdbc.DBSchemaUtils.DBSchemaEvent;
 

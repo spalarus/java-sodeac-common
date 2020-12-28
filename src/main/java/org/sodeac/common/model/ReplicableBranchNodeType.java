@@ -40,6 +40,8 @@ public class ReplicableBranchNodeType extends BranchNodeMetaModel
 {
 	static{ModelRegistry.getBranchNodeMetaModel(ReplicableBranchNodeType.class);}
 	
+	public static UUID MAIN_RECORD_ID = new UUID(0,0);
+	
 	@SQLColumn(name="id",type=SQLColumnType.UUID,nullable=false,updatable=false,onInsert=GenerateUUIDIfNull.class,defaultValueExpressionDriver=IDefaultUUID.class)
 	@SQLPrimaryKey
 	@XmlAttribute(name="id")
