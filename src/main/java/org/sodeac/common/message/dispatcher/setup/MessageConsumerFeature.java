@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2020 Sebastian Palarus
+ * Copyright (c) 2020, 2021 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannel;
@@ -87,33 +88,49 @@ public class MessageConsumerFeature
 				return new BuilderPhaseA2();
 			}
 			
-			public BuilderPhaseA2.BuilderPhaseA3 minPoolSize(int minSize)
+			@SuppressWarnings({ "unchecked", "rawtypes" })
+			public <T> BuilderPhaseA3 useReplaceOlderMessageFilter(BiFunction<IMessage<T>,IMessage<T>,Boolean> filter)
 			{
-				return new BuilderPhaseA2().minPoolSize(minSize);
+				FeatureBuilder.this.feature.currentConsumerRule.replaceOlderMessageFilter = (BiFunction)filter;
+				return new BuilderPhaseA3();
+			}
+			
+			@SuppressWarnings({ "unchecked", "rawtypes" })
+			public <T> BuilderPhaseA3 useReplaceOlderMessageFilter(BiFunction<IMessage<T>,IMessage<T>,Boolean> filter, Class<T> messageType)
+			{
+				FeatureBuilder.this.feature.currentConsumerRule.replaceOlderMessageFilter = (BiFunction)filter;
+				return new BuilderPhaseA3();
+			}
+			
+			public BuilderPhaseA3.BuilderPhaseA4 minPoolSize(int minSize)
+			{
+				return new BuilderPhaseA3().minPoolSize(minSize);
 			}
 			
 			public BuilderPhaseB1 maxPoolSize(int maxSize)
 			{
-				return new BuilderPhaseA2().maxPoolSize(maxSize);
+				return new BuilderPhaseA3().maxPoolSize(maxSize);
 			}
 			
-			public class BuilderPhaseA2
+			
+			
+			public class BuilderPhaseA3
 			{
-				private BuilderPhaseA2(){super();}
+				private BuilderPhaseA3(){super();}
 				
-				public BuilderPhaseA3 minPoolSize(int minSize)
+				public BuilderPhaseA4 minPoolSize(int minSize)
 				{
 					if(minSize < 0)
 					{
 						minSize = 0;
 					}
 					FeatureBuilder.this.feature.currentConsumerRule.poolMinSize = minSize;
-					return new BuilderPhaseA3();
+					return new BuilderPhaseA4();
 				}
 				
 				public BuilderPhaseB1 maxPoolSize(int maxSize)
 				{
-					return new BuilderPhaseA3().maxPoolSize(maxSize);
+					return new BuilderPhaseA4().maxPoolSize(maxSize);
 				}
 				
 				public <T,H> BuilderPhaseB1.BuilderPhaseB2 consumeMessage(BiConsumer<IMessage<T>, MessageConsumeHelper<T,H>> messageConsumer)
@@ -135,9 +152,9 @@ public class MessageConsumerFeature
 					return new BuilderPhaseB1().consumeMessage(messageConsumer);
 				}
 				
-				public class BuilderPhaseA3
+				public class BuilderPhaseA4
 				{
-					private BuilderPhaseA3(){super();}
+					private BuilderPhaseA4(){super();}
 					
 					public BuilderPhaseB1 maxPoolSize(int maxSize)
 					{
@@ -172,6 +189,25 @@ public class MessageConsumerFeature
 						FeatureBuilder.this.feature.currentConsumerRule.messageConsumer = (BiConsumer)messageConsumer;
 						return new BuilderPhaseB1().consumeMessage(messageConsumer);
 					}
+				}
+			}
+			
+			public class BuilderPhaseA2 extends BuilderPhaseA3
+			{
+				private BuilderPhaseA2(){super();}
+				
+				@SuppressWarnings({ "unchecked", "rawtypes" })
+				public <T> BuilderPhaseA3 useReplaceOlderMessageFilter(BiFunction<IMessage<T>,IMessage<T>,Boolean> filter)
+				{
+					FeatureBuilder.this.feature.currentConsumerRule.replaceOlderMessageFilter = (BiFunction)filter;
+					return new BuilderPhaseA3();
+				}
+				
+				@SuppressWarnings({ "unchecked", "rawtypes" })
+				public <T> BuilderPhaseA3 useReplaceOlderMessageFilter(BiFunction<IMessage<T>,IMessage<T>,Boolean> filter, Class<T> messageType)
+				{
+					FeatureBuilder.this.feature.currentConsumerRule.replaceOlderMessageFilter = (BiFunction)filter;
+					return new BuilderPhaseA3();
 				}
 			}
 		}
@@ -703,6 +739,7 @@ public class MessageConsumerFeature
 		
 		// pool
 		private Predicate<IMessage> poolFilter = null;
+		private BiFunction<IMessage, IMessage, Boolean> replaceOlderMessageFilter = null;
 		private int poolMinSize = 1;
 		private int poolMaxSize = Short.MAX_VALUE;
 		
@@ -738,6 +775,7 @@ public class MessageConsumerFeature
 		{
 			ConsumerRule consumerRule = new ConsumerRule();
 			consumerRule.poolFilter = this.poolFilter;
+			consumerRule.replaceOlderMessageFilter = this.replaceOlderMessageFilter;
 			consumerRule.poolMinSize = this.poolMinSize;
 			consumerRule.poolMaxSize = this.poolMaxSize;
 			consumerRule.consumeEventAgeTriggerGroup = this.consumeEventAgeTriggerGroup;
@@ -768,6 +806,11 @@ public class MessageConsumerFeature
 		public Predicate<IMessage> getPoolFilter()
 		{
 			return poolFilter;
+		}
+
+		public BiFunction<IMessage, IMessage, Boolean> getReplaceOlderMessageFilter() 
+		{
+			return replaceOlderMessageFilter;
 		}
 
 		public int getPoolMinSize()

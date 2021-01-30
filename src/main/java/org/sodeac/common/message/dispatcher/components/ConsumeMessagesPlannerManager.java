@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2020 Sebastian Palarus
+ * Copyright (c) 2020, 2021 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -227,10 +227,7 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 				}
 				else if(minTimestamp <= System.currentTimeMillis())
 				{
-					// TODO
-					System.out.println("STATE1");
 					this.currentReschedule = taskContext.getTaskControl().getExecutionTimestamp();
-					System.out.println("keep next service schedule 2 " + (this.currentReschedule - System.currentTimeMillis()) + " ms " + this.toString().split("@")[1] );
 					if(! signal)
 					{
 						taskContext.getChannel().getParentChannel(Object.class).signal(ConsumeMessagesConsumerManager.SIGNAL_CONSUME);
@@ -281,8 +278,6 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 				}
 				if(minTimestamp <= System.currentTimeMillis())
 				{
-					// TODO
-					System.out.println("STATE2");
 					return consume;
 				}
 				if(this.currentReschedule != minTimestamp);
@@ -534,7 +529,6 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 					currentConsumableCountByAge = 0;
 					consumable = false;
 				}
-				// TODO Warum nicht immer ????
 				if((fatefulTime != null) && (fatefulTime.longValue() > now))
 				{
 					// cached fatefulTime
@@ -747,6 +741,66 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 				
 				try
 				{
+					
+					if(this.consumerRule.getReplaceOlderMessageFilter() != null)
+					{
+						boolean removed = false;
+						
+						for(IMessage<Object> check : messageMonitoringList)
+						{
+							try
+							{
+								if(! check.isRemoved())
+								{
+									Boolean rm = this.consumerRule.getReplaceOlderMessageFilter().apply(message, check);
+									if((rm != null) && rm.booleanValue())
+									{
+										check.removeFromChannel();
+										removed = true;
+									}
+								}
+								else
+								{
+									removed = true;
+								}
+							}
+							catch(Exception | Error e) {}
+						}
+						
+						if(removed)
+						{
+							ListIterator<IMessage<Object>> itr = messageBufferList.listIterator();
+							while(itr.hasNext())
+							{
+								if(itr.next().isRemoved())
+								{
+									itr.remove();
+								}
+							}
+							
+							itr = messageMonitoringList.listIterator();
+							boolean reset = false;
+							while(itr.hasNext())
+							{
+								if(itr.next().isRemoved())
+								{
+									itr.remove();
+									reset = true;
+								}
+							}
+							
+							if(reset)
+							{
+								while((! messageBufferList.isEmpty()) && (messageMonitoringList.size() < consumerRule.getPoolMaxSize()))
+								{
+									messageMonitoringList.addFirst(messageBufferList.removeLast());
+								}
+								
+								this.resetCache();
+							}
+						}
+					}
+					
 					boolean bufferIsEmpty = messageBufferList.isEmpty();
 					boolean monitorIsEmpty = messageMonitoringList.isEmpty();
 					
@@ -758,6 +812,7 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 						
 						return true;
 					}
+					
 					
 					Long biggestExistingSequenceInPool = null;
 					if(! bufferIsEmpty)
@@ -771,7 +826,7 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 					
 					if((biggestExistingSequenceInPool != null) && (biggestExistingSequenceInPool.longValue() < newMessageSequence))
 					{
-						// no of messages in pool has an sequence greater than new message
+						// no one of messages in pool has an sequence greater than new message
 						
 						if(bufferIsEmpty && (messageMonitoringList.size() < consumerRule.getPoolMaxSize()))
 						{
