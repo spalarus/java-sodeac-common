@@ -25,6 +25,7 @@ import java.util.function.Predicate;
 
 import org.sodeac.common.message.dispatcher.api.IDispatcherChannel;
 import org.sodeac.common.message.dispatcher.api.IMessage;
+import org.sodeac.common.message.dispatcher.components.ConsumeMessagesConsumerManager.ConsumeMessagesConsumerManagerAdapter;
 import org.sodeac.common.message.dispatcher.setup.MessageConsumerFeature.ConsumerRule.TriggerByMessageAgeMode;
 import org.sodeac.common.message.dispatcher.setup.MessageDispatcherChannelSetup.IChannelFeature;
 import org.sodeac.common.message.dispatcher.setup.MessageDispatcherChannelSetup.IPreparedChannelFeature;
@@ -32,6 +33,12 @@ import org.sodeac.common.message.dispatcher.setup.MessageDispatcherChannelSetup.
 
 public class MessageConsumerFeature
 {
+	
+	private Integer KEEP_MESSAGE_MODE_MESSAGES_CONSUMED = 1;
+	private Integer KEEP_MESSAGE_MODE_MESSAGES_PROCESSED = 2;
+	private Integer KEEP_MESSAGE_MODE_MESSAGES_CONSUMED_BY_RULE = 3;
+	private Integer KEEP_MESSAGE_MODE_MESSAGES_PROCESSED_BY_RULE = 4;
+	
 	private MessageConsumerFeature()
 	{
 		super();
@@ -651,48 +658,6 @@ public class MessageConsumerFeature
 				super();
 			}
 			
-			public BuilderPhaseZ2 butKeepMessagesInChannel()
-			{
-				return new BuilderPhaseZ2();
-			}
-			
-			public class BuilderPhaseZ2
-			{
-				
-				private BuilderPhaseZ2()
-				{
-					super();
-				}
-				
-				public BuilderPhaseZ3 andYesIKnowWhatThisMeans()
-				{
-					FeatureBuilder.this.feature.currentConsumerRule.keepMessages = true;
-					return new BuilderPhaseZ3();
-				}
-				
-				public class BuilderPhaseZ3
-				{
-					
-					private BuilderPhaseZ3()
-					{
-						super();
-					}
-					
-					public IChannelFeature buildFeature()
-					{
-						return FeatureBuilder.this.feature.copy(true);
-					}
-					
-					public FeatureBuilder or()
-					{
-						FeatureBuilder.this.feature.currentConsumerRule = new ConsumerRule();
-						FeatureBuilder.this.feature.consumerRuleList.add(FeatureBuilder.this.feature.currentConsumerRule);
-						
-						return FeatureBuilder.this;
-					}
-				}
-			}
-			
 			public IChannelFeature buildFeature()
 			{
 				return FeatureBuilder.this.feature.copy(true);
@@ -705,6 +670,114 @@ public class MessageConsumerFeature
 				
 				return FeatureBuilder.this;
 			}
+			
+			public BuilderPhaseZ2.BuilderPhaseZ3 butKeepMessagesInChannel()
+			{
+				return new BuilderPhaseZ2().new BuilderPhaseZ3();
+			}
+			
+			public BuilderPhaseZ2 definePoolAddress(String address)
+			{
+				FeatureBuilder.this.feature.currentConsumerRule.poolAddress = address;
+				return new BuilderPhaseZ2();
+			}
+			
+			public class BuilderPhaseZ2
+			{
+				
+				private BuilderPhaseZ2()
+				{
+					super();
+				}
+				
+				public IChannelFeature buildFeature()
+				{
+					return FeatureBuilder.this.feature.copy(true);
+				}
+				
+				public FeatureBuilder or()
+				{
+					FeatureBuilder.this.feature.currentConsumerRule = new ConsumerRule();
+					FeatureBuilder.this.feature.consumerRuleList.add(FeatureBuilder.this.feature.currentConsumerRule);
+					
+					return FeatureBuilder.this;
+				}
+				
+				public BuilderPhaseZ3 butKeepMessagesInChannel()
+				{
+					return new BuilderPhaseZ3();
+				}
+			
+				public class BuilderPhaseZ3
+				{
+					private BuilderPhaseZ3()
+					{
+						super();
+					}
+					
+					public BuilderPhaseZ4 markConsumedMessagesAsDone()
+					{
+						FeatureBuilder.this.feature.currentConsumerRule.keepMessagesMode = KEEP_MESSAGE_MODE_MESSAGES_CONSUMED;
+						return new BuilderPhaseZ4();
+					}
+					
+					public BuilderPhaseZ4 markProcessedMessagesAsDone()
+					{
+						FeatureBuilder.this.feature.currentConsumerRule.keepMessagesMode = KEEP_MESSAGE_MODE_MESSAGES_PROCESSED;
+						return new BuilderPhaseZ4();
+					}
+					
+					public BuilderPhaseZ4 markConsumedMessagesByRuleAsDone()
+					{
+						FeatureBuilder.this.feature.currentConsumerRule.keepMessagesMode = KEEP_MESSAGE_MODE_MESSAGES_CONSUMED_BY_RULE;
+						return new BuilderPhaseZ4();
+					}
+					
+					public BuilderPhaseZ4 markProcessedMessageByRulesAsDone()
+					{
+						FeatureBuilder.this.feature.currentConsumerRule.keepMessagesMode = KEEP_MESSAGE_MODE_MESSAGES_PROCESSED_BY_RULE;
+						return new BuilderPhaseZ4();
+					}
+					
+					public class BuilderPhaseZ4
+					{
+						
+						private BuilderPhaseZ4()
+						{
+							super();
+						}
+						
+						public BuilderPhaseZ5 andYesIKnowWhatThisMeans()
+						{
+							FeatureBuilder.this.feature.currentConsumerRule.keepMessages = true;
+							return new BuilderPhaseZ5();
+						}
+						
+						public class BuilderPhaseZ5
+						{
+							
+							private BuilderPhaseZ5()
+							{
+								super();
+							}
+							
+							public IChannelFeature buildFeature()
+							{
+								return FeatureBuilder.this.feature.copy(true);
+							}
+							
+							public FeatureBuilder or()
+							{
+								FeatureBuilder.this.feature.currentConsumerRule = new ConsumerRule();
+								FeatureBuilder.this.feature.consumerRuleList.add(FeatureBuilder.this.feature.currentConsumerRule);
+								
+								return FeatureBuilder.this;
+							}
+						}
+					}
+				}
+			}
+			
 		}
 	}
 	
@@ -770,6 +843,10 @@ public class MessageConsumerFeature
 		
 		// keep messages in channel
 		private boolean keepMessages = false;
+		private Integer keepMessagesMode = null;
+		
+		private String poolAddress = null;
+		
 		
 		private ConsumerRule copy()
 		{
@@ -794,6 +871,8 @@ public class MessageConsumerFeature
 			consumerRule.specialErrorHandler = new ArrayList<>(this.specialErrorHandler);
 			consumerRule.timeOutHandler = this.timeOutHandler;
 			consumerRule.keepMessages = this.keepMessages;
+			consumerRule.keepMessagesMode = this.keepMessagesMode;
+			consumerRule.poolAddress = this.poolAddress;
 			return consumerRule;
 			
 		}
@@ -902,6 +981,17 @@ public class MessageConsumerFeature
 		{
 			return keepMessages;
 		}
+
+		public Integer getKeepMessagesMode() 
+		{
+			return keepMessagesMode;
+		}
+
+		public String getPoolAddress() 
+		{
+			return poolAddress;
+		}
+		
 	}
 	
 	public class MessageConsumerFeatureConfiguration implements IPreparedChannelFeature
@@ -962,7 +1052,21 @@ public class MessageConsumerFeature
 		{
 			return consumerRuleList;
 		}
-		
-		
+			
 	}
+	
+	public interface IPoolController
+	{
+		public void consumeMessages(String poolAddress);
+		
+		public static void consumeMessages(IDispatcherChannel<?> channel, String poolAddress)
+		{
+			IPoolController poolController =  (IPoolController)channel.getStateAdapter(ConsumeMessagesConsumerManagerAdapter.class);
+			if(poolController != null)
+			{
+				poolController.consumeMessages(poolAddress);
+			}
+		}
+	}
+	
 }

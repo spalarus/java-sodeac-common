@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -53,6 +54,8 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 	public static final String MANAGER_NAME = "Consume Messages Planner Manager";
 	public static final String SERVICE_NAME = "Consume Messages Planner Service";
 	public static final String SERVICE_ID = ConsumeMessagesPlannerManager.class.getCanonicalName() + ".Service";
+	
+	protected enum KeepMessagesMode {MessagesConsumed,MessagesProcessed,MessagesConsumedByRule,MessagesProcessedByRule};
 			
 	@Override
 	public void configureChannelManagerPolicy(IChannelManagerPolicy componentBindingPolicy)
@@ -67,7 +70,7 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 		componentBindingPolicy
 			.addConfigurationDetail(new ComponentBindingSetup.BoundedByChannelConfiguration(MATCH_FILTER).setName(SERVICE_NAME))
 			.addConfigurationDetail(new ComponentBindingSetup.ChannelServiceConfiguration(SERVICE_ID).setName(SERVICE_NAME)
-				.setPeriodicRepetitionIntervalMS(77 * 1080)
+				.setPeriodicRepetitionIntervalMS(777 * 1080)
 				.setStartDelayInMS(77));
 	}
 
@@ -157,6 +160,46 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 		private List<MessageMonitoringPool> monitoringPoolList = null;
 		private volatile long currentReschedule = 0L;
 		private IDispatcherChannel<Object> channel = null;
+		private volatile boolean disposed = false;
+		
+		protected void removeConsumeMessageFlag(UUID poolId, UUID flag)
+		{
+			if(poolId == null)
+			{
+				return;
+			}
+			
+			if(flag == null)
+			{
+				return;
+			}
+			
+			Lock lock = this.lock;
+			lock.lock();
+			try
+			{
+				if(disposed) {return;}
+				
+				for(MessageMonitoringPool messageMonitoringPool : monitoringPoolList)
+				{
+					if(! poolId.equals(messageMonitoringPool.id))
+					{
+						continue;
+					}
+					
+					if(! flag.equals(messageMonitoringPool.consumeMessageId))
+					{
+						continue;
+					}
+					
+					messageMonitoringPool.consumeMessageId = null;
+				}
+			}
+			finally 
+			{
+				lock.unlock();
+			}
+		}
 		
 		protected ConsumableState getConsumableState(boolean requireMessageList)
 		{
@@ -164,6 +207,8 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 			lock.lock();
 			try
 			{
+				if(disposed) {return null;}
+				
 				for(MessageMonitoringPool messageMonitoringPool : monitoringPoolList)
 				{
 					ConsumableState consumableState = messageMonitoringPool.getConsumableState(requireMessageList);
@@ -191,6 +236,8 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 			lock.lock();
 			try
 			{
+				if(disposed) {return;}
+				
 				Long minTimestamp = 0L;
 				boolean signal = false;
 				for(MessageMonitoringPool messageMonitoringPool : monitoringPoolList)
@@ -248,6 +295,8 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 			lock.lock();
 			try
 			{
+				if(disposed) {return false;}
+				
 				boolean consume = false;
 				Long minTimestamp = 0L;
 				for(MessageMonitoringPool messageMonitoringPool : monitoringPoolList)
@@ -299,6 +348,8 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 			lock.lock();
 			try
 			{
+				if(disposed) {return;}
+				
 				for(MessageMonitoringPool messageMonitoringPool : monitoringPoolList)
 				{
 					messageMonitoringPool.addToMonitoring(message);
@@ -316,6 +367,8 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 			lock.lock();
 			try
 			{
+				if(disposed) {return;}
+				
 				for(MessageMonitoringPool messageMonitoringPool : monitoringPoolList)
 				{
 					for(IMessage<Object> message : snapshot)
@@ -336,6 +389,8 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 			lock.lock();
 			try
 			{
+				if(disposed) {return;}
+				
 				for(MessageMonitoringPool messageMonitoringPool : monitoringPoolList)
 				{
 					messageList.forEach(m -> messageMonitoringPool.addToMonitoring(m));
@@ -347,29 +402,14 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 			}
 		}
 		
-		/*protected void removeFromMonitoring(IMessage<Object> message)
-		{
-			Lock lock = this.lock;
-			lock.lock();
-			try
-			{
-				for(MessageMonitoringPool messageMonitoringPool : monitoringPoolList)
-				{
-					messageMonitoringPool.removeFromMonitoring(message);
-				}
-			}
-			finally 
-			{
-				lock.unlock();
-			}
-		}*/
-		
 		protected void removeRemovedMessages()
 		{
 			Lock lock = this.lock;
 			lock.lock();
 			try
 			{
+				if(disposed) {return;}
+				
 				for(MessageMonitoringPool messageMonitoringPool : monitoringPoolList)
 				{
 					messageMonitoringPool.removeRemovedMessages();
@@ -387,6 +427,8 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 			lock.lock();
 			try
 			{
+				if(disposed) {return;}
+				
 				for(MessageMonitoringPool messageMonitoringPool : monitoringPoolList)
 				{
 					messageMonitoringPool.setConsumeTimestamp(timestamp, members);
@@ -398,13 +440,79 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 			}
 		}
 		
+		protected boolean consumeMessages(String poolAddress) 
+		{
+			boolean match = false;
+			Lock lock = this.lock;
+			lock.lock();
+			try
+			{
+				if(disposed) {return false;}
+				
+				for(MessageMonitoringPool messageMonitoringPool : monitoringPoolList)
+				{
+					if(poolAddress.equals(messageMonitoringPool.consumerRule.getPoolAddress()))
+					{
+						messageMonitoringPool.consumeMessageId = UUID.randomUUID();
+						match = true;
+					}
+				}
+			}
+			finally 
+			{
+				lock.unlock();
+			}
+			
+			return match;
+		}
+		
+		protected void updateKeepMessagesState(UUID poolId)
+		{
+			Lock lock = this.lock;
+			lock.lock();
+			try
+			{
+				if(disposed) {return;}
+				
+				for(MessageMonitoringPool messageMonitoringPool : monitoringPoolList)
+				{
+					if(messageMonitoringPool.id.equals(poolId))
+					{
+						messageMonitoringPool.resetCache();
+					}
+					else if(messageMonitoringPool.keepMessagesMode == KeepMessagesMode.MessagesConsumed)
+					{
+						messageMonitoringPool.resetCache();
+					}
+					else if(messageMonitoringPool.keepMessagesMode == KeepMessagesMode.MessagesProcessed)
+					{
+						messageMonitoringPool.resetCache();
+					}
+				}
+			}
+			finally 
+			{
+				lock.unlock();
+			}
+		}
+		
 		protected class ConsumableState
 		{
+			public ConsumableState(UUID poolId) 
+			{
+				super();
+				this.poolId = poolId;
+			}
+			
 			private boolean consumable = false;
 			private Long fatefulTime = null;
 			private LinkedList<IMessage<Object>> consumableList = null;
 			private ConsumerRule consumerRule = null;
+			private UUID poolId = null;
 			private MessageConsumeHelperImpl messageConsumeHelperImpl = null;
+			private KeepMessagesMode keepMessagesMode = null;
+			private UUID consumeMessageId = null;
+			
 			
 			protected boolean isConsumable()
 			{
@@ -422,21 +530,36 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 			{
 				return consumerRule;
 			}
-			public MessageConsumeHelperImpl getMessageConsumeHelperImpl()
+			protected MessageConsumeHelperImpl getMessageConsumeHelperImpl()
 			{
 				return messageConsumeHelperImpl;
 			}
-			public void setMessageConsumeHelperImpl(MessageConsumeHelperImpl messageConsumeHelperImpl)
+			protected void setMessageConsumeHelperImpl(MessageConsumeHelperImpl messageConsumeHelperImpl)
 			{
 				this.messageConsumeHelperImpl = messageConsumeHelperImpl;
 			}
 			
-			public void dispose()
+			protected UUID getPoolId()
+			{
+				return this.poolId;
+			}
+			protected KeepMessagesMode getKeepMessagesMode() 
+			{
+				return keepMessagesMode;
+			}
+			protected UUID getConsumeMessageId() 
+			{
+				return consumeMessageId;
+			}
+			protected void dispose()
 			{
 				this.fatefulTime = null;
 				this.consumableList = null;
 				this.consumerRule = null;
 				this.messageConsumeHelperImpl = null;
+				this.poolId = null;
+				this.keepMessagesMode = null;
+				this.consumeMessageId = null;
 			}
 		}
 		
@@ -445,6 +568,7 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 			public MessageMonitoringPool(ConsumerRule consumerRule, IDispatcherChannel<Object> channel)
 			{
 				super();
+				this.id = UUID.randomUUID();
 				this.messageBufferList = new LinkedList<>();
 				this.messageMonitoringList = new LinkedList<>();
 				this.consumerRule = consumerRule;
@@ -492,6 +616,32 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 				{
 					this.messageAgeSensible = false;
 				}
+				
+				if(consumerRule.isKeepMessages())
+				{
+					// MessageConsumerFeature.KEEP_MESSAGE_MODE_MESSAGES_CONSUMED = 1;
+					// MessageConsumerFeature.KEEP_MESSAGE_MODE_MESSAGES_PROCESSED = 2;
+					// MessageConsumerFeature.KEEP_MESSAGE_MODE_MESSAGES_CONSUMED_BY_RULE = 3;
+					// MessageConsumerFeature.KEEP_MESSAGE_MODE_MESSAGES_PROCESSED_BY_RULE = 4;
+					
+					if(consumerRule.getKeepMessagesMode() == 1)
+					{
+						this.keepMessagesMode = KeepMessagesMode.MessagesConsumed;
+					}
+					else if(consumerRule.getKeepMessagesMode() == 2)
+					{
+						this.keepMessagesMode = KeepMessagesMode.MessagesProcessed;
+					}
+					else if(consumerRule.getKeepMessagesMode() == 3)
+					{
+						this.keepMessagesMode = KeepMessagesMode.MessagesConsumedByRule;
+					}
+					else if(consumerRule.getKeepMessagesMode() == 4)
+					{
+						this.keepMessagesMode = KeepMessagesMode.MessagesProcessedByRule;
+					}
+				}
+				
 			}
 			
 			private LinkedList<IMessage<Object>> messageBufferList = null;
@@ -510,6 +660,10 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 			private volatile Boolean consumable = null;
 			private volatile Long fatefulTime = null;
 			private int currentConsumableCountByAge = 0;
+			private KeepMessagesMode keepMessagesMode = null;
+			private volatile UUID consumeMessageId = null;
+			
+			private UUID id = null;
 			
 			/**
 			 * 
@@ -521,6 +675,12 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 				if((consumable != null) && consumable.booleanValue())
 				{
 					// cached state: is consumable now;
+					return now;
+				}
+				
+				if(this.consumeMessageId != null)
+				{
+					// consume on demand
 					return now;
 				}
 				
@@ -556,6 +716,74 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 					// wait for more messages
 					fatefulTime = null;
 					return -1;
+				}
+				
+				if(keepMessagesMode != null)
+				{
+					int max = consumerRule.getPoolMaxSize();
+					ListIterator<IMessage<Object>> itr = this.messageMonitoringList.listIterator();
+					boolean unDone = false;
+					
+					if(keepMessagesMode == KeepMessagesMode.MessagesConsumed)
+					{
+						while((max > 0) && itr.hasNext())
+						{
+							max--;
+							IMessage<Object> message = itr.next();
+							if(! message.isConsumed())
+							{
+								unDone = true;
+								break;
+							}
+						}
+					}
+					else if(keepMessagesMode == KeepMessagesMode.MessagesProcessed)
+					{
+						while((max > 0) && itr.hasNext())
+						{
+							max--;
+							IMessage<Object> message = itr.next();
+							if(! message.isProcessed())
+							{
+								unDone = true;
+								break;
+							}
+						}
+					}
+					else if(keepMessagesMode == KeepMessagesMode.MessagesConsumedByRule)
+					{
+						while((max > 0) && itr.hasNext())
+						{
+							max--;
+							IMessage<Object> message = itr.next();
+							if(! MessageConsumeHelperImpl.isConsumedByConfig(this.keepMessagesMode, message, this.id))
+							{
+								unDone = true;
+								break;
+							}
+						}
+					}
+					else if(keepMessagesMode == KeepMessagesMode.MessagesProcessedByRule)
+					{
+						while((max > 0) && itr.hasNext())
+						{
+							max--;
+							IMessage<Object> message = itr.next();
+							if(! MessageConsumeHelperImpl.isProcessedByConfig(this.keepMessagesMode, message, this.id))
+							{
+								unDone = true;
+								break;
+							}
+						}
+					}
+					
+					if(! unDone)
+					{
+						// prevent to consume same messages over and over again
+						
+						fatefulTime = null;
+						return -1;
+					}
 				}
 				
 				if((! messageAgeSensible) || (requiredConsumableCountByAge <= currentConsumableCountByAge))
@@ -626,7 +854,9 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 			
 			private ConsumableState getConsumableState(boolean requireMessageList)
 			{
-				ConsumableState consumableState = new ConsumableState();
+				ConsumableState consumableState = new ConsumableState(this.id);
+				consumableState.keepMessagesMode = this.keepMessagesMode;
+				consumableState.consumeMessageId = this.consumeMessageId;
 
 				long fatefullTimestamp = calculateFatefulTime();
 				if(fatefullTimestamp == -1)
@@ -640,17 +870,19 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 				consumableState.consumable = consumable;
 				consumableState.fatefulTime = fatefulTime;
 				
-				if(consumable)
+				if(consumable || (consumableState.consumeMessageId != null))
 				{
 					consumableState.consumerRule = consumerRule;
 				}
 				
 				if(requireMessageList)
 				{
-					if(consumable)
+					if(consumableState.consumeMessageId != null) // consume on demand
 					{
-						// TODO static cached unmodifiable list, if list is empty 
-						
+						consumableState.consumableList = new LinkedList<>(this.messageMonitoringList);
+					}
+					else if(consumable) // consume by rule
+					{
 						consumableState.consumableList = new LinkedList<>();
 						
 						ListIterator<IMessage<Object>> itr = this.messageMonitoringList.listIterator(this.messageMonitoringList.size());
@@ -946,50 +1178,6 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 				}
 			}
 			
-			
-			/*private void removeFromMonitoring(IMessage<Object> message)
-			{
-				if(message == null)
-				{
-					return;
-				}
-				
-				if(consumerRule.getPoolMaxSize() < 1)
-				{
-					return;
-				}
-				
-				ListIterator<IMessage<Object>> itr = messageBufferList.listIterator();
-				while(itr.hasNext())
-				{
-					if(itr.next() == message)
-					{
-						itr.remove();
-					}
-				}
-				itr = null;
-				
-				boolean reset = false;
-				itr = messageMonitoringList.listIterator();
-				while(itr.hasNext())
-				{
-					if(itr.next() == message)
-					{
-						itr.remove();
-						reset = true;
-					}
-				}
-				if(reset)
-				{
-					while((! messageBufferList.isEmpty()) && (messageMonitoringList.size() < consumerRule.getPoolMaxSize()))
-					{
-						messageMonitoringList.addFirst(messageBufferList.removeLast());
-					}
-					
-					this.resetCache();
-				}
-			}*/
-			
 			private void removeRemovedMessages()
 			{
 				ListIterator<IMessage<Object>> itr = messageBufferList.listIterator();
@@ -1023,12 +1211,68 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 				}
 			}
 			
+			private void dispose()
+			{
+				if(this.messageBufferList != null)
+				{
+					try
+					{
+						this.messageBufferList.clear();
+					}
+					catch (Exception | Error e) {}
+					this.messageBufferList = null;
+				}
+				if(this.messageMonitoringList != null)
+				{
+					try
+					{
+						this.messageMonitoringList.clear();
+					}
+					catch (Exception | Error e) {}
+					this.messageMonitoringList = null;
+				}
+				this.consumerRule = null;
+				this.messageChannel = null;
+				
+				this.consumable = null;
+				this.fatefulTime = null;
+				this.keepMessagesMode = null;
+				
+				this.id = null;
+			}
 			
+		}
+		
+		public UUID getId()
+		{
+			return this.getId();
 		}
 		
 		private void dispose()
 		{
-			// TODO
+			Lock lock = this.lock;
+			lock.lock();
+			try
+			{
+				this.disposed = true;
+				for(MessageMonitoringPool messageMonitoringPool : monitoringPoolList)
+				{
+					messageMonitoringPool.dispose();
+				}
+				
+				try
+				{
+					monitoringPoolList.clear();
+				}
+				catch(Exception | Error e) {}
+				
+				this.monitoringPoolList = null;
+				this.channel = null;
+			}
+			finally 
+			{
+				lock.unlock();
+			}
 		}
 	}
 }

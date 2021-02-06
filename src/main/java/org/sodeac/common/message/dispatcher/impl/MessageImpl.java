@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2020 Sebastian Palarus
+ * Copyright (c) 2017, 2021 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -30,11 +30,13 @@ public class MessageImpl<T> implements IMessage<T>
 	private MessageHeader messageHeader = null;
 	
 	private volatile PropertyBlockImpl propertyBlock = null;
-	private DequeNode<MessageImpl<T>> node = null;
+	private volatile DequeNode<MessageImpl<T>> node = null;
 	
 	private UUID channelMessageId = null;
 	private Long channelMessageTimestamp = null;
 	private Long channelMessageSequence = null;
+	private volatile Boolean consumed = null;
+	private volatile Boolean processed = null;
 	
 	protected MessageImpl(T payload,ChannelImpl channel, MessageHeader messageHeader)
 	{
@@ -230,6 +232,8 @@ public class MessageImpl<T> implements IMessage<T>
 		this.channelMessageId = null;
 		this.channelMessageSequence = null;
 		this.channelMessageTimestamp = null;
+		this.processed =  null;
+		this.consumed = null;
 	}
 
 	@Override
@@ -242,4 +246,29 @@ public class MessageImpl<T> implements IMessage<T>
 		}
 		return ! n.isLinked();
 	}
+
+	@Override
+	public Boolean getConsumed() 
+	{
+		return consumed;
+	}
+
+	@Override
+	public void setConsumed(Boolean consumed) 
+	{
+		this.consumed = consumed;
+	}
+
+	@Override
+	public Boolean getProcessed() 
+	{
+		return processed;
+	}
+
+	@Override
+	public void setProcessed(Boolean processed) 
+	{
+		this.processed = processed;
+	}
+	
 }

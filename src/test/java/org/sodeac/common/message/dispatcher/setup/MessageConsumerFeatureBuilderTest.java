@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * Copyright (c) 2020, 2021 Sebastian Palarus
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v20.html
+ *
+ * Contributors:
+ *     Sebastian Palarus - initial API and implementation
+ *******************************************************************************/
 package org.sodeac.common.message.dispatcher.setup;
 
 import static org.junit.Assert.assertEquals;
@@ -14,7 +24,6 @@ import java.util.concurrent.TimeoutException;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
-import org.sodeac.common.message.dispatcher.setup.MessageConsumerFeature;
 import org.sodeac.common.message.dispatcher.setup.MessageConsumerFeature.ConsumerRule;
 import org.sodeac.common.message.dispatcher.setup.MessageConsumerFeature.ConsumerRule.TriggerByMessageAgeMode;
 import org.sodeac.common.message.dispatcher.setup.MessageDispatcherChannelSetup.IChannelFeature;
@@ -337,7 +346,7 @@ public class MessageConsumerFeatureBuilderTest
 		
 		feature = MessageConsumerFeature.newBuilder()
 				.consumeMessage((m,h) -> m.getChannel()).immediately()
-				.butKeepMessagesInChannel().andYesIKnowWhatThisMeans()
+				.butKeepMessagesInChannel().markConsumedMessagesAsDone().andYesIKnowWhatThisMeans()
 			.buildFeature();
 		
 		assertNotNull("object should not be  null",feature);
@@ -349,6 +358,7 @@ public class MessageConsumerFeatureBuilderTest
 		assertNull("value should be correct", consumerRule.getDefaultErrorHandler());
 		assertNull("value should be correct", consumerRule.getTimeOutHandler());
 		assertTrue("value should be correct", consumerRule.isKeepMessages());
+		assertEquals("value should be correct", 1, consumerRule.getKeepMessagesMode() == null ? 0 : consumerRule.getKeepMessagesMode().intValue());
 	}
 	
 	@Test

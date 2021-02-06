@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2020 Sebastian Palarus
+ * Copyright (c) 2020, 2021 Sebastian Palarus
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -15,6 +15,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
@@ -32,7 +33,9 @@ import org.sodeac.common.message.dispatcher.api.IOnMessageRemoveSnapshot;
 import org.sodeac.common.message.dispatcher.api.IOnMessageStoreSnapshot;
 import org.sodeac.common.message.dispatcher.api.IOnTaskTimeout;
 import org.sodeac.common.message.dispatcher.components.ConsumeMessagesPlannerManager.ConsumeMessagesPlannerManagerAdapter.ConsumableState;
+import org.sodeac.common.message.dispatcher.components.ConsumeMessagesPlannerManager.KeepMessagesMode;
 import org.sodeac.common.message.dispatcher.setup.MessageConsumerFeature.ConsumerRule;
+import org.sodeac.common.message.dispatcher.setup.MessageConsumerFeature.IPoolController;
 import org.sodeac.common.message.dispatcher.setup.MessageConsumerFeature.SpecialErrorHandlerDefinition;
 import org.sodeac.common.message.dispatcher.setup.MessageDispatcherChannelSetup.MessageConsumeHelper;
 import org.sodeac.common.misc.OSGiDriverRegistry;
@@ -69,7 +72,7 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 		componentBindingPolicy
 			.addConfigurationDetail(new ComponentBindingSetup.BoundedByChannelConfiguration(MATCH_FILTER).setName(SERVICE_NAME))
 			.addConfigurationDetail(new ComponentBindingSetup.ChannelServiceConfiguration(SERVICE_ID).setName(SERVICE_NAME)
-				.setPeriodicRepetitionIntervalMS(77 * 1080)
+				.setPeriodicRepetitionIntervalMS(777 * 1080)
 				.setStartDelayInMS(77));
 	}
 	
@@ -86,6 +89,15 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 		if(consumableState == null)
 		{
 			return;
+		}
+		
+		if((consumableState.getPoolId() != null && consumableState.getConsumeMessageId() != null))
+		{
+			ConsumeMessagesConsumerManagerAdapter consumerAdapter = taskContext.getChannel().getStateAdapter(ConsumeMessagesConsumerManagerAdapter.class);
+			if(consumerAdapter != null)
+			{
+				consumerAdapter.removeConsumeMessageFlag(consumableState.getPoolId(),consumableState.getConsumeMessageId());
+			}
 		}
 		
 		// TODO Recycle-Concept for consumableState
@@ -105,6 +117,13 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 			messageConsumeHelper.channel = taskContext.getChannel();
 			messageConsumeHelper.helper = null;
 			messageConsumeHelper.taskContext = taskContext;
+			messageConsumeHelper.poolId = consumableState.getPoolId();
+			
+			if(! consumableState.getConsumerRule().isKeepMessages())
+			{
+				messageConsumeHelper.keepMessageMode = consumableState.getKeepMessagesMode();
+			}
+			
 			consumableState.setMessageConsumeHelperImpl(messageConsumeHelper);
 			
 			if(messageConsumeHelper.messageList.isEmpty())
@@ -133,45 +152,133 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 				int index = 0;
 				int lastIndex = messageConsumeHelper.messageList.size() -1;
 				
-				for(IMessage<Object> message : messageConsumeHelper.messageList)
+				boolean keepMessagesUpdateState = false;
+				
+				try
 				{
-					
-					messageConsumeHelper.firstMessage = index == 0;
-					messageConsumeHelper.lastMessage = index == lastIndex;
-					messageConsumeHelper.message = message;
-					
-					try
+					for(IMessage<Object> message : messageConsumeHelper.messageList)
 					{
-						taskContext.heartbeat();
+						
+						messageConsumeHelper.firstMessage = index == 0;
+						messageConsumeHelper.lastMessage = index == lastIndex;
+						messageConsumeHelper.message = message;
+						
+						boolean checkDone = false;
 						
 						try
 						{
-							consumableState.getConsumerRule().getMessageConsumer().accept(message, messageConsumeHelper);
-						}
-						finally 
-						{
-							if(! consumableState.getConsumerRule().isKeepMessages())
+							taskContext.heartbeat();
+							
+							
+							if(consumableState.getConsumerRule().isKeepMessages())
 							{
-								message.removeFromChannel();
+								if(messageConsumeHelper.keepMessageMode == KeepMessagesMode.MessagesConsumed)
+								{
+									checkDone = ! message.isConsumed();
+								}
+								else if(messageConsumeHelper.keepMessageMode == KeepMessagesMode.MessagesProcessed)
+								{
+									checkDone = ! message.isProcessed();
+								}
+								else if(messageConsumeHelper.keepMessageMode == KeepMessagesMode.MessagesConsumedByRule)
+								{
+									checkDone = ! MessageConsumeHelperImpl.isConsumedByConfig(messageConsumeHelper.keepMessageMode, message, messageConsumeHelper.poolId);
+								}
+								else if(messageConsumeHelper.keepMessageMode == KeepMessagesMode.MessagesProcessedByRule)
+								{
+									checkDone = ! MessageConsumeHelperImpl.isProcessedByConfig(messageConsumeHelper.keepMessageMode, message, messageConsumeHelper.poolId);
+								}
+							}
+							
+							try
+							{
+								consumableState.getConsumerRule().getMessageConsumer().accept(message, messageConsumeHelper);
+							}
+							finally 
+							{
+								
+								try
+								{
+									if(consumableState.getConsumerRule().isKeepMessages())
+									{
+										if(checkDone)
+										{
+											if(messageConsumeHelper.keepMessageMode == KeepMessagesMode.MessagesConsumed)
+											{
+												keepMessagesUpdateState = true;
+											}
+											else if(messageConsumeHelper.keepMessageMode == KeepMessagesMode.MessagesProcessed)
+											{
+												if(message.isProcessed())
+												{
+													keepMessagesUpdateState = true;
+												}
+											}
+											else if(messageConsumeHelper.keepMessageMode == KeepMessagesMode.MessagesConsumedByRule)
+											{
+												keepMessagesUpdateState = true;
+											}
+											else if(messageConsumeHelper.keepMessageMode == KeepMessagesMode.MessagesProcessedByRule)
+											{
+												if(MessageConsumeHelperImpl.isProcessedByConfig(messageConsumeHelper.keepMessageMode, message, messageConsumeHelper.poolId))
+												{
+													keepMessagesUpdateState = true;
+												}
+											}
+										}
+									}
+									else
+									{
+										message.removeFromChannel();
+									}
+								}
+								catch (Exception | Error e) {}
+								
+								try
+								{
+									message.setConsumed(true);
+									if(messageConsumeHelper.keepMessageMode == KeepMessagesMode.MessagesConsumedByRule)
+									{
+										MessageConsumeHelperImpl.setConsumedByConfig(messageConsumeHelper.keepMessageMode, message, messageConsumeHelper.poolId);
+									}
+								}
+								catch (Exception | Error e) {}
 							}
 						}
-					}
-					catch (Exception | Error e) 
-					{
-						try
+						catch (Exception | Error e) 
 						{
-							handleError(e, consumableState.getConsumerRule(), messageConsumeHelper);
+							try
+							{
+								handleError(e, consumableState.getConsumerRule(), messageConsumeHelper);
+							}
+							catch (Exception | Error e2) {}
 						}
-						catch (Exception | Error e2) {}
-					}
-					
-					index++;
-					
-					if(taskContext.getTaskControl().isInTimeout())
-					{
-						return;
+						
+						index++;
+						
+						if(taskContext.getTaskControl().isInTimeout())
+						{
+							return;
+						}
 					}
 				}
+				finally 
+				{
+					if(keepMessagesUpdateState)
+					{
+						ConsumeMessagesConsumerManagerAdapter consumerAdapter = taskContext.getChannel().getStateAdapter(ConsumeMessagesConsumerManagerAdapter.class);
+						if(consumerAdapter != null)
+						{
+							consumerAdapter.updateKeepMessagesState(messageConsumeHelper.poolId);
+						}
+					}
+				}
+				
+				try
+				{
+					messageConsumeHelper.messageList.clear();
+				}
+				catch (Exception | Error e) {}
 			}
 			
 			// TODO clear list && cache messageConsumeHandler
@@ -301,7 +408,7 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 		}
 	}
 
-	protected static class ConsumeMessagesConsumerManagerAdapter
+	public static class ConsumeMessagesConsumerManagerAdapter implements IPoolController
 	{
 		protected ConsumeMessagesConsumerManagerAdapter(IDispatcherChannel<Object> channel)
 		{
@@ -347,23 +454,6 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 			return null;
 		}
 		
-		/*protected void reschedulePlanner()
-		{
-			Lock lock = this.readLock;
-			lock.lock();
-			try
-			{
-				for(ConsumeMessagesPlannerManager.ConsumeMessagesPlannerManagerAdapter planner : plannerList)
-				{
-					planner.checkConsumeOrReschedule();
-				}
-			}
-			finally 
-			{
-				lock.unlock();
-			}
-		}*/
-		
 		protected void setConsumeTimestamp(long timestamp, Set<String> members)
 		{
 			if(members == null)
@@ -377,6 +467,23 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 				for(ConsumeMessagesPlannerManager.ConsumeMessagesPlannerManagerAdapter planner : plannerList)
 				{
 					planner.setConsumeTimestamp(timestamp,members);
+				}
+			}
+			finally 
+			{
+				lock.unlock();
+			}
+		}
+		
+		protected void updateKeepMessagesState(UUID poolId)
+		{
+			Lock lock = this.readLock;
+			lock.lock();
+			try
+			{
+				for(ConsumeMessagesPlannerManager.ConsumeMessagesPlannerManagerAdapter planner : plannerList)
+				{
+					planner.updateKeepMessagesState(poolId);
 				}
 			}
 			finally 
@@ -496,9 +603,60 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 				lock.unlock();
 			}
 		}
+		
+		protected void removeConsumeMessageFlag(UUID poolId, UUID flag)
+		{
+			Lock lock = this.readLock;
+			lock.lock();
+			try
+			{
+				for(ConsumeMessagesPlannerManager.ConsumeMessagesPlannerManagerAdapter planner : plannerList)
+				{
+					planner.removeConsumeMessageFlag(poolId, flag);
+				}
+			}
+			finally 
+			{
+				lock.unlock();
+			}
+		}
+
+		@Override
+		public void consumeMessages(String poolAddress) 
+		{
+			if(poolAddress == null)
+			{
+				return;
+			}
+			
+			boolean signal = false;
+			
+			Lock lock = this.readLock;
+			lock.lock();
+			try
+			{
+				for(ConsumeMessagesPlannerManager.ConsumeMessagesPlannerManagerAdapter planner : plannerList)
+				{
+					if(planner.consumeMessages(poolAddress))
+					{
+						signal = true;
+					}
+				}
+			}
+			finally 
+			{
+				lock.unlock();
+			}
+			
+			if(signal)
+			{
+				channel.signal(SIGNAL_CONSUME);
+			}
+			
+		}
 	}
 	
-	public class MessageConsumeHelperImpl implements MessageConsumeHelper<Object, Object>
+	protected static class MessageConsumeHelperImpl implements MessageConsumeHelper<Object, Object>
 	{
 		private boolean firstMessage = false;
 		private boolean lastMessage = false;
@@ -507,6 +665,8 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 		private IDispatcherChannel<Object> channel = null;
 		private Object helper = null;
 		private IDispatcherChannelTaskContext<Object> taskContext = null;
+		private KeepMessagesMode keepMessageMode = null;
+		private UUID poolId = null;
 		
 		@Override
 		public boolean isFirstMessage()
@@ -572,6 +732,100 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 		public boolean isInTimeout()
 		{
 			return taskContext.getTaskControl().isInTimeout();
+		}
+
+		@Override
+		public boolean isProcessed() 
+		{
+			return isProcessedByConfig(this.keepMessageMode, this.message, this.poolId);
+		}
+
+		@Override
+		public void setProcessed() 
+		{
+			setProcessedByConfig(this.keepMessageMode, this.message, this.poolId);
+		}
+		
+		protected static boolean isConsumedByConfig(KeepMessagesMode keepMessageMode, IMessage<?> message, UUID poolId)
+		{
+			if(keepMessageMode == KeepMessagesMode.MessagesConsumedByRule)
+			{
+				if(poolId == null)
+				{
+					return false;
+				}
+				
+				Object value = message.getProperty("CONSUMED_BY_RULE_" + poolId.toString());
+				
+				if(value instanceof Boolean)
+				{
+					return false;
+				}
+				
+				return ((Boolean)value).booleanValue();
+			}
+			
+			return message.isConsumed();
+		}
+		
+		protected static boolean setConsumedByConfig(KeepMessagesMode keepMessageMode, IMessage<?> message, UUID poolId)
+		{
+			boolean previews = isConsumedByConfig(keepMessageMode, message, poolId);
+			
+			if(keepMessageMode == KeepMessagesMode.MessagesConsumedByRule)
+			{
+				if(poolId == null)
+				{
+					return previews;
+				}
+				
+				message.setProperty("CONSUMED_BY_RULE_" + poolId.toString(),Boolean.TRUE);
+			}
+			
+			message.setConsumed(Boolean.TRUE);
+			
+			return previews;
+		}
+		
+		protected static boolean isProcessedByConfig(KeepMessagesMode keepMessageMode, IMessage<?> message, UUID poolId)
+		{
+			if(keepMessageMode == KeepMessagesMode.MessagesProcessedByRule)
+			{
+				if(poolId == null)
+				{
+					return false;
+				}
+				
+				Object value = message.getProperty("PROCESSED_BY_RULE_" + poolId.toString());
+				
+				if(value instanceof Boolean)
+				{
+					return false;
+				}
+				
+				return ((Boolean)value).booleanValue();
+			}
+			
+			return message.isProcessed();
+		}
+		
+		protected static boolean setProcessedByConfig(KeepMessagesMode keepMessageMode, IMessage<?> message, UUID poolId)
+		{
+			boolean previews = isProcessedByConfig(keepMessageMode, message, poolId);
+			
+			if(keepMessageMode == KeepMessagesMode.MessagesProcessedByRule)
+			{
+				if(poolId == null)
+				{
+					return previews;
+				}
+				
+				message.setProperty("PROCESSED_BY_RULE_" + poolId.toString(),Boolean.TRUE);
+			}
+			
+			message.setProcessed(Boolean.TRUE);
+			
+			return previews;
 		}
 		
 	}
