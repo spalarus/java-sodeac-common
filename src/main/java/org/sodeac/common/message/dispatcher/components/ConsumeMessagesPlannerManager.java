@@ -216,7 +216,7 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 					{
 						continue;
 					}
-					if(! consumableState.isConsumable())
+					if(! (consumableState.isConsumable() || (consumableState.consumeMessageId != null)))
 					{
 						continue;
 					}
@@ -642,6 +642,11 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 					}
 				}
 				
+				if(consumerRule.isConsumeEventAgeTriggerNeverMode())
+				{
+					lastConsumeEvent = 1L;
+				}
+				
 			}
 			
 			private LinkedList<IMessage<Object>> messageBufferList = null;
@@ -697,7 +702,7 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 				
 				if(consumeAgeSensible)
 				{
-					if( lastConsumeEvent == 0 && (! consumerRule.isConsumeEventAgeTriggerNeverMode()))
+					if( lastConsumeEvent == 0 )
 					{
 						return -1;
 					}
@@ -718,7 +723,7 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 					return -1;
 				}
 				
-				if(keepMessagesMode != null)
+				if((keepMessagesMode != null) && (! consumeAgeSensible))
 				{
 					int max = consumerRule.getPoolMaxSize();
 					ListIterator<IMessage<Object>> itr = this.messageMonitoringList.listIterator();
@@ -930,9 +935,12 @@ public class ConsumeMessagesPlannerManager implements IDispatcherChannelSystemMa
 					return;
 				}
 				Objects.requireNonNull(members, "group members is null");
-				if(! members.contains(this.consumerRule.getConsumeEventAgeTriggerGroup()))
+				if(this.consumerRule.getConsumeEventAgeTriggerGroup() != null)
 				{
-					return;
+					if(! members.contains(this.consumerRule.getConsumeEventAgeTriggerGroup()))
+					{
+						return;
+					}
 				}
 				this.lastConsumeEvent = timestamp;
 				resetCache();

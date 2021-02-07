@@ -20,6 +20,8 @@ import static org.junit.Assert.assertTrue;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -540,6 +542,8 @@ public class MessageConsumerFeatureTest
 		Thread.sleep(1000);
 		
 		assertEquals("value should be correct", 0, counter.get() );
+		
+		channelReference.close();
 	}
 	
 	@Test
@@ -621,10 +625,174 @@ public class MessageConsumerFeatureTest
 		assertNull("channel should be null", IMessageDispatcherManager.get().getOrCreateDispatcher(DispatcherTest.TEST_DISPATCHER_ID).getChannel(channelID));
 	}
 	
+	@Test
+	public void test10100ConsumeOnDemand() throws InterruptedException, IOException
+	{
+		String channelID = getClass().getCanonicalName() + "." + currentMethodeName();
+		
+		AtomicLong counter = new AtomicLong(0);
+		IDispatcherChannelReference channelReference = MessageDispatcherChannelSetup.create().addFeature
+		(
+			MessageConsumerFeature.newBuilder()
+				.inMessageMonitoringPool().minPoolSize(10)
+				.consumeMessage(ExceptionCatchedBiConsumer.wrap( (m,h) -> counter.incrementAndGet()))
+				.immediately()
+				.definePoolAddress("POOL1")
+			.buildFeature()
+		)
+		.preparedBuilder().inManagedDispatcher(DispatcherTest.TEST_DISPATCHER_ID).buildChannelWithId(channelID);
+		
+		IDispatcherChannel<Long> channel = channelReference.getChannel(Long.class);
+		
+		channel.sendMessage(1L);
+		channel.sendMessage(2L);
+		channel.sendMessage(3L);
+		channel.sendMessage(4L);
+		channel.sendMessage(5L);
+		channel.sendMessage(6L);
+		channel.sendMessage(7L);
+		
+		Thread.sleep(1000L);
+		
+		assertEquals("value should be correct", 0L, counter.get());
+		
+		MessageConsumerFeature.IPoolController.consumeMessages(channel, "POOLA");
+		
+		Thread.sleep(1000L);
+		
+		assertEquals("value should be correct", 0L, counter.get());
+		
+		MessageConsumerFeature.IPoolController.consumeMessages(channel, "POOL1");
+		
+		Thread.sleep(1000L);
+		
+		assertEquals("value should be correct", 7L, counter.get());
+		
+		channelReference.close();
+		
+	}
+	
+	@Test
+	public void test10201KeepMessages() throws InterruptedException, IOException
+	{
+		String channelID = getClass().getCanonicalName() + "." + currentMethodeName();
+		
+		Set<Long> payloadSet = new HashSet<>();
+		Set<Long> heartbeatSet = new HashSet<>();
+		
+		AtomicLong countPayload = new AtomicLong(0L);
+		AtomicLong countHeartbeat = new AtomicLong(0L);
+		
+		BiConsumer<IMessage<Long>, MessageConsumeHelper<Long, Object>> payloadConsumer = (n,h) -> 
+		{
+			countPayload.incrementAndGet();
+			payloadSet.add(n.getPayload());
+			
+		};
+		BiConsumer<IMessage<Long>, MessageConsumeHelper<Long, Object>> heartbeatConsumer = (n,h) -> 
+		{
+			countHeartbeat.incrementAndGet();
+			if(n != null)
+			{
+				heartbeatSet.add(n.getPayload());
+			}
+			
+		};
+		
+		IDispatcherChannelReference channelReference = MessageDispatcherChannelSetup.create()
+		.addFeature
+		(
+			MessageConsumerFeature.newBuilder()
+				.inMessageMonitoringPool().useReplaceOlderMessageFilter((m,p) -> p.getPayload().equals(m.getPayload()),Long.class)
+				.consumeMessage(payloadConsumer).memberOfGroup("consume")
+				.immediately()
+				.butKeepMessagesInChannel().markConsumedMessagesAsDone().andYesIKnowWhatThisMeans()
+			.or()
+				.inMessageMonitoringPool().useReplaceOlderMessageFilter((m,p) -> p.getPayload().equals(m.getPayload()),Long.class).minPoolSize(0)
+				.consumeMessage(heartbeatConsumer).memberOfGroup("consume")
+				.notBeforeTheConsumeEvent().ofGroup("consume").eitherTookPlaceNeverOrTookPlace(2).secondsAgo()
+				.butKeepMessagesInChannel().markConsumedMessagesAsDone().andYesIKnowWhatThisMeans()
+			.buildFeature()						
+		)
+		.preparedBuilder().inManagedDispatcher(DispatcherTest.TEST_DISPATCHER_ID).buildChannelWithId(channelID);
+		
+		IDispatcherChannel<Long> channel = channelReference.getChannel(Long.class);
+		assertNotNull("channel should not be null", channel);
+		assertSame("value should be same", channel, IMessageDispatcherManager.get().getOrCreateDispatcher(DispatcherTest.TEST_DISPATCHER_ID).getChannel(channelID));
+		
+		Thread.sleep(1000);
+		
+		assertEquals("value should be correct" ,0L, countPayload.longValue());
+		assertEquals("value should be correct" ,1L, countHeartbeat.longValue());
+		
+		Thread.sleep(2000);
+		
+		assertEquals("value should be correct" ,0L, countPayload.longValue());
+		assertEquals("value should be correct" ,2L, countHeartbeat.longValue());
+		
+		channel.sendMessage(1L);
+		
+		Thread.sleep(1000);
+		
+		assertEquals("value should be correct" ,1L, countPayload.longValue());
+		assertEquals("value should be correct" ,2L, countHeartbeat.longValue());
+		assertEquals("value should be correct" ,1, payloadSet.size());
+		assertEquals("value should be correct" ,0, heartbeatSet.size());
+		
+		Thread.sleep(2000);
+		
+		assertEquals("value should be correct" ,1L, countPayload.longValue());
+		assertEquals("value should be correct" ,3L, countHeartbeat.longValue());
+		assertEquals("value should be correct" ,1, payloadSet.size());
+		assertEquals("value should be correct" ,1, heartbeatSet.size());
+		
+		payloadSet.clear();
+		heartbeatSet.clear();
+		
+		channel.sendMessage(2L);
+		
+		Thread.sleep(1000);
+		
+		assertEquals("value should be correct" ,3L, countPayload.longValue());
+		assertEquals("value should be correct" ,3L, countHeartbeat.longValue());
+		assertEquals("value should be correct" ,2, payloadSet.size());
+		assertEquals("value should be correct" ,0, heartbeatSet.size());
+		
+		Thread.sleep(2000);
+		
+		assertEquals("value should be correct" ,3L, countPayload.longValue());
+		assertEquals("value should be correct" ,5L, countHeartbeat.longValue());
+		assertEquals("value should be correct" ,2, payloadSet.size());
+		assertEquals("value should be correct" ,2, heartbeatSet.size());
+		
+		payloadSet.clear();
+		heartbeatSet.clear();
+		
+		channel.sendMessage(1L);
+		
+		Thread.sleep(1000);
+		
+		assertEquals("value should be correct" ,5L, countPayload.longValue());
+		assertEquals("value should be correct" ,5L, countHeartbeat.longValue());
+		assertEquals("value should be correct" ,2, payloadSet.size());
+		assertEquals("value should be correct" ,0, heartbeatSet.size());
+		
+		Thread.sleep(2000);
+		
+		assertEquals("value should be correct" ,5L, countPayload.longValue());
+		assertEquals("value should be correct" ,7L, countHeartbeat.longValue());
+		assertEquals("value should be correct" ,2, payloadSet.size());
+		assertEquals("value should be correct" ,2, heartbeatSet.size());
+		
+		channelReference.close();
+	}
+
+	
 	private String currentMethodeName()
 	{
 		StackTraceElement[] stack =Thread.currentThread().getStackTrace();
 		return stack[2].getMethodName();
 	}
-
+	
+	
 }

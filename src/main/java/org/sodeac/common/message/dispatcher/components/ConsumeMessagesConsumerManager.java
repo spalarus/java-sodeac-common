@@ -119,7 +119,7 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 			messageConsumeHelper.taskContext = taskContext;
 			messageConsumeHelper.poolId = consumableState.getPoolId();
 			
-			if(! consumableState.getConsumerRule().isKeepMessages())
+			if(consumableState.getConsumerRule().isKeepMessages())
 			{
 				messageConsumeHelper.keepMessageMode = consumableState.getKeepMessagesMode();
 			}
@@ -440,7 +440,7 @@ public class ConsumeMessagesConsumerManager implements IDispatcherChannelSystemM
 					{
 						continue;
 					}
-					if(! consumableState.isConsumable())
+					if(! (consumableState.isConsumable() || (consumableState.getConsumeMessageId() != null)))
 					{
 						continue;
 					}
